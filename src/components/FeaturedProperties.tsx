@@ -1,34 +1,34 @@
-import featuredApartment from "@/assets/featured-apartment.jpg";
-import featuredVilla from "@/assets/featured-villa.jpg";
-import featuredPenthouse from "@/assets/featured-penthouse.jpg";
-import featuredTownhouse from "@/assets/featured-townhouse.jpg";
-import featuredBeachfront from "@/assets/featured-beachfront.jpg";
+import chairFern from "@/assets/chair-fern.jpg";
+import chairZody from "@/assets/chair-zody.jpg";
+import chairSoji from "@/assets/chair-soji.jpg";
+import chairVery from "@/assets/chair-very.jpg";
+import chairBreck from "@/assets/chair-breck.jpg";
 
-const properties = [
+const chairs = [
   {
-    image: featuredApartment,
-    title: "City Apartment",
-    description: "For panoramic views and urban sophistication.",
+    image: chairFern,
+    title: "Fern",
+    description: "For best-in-class comfort that goes above and beyond.",
   },
   {
-    image: featuredVilla,
-    title: "Modern Villa",
-    description: "For resort-style living with private outdoor spaces.",
+    image: chairZody,
+    title: "Zody",
+    description: "For innovative, adaptive support that moves with you.",
   },
   {
-    image: featuredPenthouse,
-    title: "Ocean Penthouse",
-    description: "For the complete package of luxury and serenity.",
+    image: chairSoji,
+    title: "Soji",
+    description: "For the complete package of accessible ergonomics.",
   },
   {
-    image: featuredTownhouse,
-    title: "Classic Townhouse",
-    description: "For a refined aesthetic and period charm in any city.",
+    image: chairVery,
+    title: "Very",
+    description: "For a refined aesthetic and modern design in any space.",
   },
   {
-    image: featuredBeachfront,
-    title: "Beachfront Estate",
-    description: "For effortless coastal living at a premium address.",
+    image: chairBreck,
+    title: "Breck",
+    description: "For effortless ergonomic comfort at a smart price.",
   },
 ];
 
@@ -37,27 +37,27 @@ const FeaturedProperties = () => {
     <section className="py-20 bg-secondary/50">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground text-center mb-12">
-          Find the property that's meant for you.
+          Find the chair that's meant for you.
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {properties.map((property) => (
+          {chairs.map((chair) => (
             <a
-              key={property.title}
+              key={chair.title}
               href="#"
               className="group block text-center"
             >
-              <div className="aspect-[3/4] rounded-xl overflow-hidden mb-4">
+              <div className="aspect-[3/4] rounded-xl overflow-hidden mb-4 bg-muted">
                 <img
-                  src={property.image}
-                  alt={property.title}
+                  src={chair.image}
+                  alt={chair.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
-                  width={800}
-                  height={1000}
+                  width={640}
+                  height={800}
                 />
               </div>
-              <h3 className="font-semibold text-card-foreground text-base">{property.title}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{property.description}</p>
+              <h3 className="font-bold text-card-foreground text-base">{chair.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{chair.description}</p>
             </a>
           ))}
         </div>

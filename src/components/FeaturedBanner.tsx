@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
-import bannerImage from "@/assets/banner-wide.jpg";
+import bannerImage from "@/assets/banner-office.jpg";
 
 const FeaturedBanner = () => {
   return (
     <section className="relative w-full h-[500px] overflow-hidden">
       <img
         src={bannerImage}
-        alt="Aerial view of luxury residential neighborhood"
+        alt="Modern open-plan office workspace"
         className="w-full h-full object-cover"
         loading="lazy"
         width={1920}
@@ -15,12 +15,12 @@ const FeaturedBanner = () => {
       <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-xl px-4">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary-foreground">
-            Introducing Global Listings.
+            Introducing Heller.
           </h2>
           <p className="text-primary-foreground/90 text-base">
-            We're proud to bring you curated properties from across the globe — because exceptional living knows no borders.
+            We're proud to welcome Heller to the Haworth family — because modern design is serious fun.
           </p>
-          <Button size="lg" variant="outline" className="rounded-none border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground">
+          <Button size="lg" className="rounded-none px-10 bg-primary-foreground text-foreground hover:bg-primary-foreground/90">
             Shop Now
           </Button>
         </div>

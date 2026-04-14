@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import businessImage from "@/assets/business-cta.jpg";
+import businessImage from "@/assets/business-office.jpg";
 
 const BusinessCTA = () => {
   return (
@@ -11,17 +11,17 @@ const BusinessCTA = () => {
               Taking care of (your) business
             </h2>
             <p className="text-muted-foreground text-base leading-relaxed">
-              We've been helping professionals for years. As a network-driven business ourselves, 
-              we know the best ways to boost growth, build trust, and create lasting partnerships in property.
+              We've been helping businesses for over 75 years. As a private, family-owned business ourselves, 
+              we know the best ways to boost wellness, productivity, and collaboration at work.
             </p>
-            <Button size="lg" className="rounded-none px-8">
+            <Button size="lg" className="rounded-none px-8 bg-foreground text-background hover:bg-foreground/90">
               Get Started
             </Button>
           </div>
           <div className="md:w-1/2">
             <img
               src={businessImage}
-              alt="Business professionals discussing property"
+              alt="Team collaborating in modern office"
               className="rounded-xl w-full object-cover aspect-[4/3]"
               loading="lazy"
               width={960}
