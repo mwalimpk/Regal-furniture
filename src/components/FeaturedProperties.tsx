@@ -1,74 +1,72 @@
-import PropertyCard from "./PropertyCard";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ShoppingCart } from "lucide-react";
+import execDeskImg from "@/assets/product-exec-desk.jpg";
+import chairImg from "@/assets/product-exec-chair.jpg";
+import workstationImg from "@/assets/product-workstation.jpg";
+import conferenceImg from "@/assets/product-conference.jpg";
+import sofaImg from "@/assets/product-sofa.jpg";
+import standingDeskImg from "@/assets/product-standing-desk.jpg";
+import ergoChairImg from "@/assets/product-ergonomic-chair.jpg";
+import storageImg from "@/assets/product-storage.jpg";
 
-const FeaturedProperties = () => {
-  const { data: properties, isLoading } = useQuery({
-    queryKey: ["featured-properties"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      if (error) throw error;
-      return data;
-    },
-  });
+const products = [
+  { id: "1", name: "B002 Executive Desk", category: "Executive Desks", price: 1299, currency: "USD", image: execDeskImg, description: "Premium executive desk with mahogany finish and brass accents." },
+  { id: "2", name: "Lloyd Executive Chair", category: "Office Chairs", price: 599, currency: "USD", image: chairImg, description: "Luxury leather executive chair with ergonomic lumbar support." },
+  { id: "3", name: "HILO 200 Standing Desk", category: "Adjustable Desks", price: 899, currency: "USD", image: standingDeskImg, description: "Height adjustable standing desk for modern ergonomic workspaces." },
+  { id: "4", name: "Dominion 4-Seater Workstation", category: "Workstations", price: 2499, currency: "USD", image: workstationImg, description: "Shared workstation for 4 with integrated cable management." },
+  { id: "5", name: "Boat Shaped Boardroom Table", category: "Conference Tables", price: 3499, currency: "USD", image: conferenceImg, description: "Premium boardroom table seating 12 with glass center insert." },
+  { id: "6", name: "Chesterfield 3-Seater", category: "Sofas", price: 1899, currency: "USD", image: sofaImg, description: "Classic Chesterfield leather couch for executive lounges." },
+  { id: "7", name: "Active Ergonomic Chair", category: "Ergonomic Chairs", price: 449, currency: "USD", image: ergoChairImg, description: "Full mesh ergonomic swivel chair with adjustable headrest." },
+  { id: "8", name: "Metal Filing Cabinet 4-Drawer", category: "Storage", price: 349, currency: "USD", image: storageImg, description: "Heavy duty 4-drawer filing cabinet with card slots." },
+];
 
-  // Fallback demo data when no DB properties exist
-  const demoProperties = [
-    { id: "1", title: "Modern Villa in Kilimani, Nairobi", property_type: "House", price: 400000, currency: "KES", location: "Kilimani", city: "Nairobi", country: "Kenya", description: "Exceptional property in one of Nairobi's most coveted residential enclaves.", bedrooms: 3, bathrooms: 1, area_sqft: 1800, images: ["https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800"] },
-    { id: "2", title: "Grand Premier Duplex", property_type: "Apartment", price: 27000000, currency: "KES", location: "Westlands", city: "Nairobi", country: "Kenya", description: "3 bedroom Duplex for Sale at Grand-Premier with premium finishes.", bedrooms: 3, bathrooms: 2, area_sqft: 180, images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800"] },
-    { id: "3", title: "Miami Beach House", property_type: "House", price: 3200000, currency: "USD", location: "Miami Beach", city: "Miami", country: "United States", description: "Gorgeous 4-bedroom waterfront home with private dock and pool.", bedrooms: 4, bathrooms: 3, area_sqft: 4200, images: ["https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800"] },
-    { id: "4", title: "Accra East Legon Villa", property_type: "Villa", price: 950000, currency: "USD", location: "East Legon", city: "Accra", country: "Ghana", description: "Spacious 6-bedroom executive villa with swimming pool.", bedrooms: 6, bathrooms: 5, area_sqft: 7500, images: ["https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800"] },
-    { id: "5", title: "London Chelsea Townhouse", property_type: "Townhouse", price: 4800000, currency: "GBP", location: "Chelsea", city: "London", country: "United Kingdom", description: "Prestigious Georgian townhouse with period features and private garden.", bedrooms: 4, bathrooms: 3, area_sqft: 3200, images: ["https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800"] },
-    { id: "6", title: "Cape Town Sea Point Flat", property_type: "Apartment", price: 4500000, currency: "USD", location: "Sea Point", city: "Cape Town", country: "South Africa", description: "Stylish 2-bedroom flat with Atlantic Ocean views.", bedrooms: 2, bathrooms: 1, area_sqft: 950, images: ["https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800"] },
-  ];
-
-  const displayProperties = properties && properties.length > 0 ? properties : demoProperties;
-
+const FeaturedProducts = () => {
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
   };
 
   return (
-    <section className="py-20 bg-secondary/50">
+    <section id="shop" className="py-12 md:py-20 bg-secondary/50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-serif text-foreground mb-3">Featured Properties</h2>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Explore our hand-picked selection of premium properties from around the world.
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-4xl font-bold font-serif text-foreground mb-2">Featured Products</h2>
+          <p className="text-muted-foreground text-sm md:text-lg max-w-xl mx-auto">
+            Hand-picked furniture from our latest catalogue — crafted for comfort and durability.
           </p>
         </div>
-        {isLoading ? (
-          <div className="text-center text-muted-foreground">Loading properties...</div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {displayProperties.map((property: any) => (
-              <PropertyCard
-                key={property.id}
-                image={property.images?.[0] || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800"}
-                type={property.property_type}
-                price={formatPrice(property.price, property.currency)}
-                title={property.title}
-                location={`${property.location || property.city}, ${property.country}`}
-                description={property.description || ""}
-                beds={property.bedrooms}
-                baths={property.bathrooms}
-                sqft={property.area_sqft}
-              />
-            ))}
-          </div>
-        )}
-        <div className="text-center mt-10">
-          <Button variant="outline" size="lg">View More Properties →</Button>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          {products.map((product) => (
+            <div key={product.id} className="group bg-card rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-border">
+              <div className="relative overflow-hidden aspect-square">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] md:text-xs font-medium px-2 py-0.5 rounded-full">
+                  {product.category}
+                </span>
+              </div>
+              <div className="p-3 md:p-4 space-y-1">
+                <h3 className="font-serif text-sm md:text-base font-semibold text-card-foreground leading-snug line-clamp-2">{product.name}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2 hidden md:block">{product.description}</p>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-base md:text-lg font-bold text-primary">{formatPrice(product.price, product.currency)}</span>
+                  <button className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
+                    <ShoppingCart size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-center mt-8">
+          <Button variant="outline" size="lg">View All Products →</Button>
         </div>
       </div>
     </section>
   );
 };
 
-export default FeaturedProperties;
+export default FeaturedProducts;

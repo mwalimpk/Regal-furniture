@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
-import bannerImage from "@/assets/banner-wide.jpg";
+import sofaImg from "@/assets/product-sofa.jpg";
 
 const FeaturedBanner = () => {
   return (
-    <section className="relative w-full h-[500px] overflow-hidden">
+    <section className="relative w-full h-[300px] md:h-[500px] overflow-hidden">
       <img
-        src={bannerImage}
-        alt="Aerial view of luxury residential neighborhood"
+        src={sofaImg}
+        alt="Regal Chesterfield leather sofa collection"
         className="w-full h-full object-cover"
         loading="lazy"
         width={1920}
         height={800}
       />
-      <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-xl px-4">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-primary-foreground">
-            Global Property Listings
+      <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
+        <div className="text-center space-y-3 md:space-y-4 max-w-xl px-4">
+          <h2 className="text-2xl md:text-4xl font-serif font-bold text-primary-foreground">
+            New Arrivals — Home Collection
           </h2>
-          <p className="text-primary-foreground/90 text-base">
-            Curated properties from across the globe — because exceptional living knows no borders.
+          <p className="text-primary-foreground/90 text-sm md:text-base">
+            Chesterfield sofas, dining sets, and bedroom furniture — luxury for every room.
           </p>
           <Button size="lg" variant="outline" className="rounded-none border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground">
-            Explore Now
+            Explore Collection
           </Button>
         </div>
       </div>

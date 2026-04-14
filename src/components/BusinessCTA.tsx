@@ -1,25 +1,32 @@
 import { Button } from "@/components/ui/button";
-import businessImage from "@/assets/business-cta.jpg";
+import conferenceImg from "@/assets/product-conference.jpg";
 
 const BusinessCTA = () => {
   return (
-    <section className="py-20 bg-secondary/50">
+    <section className="py-12 md:py-20 bg-primary text-primary-foreground">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center gap-12 max-w-5xl mx-auto">
-          <div className="md:w-1/2 space-y-5">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
-              Taking care of (your) business
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 max-w-5xl mx-auto">
+          <div className="md:w-1/2 space-y-4 text-center md:text-left">
+            <h2 className="text-2xl md:text-4xl font-serif font-bold">
+              Corporate & Bulk Orders
             </h2>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              We've been helping professionals for years. As a network-driven business ourselves,
-              we know the best ways to boost growth, build trust, and create lasting partnerships in property.
+            <p className="text-primary-foreground/80 text-sm md:text-base leading-relaxed">
+              Furnishing an office, hotel, or institution? Regal Office & Home offers tailored corporate solutions
+              with volume discounts, project consultation, and delivery nationwide across Zimbabwe.
             </p>
-            <Button size="lg" className="px-8">Get Started</Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+              <Button size="lg" variant="secondary" className="text-primary">Request a Quote</Button>
+              <a href="tel:+2638644281361">
+                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary w-full">
+                  Call Us Now
+                </Button>
+              </a>
+            </div>
           </div>
           <div className="md:w-1/2">
             <img
-              src={businessImage}
-              alt="Business professionals discussing property"
+              src={conferenceImg}
+              alt="Regal boardroom table setup"
               className="rounded-xl w-full object-cover aspect-[4/3]"
               loading="lazy"
               width={960}

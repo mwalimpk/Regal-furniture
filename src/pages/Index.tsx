@@ -7,6 +7,7 @@ import WhyChooseUs from "@/components/WhyChooseUs";
 import BusinessCTA from "@/components/BusinessCTA";
 import PricingSection from "@/components/PricingSection";
 import Footer from "@/components/Footer";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 const Index = () => {
   return (
@@ -14,12 +15,13 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <CategoryCards />
-      <FeaturedBanner />
       <FeaturedProperties />
+      <FeaturedBanner />
       <WhyChooseUs />
       <BusinessCTA />
       <PricingSection />
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 };
