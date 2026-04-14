@@ -1,4 +1,3 @@
-import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
@@ -47,9 +46,9 @@ const FeaturedProducts = () => {
                   <span className="text-sm md:text-lg font-semibold text-foreground">{formatPrice(product.price)}</span>
                   <button
                     onClick={() => handleAdd(product)}
-                    className="w-8 h-8 border border-foreground text-foreground flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
+                    className="text-xs font-medium border border-foreground text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors"
                   >
-                    <ShoppingCart size={14} />
+                    Add
                   </button>
                 </div>
               </div>

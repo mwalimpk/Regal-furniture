@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Package, Users, MessageSquare, ShoppingCart, CheckSquare } from "lucide-react";
 
 const OverviewSection = () => {
   const { data: productCount } = useQuery({
@@ -45,11 +44,11 @@ const OverviewSection = () => {
   });
 
   const stats = [
-    { label: "Total Products", value: productCount ?? 0, sub: `${pendingCount ?? 0} pending review`, icon: Package },
-    { label: "Customers", value: "—", sub: "All registered", icon: Users },
-    { label: "Inquiries", value: inquiryCount ?? 0, sub: "Product inquiries", icon: MessageSquare },
-    { label: "Orders", value: orderCount ?? 0, sub: `${pendingCount ?? 0} pending`, icon: ShoppingCart },
-    { label: "Active Listings", value: activeCount ?? 0, sub: "Live in store", icon: CheckSquare },
+    { label: "Total Products", value: productCount ?? 0, sub: `${pendingCount ?? 0} pending review` },
+    { label: "Customers", value: "—", sub: "All registered" },
+    { label: "Inquiries", value: inquiryCount ?? 0, sub: "Product inquiries" },
+    { label: "Orders", value: orderCount ?? 0, sub: `${pendingCount ?? 0} pending` },
+    { label: "Active Listings", value: activeCount ?? 0, sub: "Live in store" },
   ];
 
   return (
@@ -59,10 +58,7 @@ const OverviewSection = () => {
         {stats.map((stat) => (
           <Card key={stat.label}>
             <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <stat.icon size={16} className="text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
+              <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
               <p className="text-3xl font-bold font-serif text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
             </CardContent>

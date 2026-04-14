@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Search, ShoppingCart, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
@@ -24,11 +23,10 @@ const Navbar = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Left: search */}
           <div className="flex items-center gap-4 w-1/3">
-            <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            <button className="md:hidden text-sm font-medium text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
+              {mobileOpen ? "Close" : "Menu"}
             </button>
             <div className="hidden md:flex items-center gap-2 border-b border-foreground/30 pb-0.5">
-              <Search size={16} className="text-muted-foreground" />
               <input type="text" placeholder="Search" className="bg-transparent text-sm outline-none w-32 placeholder:text-muted-foreground" />
             </div>
           </div>
@@ -41,19 +39,16 @@ const Navbar = () => {
           {/* Right: icons */}
           <div className="flex items-center justify-end gap-4 w-1/3">
             {user ? (
-              <Link to={isAdmin ? "/admin" : "/dashboard"} className="hidden md:block">
-                <User size={20} className="text-foreground" />
+              <Link to={isAdmin ? "/admin" : "/dashboard"} className="hidden md:block text-sm font-medium text-foreground hover:text-primary">
+                Account
               </Link>
             ) : (
-              <Link to="/auth" className="hidden md:block">
-                <User size={20} className="text-foreground" />
+              <Link to="/auth" className="hidden md:block text-sm font-medium text-foreground hover:text-primary">
+                Sign In
               </Link>
             )}
-            <button className="relative" onClick={() => setIsOpen(true)}>
-              <ShoppingCart size={20} className="text-foreground" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-primary-foreground rounded-full text-[10px] flex items-center justify-center">{itemCount}</span>
-              )}
+            <button className="relative text-sm font-medium text-foreground hover:text-primary" onClick={() => setIsOpen(true)}>
+              Cart{itemCount > 0 && <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">{itemCount}</span>}
             </button>
           </div>
         </div>
@@ -74,7 +69,6 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-background p-4 space-y-3">
           <div className="flex items-center gap-2 border-b border-border pb-3 mb-3">
-            <Search size={16} className="text-muted-foreground" />
             <input type="text" placeholder="Search products..." className="bg-transparent text-sm outline-none flex-1" />
           </div>
           {categoryNavItems.map((cat) => (
