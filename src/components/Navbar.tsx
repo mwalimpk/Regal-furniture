@@ -5,10 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
 import regalLogo from "@/assets/regal-logo.png";
-
-const categories = [
-  "SEATING", "DESKS & TABLES", "WORKSTATIONS", "CONFERENCE", "STORAGE", "SOFAS & LOUNGE", "ACCESSORIES"
-];
+import { categoryNavItems } from "@/data/categoryNav";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
