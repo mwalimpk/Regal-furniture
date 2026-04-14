@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 import regalLogo from "@/assets/regal-logo.png";
 
@@ -20,6 +21,41 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+
+  const redirectUserByRole = async (userId: string) => {
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    navigate(roleData?.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+  };
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    let cancelled = false;
+
+    const handleAuthenticatedUser = async () => {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        navigate(roleData?.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+      }
+    };
+
+    void handleAuthenticatedUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,19 +66,9 @@ const Auth = () => {
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
-        // Check role and redirect
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          if (roleData?.role === "admin") {
-            navigate("/admin");
-          } else {
-            navigate("/dashboard");
-          }
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData.user) {
+          await redirectUserByRole(authData.user.id);
         }
       }
     } else {
@@ -54,35 +80,42 @@ const Auth = () => {
           emailRedirectTo: window.location.origin,
         },
       });
+
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else if (data.user) {
-        // Assign role
         await supabase.from("user_roles").insert({
           user_id: data.user.id,
-          role: role,
+          role,
         });
         toast({ title: "Welcome!", description: "Account created successfully." });
-        if (role === "admin") {
-          navigate("/admin");
-        } else {
-          navigate("/dashboard");
-        }
+        await redirectUserByRole(data.user.id);
       }
     }
+
     setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
+
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth`,
     });
+
     if (result.error) {
-      toast({ title: "Error", description: String(result.error), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: result.error instanceof Error ? result.error.message : String(result.error),
+        variant: "destructive",
+      });
+      setLoading(false);
       return;
     }
+
     if (result.redirected) return;
-    navigate("/dashboard");
+
+    setLoading(false);
   };
 
   return (
@@ -96,9 +129,9 @@ const Auth = () => {
             {isLogin ? "Sign in to your account" : "Create a new account"}
           </p>
         </div>
+
         <div className="bg-card p-8 border border-border space-y-5">
-          {/* Google sign-in */}
-          <Button variant="outline" className="w-full gap-2" onClick={handleGoogleSignIn} type="button">
+          <Button variant="outline" className="w-full gap-2" onClick={handleGoogleSignIn} type="button" disabled={loading}>
             <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             Continue with Google
           </Button>
@@ -111,7 +144,6 @@ const Auth = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <>
-                {/* Role selection */}
                 <div>
                   <Label>I am a</Label>
                   <div className="grid grid-cols-2 gap-2 mt-1.5">
@@ -149,10 +181,12 @@ const Auth = () => {
                 </div>
               </>
             )}
+
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
+
             <div>
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -173,6 +207,7 @@ const Auth = () => {
                 </button>
               </div>
             </div>
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
