@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Search, ShoppingCart, User, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
-import regalLogo from "@/assets/regal-logo.jpg";
+import regalLogo from "@/assets/regal-logo.png";
 
 const categories = [
   "SEATING", "DESKS & TABLES", "WORKSTATIONS", "CONFERENCE", "STORAGE", "SOFAS & LOUNGE", "ACCESSORIES"
@@ -35,9 +35,8 @@ const Navbar = () => {
           </div>
 
           {/* Center: logo */}
-          <Link to="/" className="flex flex-col items-center">
-            <span className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-foreground uppercase">REGAL</span>
-            <span className="text-[9px] tracking-[0.3em] text-muted-foreground uppercase -mt-1">Office & Home</span>
+          <Link to="/" className="flex items-center">
+            <img src={regalLogo} alt="Regal Office & Home" className="h-12 md:h-14 w-auto" />
           </Link>
 
           {/* Right: icons */}
