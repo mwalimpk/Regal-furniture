@@ -1,10 +1,10 @@
 import { Truck, Leaf, ShieldCheck, Award } from "lucide-react";
 
 const values = [
-  { icon: Truck, label: "Fast Closings" },
-  { icon: Leaf, label: "Sustainably Built" },
-  { icon: ShieldCheck, label: "Verified Listings" },
-  { icon: Award, label: "Quality Assured" },
+  { icon: Truck, label: "Fast Shipping" },
+  { icon: Leaf, label: "Sustainably Made" },
+  { icon: ShieldCheck, label: "Ergonomic Design" },
+  { icon: Award, label: "Quality Craftsmanship" },
 ];
 
 const WhyChooseUs = () => {
@@ -15,7 +15,7 @@ const WhyChooseUs = () => {
           Elevate the everyday.
         </h2>
         <p className="text-muted-foreground text-base max-w-2xl mx-auto mb-12">
-          We make it easy to find a property that fuels your lifestyle and sparks new opportunities — day in, day out.
+          We make it easy to create a workspace that fuels focus and sparks creativity — day in, day out.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
           {values.map((v) => (
