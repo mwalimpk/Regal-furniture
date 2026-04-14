@@ -1,20 +1,9 @@
-import execDeskImg from "@/assets/product-exec-desk.jpg";
-import chairImg from "@/assets/product-exec-chair.jpg";
-import workstationImg from "@/assets/product-workstation.jpg";
-import conferenceImg from "@/assets/product-conference.jpg";
-import sofaImg from "@/assets/product-sofa.jpg";
-import storageImg from "@/assets/product-storage.jpg";
-
-const categories = [
-  { image: execDeskImg, label: "Desks & Tables" },
-  { image: chairImg, label: "Seating" },
-  { image: workstationImg, label: "Workstations" },
-  { image: conferenceImg, label: "Conference" },
-  { image: sofaImg, label: "Sofas & Lounge" },
-  { image: storageImg, label: "Storage" },
-];
+import { Link } from "react-router-dom";
+import { categories } from "@/data/products";
 
 const CategoryCards = () => {
+  const displayCategories = categories.slice(0, 6);
+
   return (
     <section id="categories" className="py-12 md:py-20">
       <div className="container mx-auto px-4">
@@ -27,15 +16,20 @@ const CategoryCards = () => {
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
-          {categories.map((cat) => (
-            <a key={cat.label} href="#shop" className="group relative aspect-square overflow-hidden block">
-              <img src={cat.image} alt={cat.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+          {displayCategories.map((cat) => (
+            <Link key={cat.slug} to={`/category/${cat.slug}`} className="group relative aspect-square overflow-hidden block">
+              <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
               <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/35 transition-colors duration-300" />
               <div className="absolute bottom-6 left-6">
-                <span className="text-primary-foreground font-serif text-lg md:text-xl font-semibold">{cat.label}</span>
+                <span className="text-primary-foreground font-serif text-lg md:text-xl font-semibold">{cat.name}</span>
               </div>
-            </a>
+            </Link>
           ))}
+        </div>
+        <div className="text-center mt-8">
+          <Link to="/categories" className="text-sm font-medium tracking-widest uppercase text-foreground hover:text-primary border-b border-foreground pb-0.5 transition-colors">
+            View All Categories
+          </Link>
         </div>
       </div>
     </section>
