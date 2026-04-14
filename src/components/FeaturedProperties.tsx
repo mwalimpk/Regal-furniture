@@ -1,5 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 import execDeskImg from "@/assets/product-exec-desk.jpg";
 import chairImg from "@/assets/product-exec-chair.jpg";
 import workstationImg from "@/assets/product-workstation.jpg";
@@ -21,8 +23,15 @@ const products = [
 ];
 
 const FeaturedProducts = () => {
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
+  const { addItem } = useCart();
+  const { toast } = useToast();
+
+  const formatPrice = (price: number, currency: string) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
+
+  const handleAdd = (product: typeof products[0]) => {
+    addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency, image: product.image });
+    toast({ title: "Added to cart", description: `${product.name} added to your cart.` });
   };
 
   return (
@@ -38,12 +47,7 @@ const FeaturedProducts = () => {
           {products.map((product) => (
             <div key={product.id} className="group bg-background">
               <div className="relative overflow-hidden aspect-square">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  loading="lazy"
-                />
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
                 <span className="absolute top-3 left-3 bg-background text-foreground text-[10px] md:text-xs font-medium tracking-wider uppercase px-2 py-1">
                   {product.category}
                 </span>
@@ -53,7 +57,10 @@ const FeaturedProducts = () => {
                 <p className="text-xs text-muted-foreground line-clamp-2 hidden md:block">{product.description}</p>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-sm md:text-lg font-semibold text-foreground">{formatPrice(product.price, product.currency)}</span>
-                  <button className="w-8 h-8 border border-foreground text-foreground flex items-center justify-center hover:bg-foreground hover:text-background transition-colors">
+                  <button
+                    onClick={() => handleAdd(product)}
+                    className="w-8 h-8 border border-foreground text-foreground flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
+                  >
                     <ShoppingCart size={14} />
                   </button>
                 </div>
