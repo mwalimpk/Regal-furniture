@@ -4,8 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 const BookingsSection = () => {
-  const { data: bookings, isLoading } = useQuery({
-    queryKey: ["admin-bookings"],
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ["admin-orders"],
     queryFn: async () => {
       const { data, error } = await supabase.from("bookings").select("*, properties(title)").order("created_at", { ascending: false });
       if (error) throw error;
@@ -15,15 +15,15 @@ const BookingsSection = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Bookings</h1>
-      {isLoading ? <p className="text-muted-foreground">Loading...</p> : !bookings?.length ? (
-        <p className="text-muted-foreground">No bookings yet.</p>
+      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Orders</h1>
+      {isLoading ? <p className="text-muted-foreground">Loading...</p> : !orders?.length ? (
+        <p className="text-muted-foreground">No orders yet. Orders placed by customers will appear here.</p>
       ) : (
         <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Property</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Order Date</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
             <TableBody>
-              {bookings.map((b: any) => (
+              {orders.map((b: any) => (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.properties?.title || "—"}</TableCell>
                   <TableCell>{b.booking_date}</TableCell>
