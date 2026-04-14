@@ -7,9 +7,9 @@ const Footer = () => {
             <h3 className="font-serif text-2xl font-bold mb-3 uppercase tracking-wide">Regal</h3>
             <p className="text-xs opacity-60 uppercase tracking-widest mb-3">Office & Home</p>
             <p className="text-sm opacity-70">
-              A legacy of comfort. Premium furniture for office and home.
+              A legacy of comfort. Premium furniture for office and home. Based in Zimbabwe, delivering across Africa.
             </p>
-            <p className="text-xs opacity-50 mt-2">www.regalfurn.co.zw</p>
+            <p className="text-xs opacity-50 mt-2">Currency: USD | www.regalfurn.co.zw</p>
           </div>
           <div>
             <h4 className="font-semibold mb-3 text-xs uppercase tracking-widest">Products</h4>
