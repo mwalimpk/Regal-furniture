@@ -24,20 +24,28 @@ const CartDrawer = () => {
       return;
     }
 
+    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
+
     const { error } = await supabase.from("orders").insert({
       user_id: user.id,
       total,
       currency: "USD",
-      items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+      items: orderItems,
       status: "pending",
     } as any);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      // Build WhatsApp message
+      const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — $${i.price * i.quantity}`).join("\n");
+      const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: $${total}*\n\nCustomer: ${user.email}`;
+      const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
+
       clearCart();
       setIsOpen(false);
-      toast({ title: "Order placed!", description: "Your order has been submitted. We'll contact you shortly." });
+      toast({ title: "Order placed!", description: "Complete your order on WhatsApp." });
     }
   };
 
