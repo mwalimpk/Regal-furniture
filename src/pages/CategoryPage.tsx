@@ -1,22 +1,26 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { categories, products, Product } from "@/data/products";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import OrderFormDialog from "@/components/OrderFormDialog";
+import BookVisitDialog from "@/components/BookVisitDialog";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { addItem } = useCart();
   const { toast } = useToast();
+  const { format } = useCurrency();
+  const [orderProduct, setOrderProduct] = useState<Product | null>(null);
+  const [visitOpen, setVisitOpen] = useState(false);
 
   const category = categories.find((c) => c.slug === slug);
   const categoryProducts = products.filter((p) => p.categorySlug === slug);
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
 
   const handleAdd = (product: Product) => {
     addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency, image: product.image });
@@ -58,9 +62,15 @@ const CategoryPage = () => {
       <div className="relative h-[200px] md:h-[300px] overflow-hidden">
         <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <h1 className="text-3xl md:text-5xl font-serif font-bold text-primary-foreground">{category.name}</h1>
             <p className="text-primary-foreground/80 text-sm md:text-base mt-2 max-w-md mx-auto px-4">{category.description}</p>
+            <button
+              onClick={() => setVisitOpen(true)}
+              className="text-xs font-medium border border-primary-foreground text-primary-foreground px-4 py-2 hover:bg-primary-foreground hover:text-foreground transition-colors"
+            >
+              Book a Showroom Visit
+            </button>
           </div>
         </div>
       </div>
@@ -78,12 +88,20 @@ const CategoryPage = () => {
                 <h3 className="font-serif text-sm md:text-base font-semibold text-foreground leading-snug">{product.name}</h3>
                 <p className="text-xs text-muted-foreground line-clamp-2 hidden md:block">{product.description}</p>
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm md:text-lg font-semibold text-foreground">{formatPrice(product.price)}</span>
+                  <span className="text-sm md:text-lg font-semibold text-foreground">{format(product.price)}</span>
+                </div>
+                <div className="flex gap-1 pt-1">
                   <button
                     onClick={() => handleAdd(product)}
-                    className="text-xs font-medium border border-foreground text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors"
+                    className="text-[10px] md:text-xs font-medium border border-foreground text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors"
                   >
-                    Add
+                    Add to Cart
+                  </button>
+                  <button
+                    onClick={() => setOrderProduct(product)}
+                    className="text-[10px] md:text-xs font-medium border border-primary text-primary px-2 py-1 hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    Place Order
                   </button>
                 </div>
               </div>
@@ -94,6 +112,14 @@ const CategoryPage = () => {
 
       <Footer />
       <MobileBottomNav />
+
+      <OrderFormDialog
+        open={!!orderProduct}
+        onOpenChange={(open) => { if (!open) setOrderProduct(null); }}
+        productName={orderProduct?.name}
+        productPrice={orderProduct?.price}
+      />
+      <BookVisitDialog open={visitOpen} onOpenChange={setVisitOpen} />
     </div>
   );
 };

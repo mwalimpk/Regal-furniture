@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,13 +10,11 @@ import { useToast } from "@/hooks/use-toast";
 
 const CartDrawer = () => {
   const { items, removeItem, updateQuantity, clearCart, total, itemCount, isOpen, setIsOpen } = useCart();
+  const { format } = useCurrency();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [checkingOut, setCheckingOut] = useState(false);
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
 
   const saveOrder = async (status: string) => {
     if (!user) return null;
@@ -82,8 +81,8 @@ const CartDrawer = () => {
     if (!order) return;
 
     const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
-    const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — $${i.price * i.quantity}`).join("\n");
-    const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: $${total}*\n\nCustomer: ${user.email}`;
+    const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — ${format(i.price * i.quantity)}`).join("\n");
+    const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: ${format(total)}*\n\nCustomer: ${user.email}`;
     const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
 
@@ -112,7 +111,7 @@ const CartDrawer = () => {
                   <img src={item.image} alt={item.name} className="w-20 h-20 object-cover" />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
+                    <p className="text-sm text-muted-foreground">{format(item.price)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted text-xs font-bold">
                         −
@@ -126,14 +125,14 @@ const CartDrawer = () => {
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground whitespace-nowrap">{formatPrice(item.price * item.quantity)}</p>
+                  <p className="text-sm font-semibold text-foreground whitespace-nowrap">{format(item.price * item.quantity)}</p>
                 </div>
               ))}
             </div>
             <div className="border-t border-border pt-4 space-y-3">
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>{formatPrice(total)}</span>
+                <span>{format(total)}</span>
               </div>
               <Button className="w-full" size="lg" onClick={handleStripeCheckout} disabled={checkingOut}>
                 {checkingOut ? "Processing..." : "Pay with Card"}
