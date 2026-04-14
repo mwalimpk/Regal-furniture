@@ -62,10 +62,10 @@ const Navbar = () => {
       {/* Category nav - desktop */}
       <div className="hidden md:block border-b border-border bg-background">
         <div className="container mx-auto flex items-center justify-center gap-8 h-11 px-4">
-          {categories.map((cat) => (
-            <a key={cat} href="#shop" className="text-xs font-medium tracking-widest text-foreground hover:text-primary transition-colors">
-              {cat}
-            </a>
+          {categoryNavItems.map((cat) => (
+            <Link key={cat.label} to={`/category/${cat.slug}`} className="text-xs font-medium tracking-widest text-foreground hover:text-primary transition-colors">
+              {cat.label}
+            </Link>
           ))}
         </div>
       </div>
@@ -77,8 +77,8 @@ const Navbar = () => {
             <Search size={16} className="text-muted-foreground" />
             <input type="text" placeholder="Search products..." className="bg-transparent text-sm outline-none flex-1" />
           </div>
-          {categories.map((cat) => (
-            <a key={cat} href="#shop" className="block text-xs font-medium tracking-widest text-foreground py-1.5" onClick={() => setMobileOpen(false)}>{cat}</a>
+          {categoryNavItems.map((cat) => (
+            <Link key={cat.label} to={`/category/${cat.slug}`} className="block text-xs font-medium tracking-widest text-foreground py-1.5" onClick={() => setMobileOpen(false)}>{cat.label}</Link>
           ))}
           <div className="border-t border-border pt-3 space-y-2">
             {user ? (
