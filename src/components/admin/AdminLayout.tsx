@@ -1,26 +1,21 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  LayoutDashboard, Users, Package, PlusCircle, CheckSquare, 
-  Target, ShoppingCart, CreditCard, BarChart3, MessageSquare, Settings, 
-  Bell, LogOut, Menu, X, Tag
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", key: "overview" },
-  { icon: Users, label: "Customers", key: "users" },
-  { icon: Package, label: "Products", key: "properties" },
-  { icon: PlusCircle, label: "Add Product", key: "add-property" },
-  { icon: Tag, label: "Categories", key: "approvals" },
-  { icon: Target, label: "Leads", key: "leads" },
-  { icon: ShoppingCart, label: "Orders", key: "bookings" },
-  { icon: CreditCard, label: "Subscriptions", key: "subscriptions" },
-  { icon: BarChart3, label: "Analytics", key: "analytics" },
-  { icon: MessageSquare, label: "Messages", key: "messages" },
-  { icon: Settings, label: "Settings", key: "settings" },
+  { label: "Overview", key: "overview" },
+  { label: "Customers", key: "users" },
+  { label: "Products", key: "properties" },
+  { label: "Add Product", key: "add-property" },
+  { label: "Categories", key: "approvals" },
+  { label: "Leads", key: "leads" },
+  { label: "Orders", key: "bookings" },
+  { label: "Subscriptions", key: "subscriptions" },
+  { label: "Analytics", key: "analytics" },
+  { label: "Messages", key: "messages" },
+  { label: "Settings", key: "settings" },
 ];
 
 interface AdminLayoutProps {
@@ -51,7 +46,6 @@ const AdminLayout = ({ activeSection, onSectionChange, children }: AdminLayoutPr
                   : "text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
               }`}
             >
-              <item.icon size={18} />
               {item.label}
             </button>
           ))}
@@ -63,19 +57,16 @@ const AdminLayout = ({ activeSection, onSectionChange, children }: AdminLayoutPr
       <div className="flex-1 md:ml-56">
         <header className="sticky top-0 z-30 bg-background border-b border-border h-14 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu size={20} />
+            <button className="md:hidden text-sm font-medium" onClick={() => setSidebarOpen(true)}>
+              Menu
             </button>
             <span className="text-sm font-medium text-foreground">Regal Store Admin</span>
             <Badge variant="outline" className="text-xs">ADMIN</Badge>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative">
-              <Bell size={18} className="text-muted-foreground" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center">4</span>
-            </button>
-            <button onClick={signOut} className="text-sm text-destructive hover:underline flex items-center gap-1">
-              <LogOut size={14} /> Sign Out
+            <span className="text-xs text-muted-foreground">4 notifications</span>
+            <button onClick={signOut} className="text-sm text-destructive hover:underline">
+              Sign Out
             </button>
           </div>
         </header>

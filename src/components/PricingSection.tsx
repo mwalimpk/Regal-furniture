@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const plans = [
@@ -58,7 +57,7 @@ const PricingSection = () => {
               <ul className="space-y-2 mb-6">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-xs md:text-sm text-card-foreground">
-                    <Check size={14} className="text-accent shrink-0" />
+                    <span className="text-accent font-bold">✓</span>
                     {feature}
                   </li>
                 ))}

@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart } from "lucide-react";
 
 interface PropertyCardProps {
   image: string;
@@ -31,9 +30,7 @@ const PropertyCard = ({ image, type, price, title, location, description }: Prop
         <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
         <div className="flex items-center justify-between pt-2">
           <span className="text-lg font-bold text-primary">{price}</span>
-          <button className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90">
-            <ShoppingCart size={14} />
-          </button>
+          <span className="text-xs font-medium text-foreground border border-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors cursor-pointer">Add</span>
         </div>
       </div>
     </div>

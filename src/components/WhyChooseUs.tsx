@@ -1,10 +1,8 @@
-import { Truck, ShieldCheck, Headphones, Award } from "lucide-react";
-
 const features = [
-  { icon: Award, title: "Premium Quality", description: "Handcrafted furniture built with the finest materials to stand the test of time." },
-  { icon: Truck, title: "Nationwide Delivery", description: "Free delivery across Zimbabwe. International shipping available on request." },
-  { icon: ShieldCheck, title: "2 Year Warranty", description: "Every piece comes with a comprehensive 2-year manufacturer warranty." },
-  { icon: Headphones, title: "Expert Support", description: "Dedicated team to help you choose the perfect furniture for your space." },
+  { title: "Premium Quality", description: "Handcrafted furniture built with the finest materials to stand the test of time." },
+  { title: "Nationwide Delivery", description: "Free delivery across Zimbabwe. International shipping available on request." },
+  { title: "2 Year Warranty", description: "Every piece comes with a comprehensive 2-year manufacturer warranty." },
+  { title: "Expert Support", description: "Dedicated team to help you choose the perfect furniture for your space." },
 ];
 
 const WhyChooseUs = () => {
@@ -20,7 +18,6 @@ const WhyChooseUs = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
           {features.map((feature) => (
             <div key={feature.title} className="bg-background text-center p-6 md:p-10">
-              <feature.icon className="text-foreground mx-auto mb-4" size={28} strokeWidth={1.5} />
               <h3 className="font-serif text-sm md:text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
               <p className="text-muted-foreground text-xs md:text-sm">{feature.description}</p>
             </div>

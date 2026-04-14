@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, ShoppingBag, Package, LogOut, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -65,7 +63,7 @@ const ClientDashboard = () => {
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">Active</Badge>
               <Button variant="ghost" size="sm" onClick={signOut} className="text-destructive">
-                <LogOut size={16} className="mr-1" /> Sign Out
+                Sign Out
               </Button>
             </div>
           </div>
@@ -74,19 +72,19 @@ const ClientDashboard = () => {
           <div className="flex gap-0 border-b border-border mb-8">
             <button
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "profile" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              <User size={16} /> Profile
+              Profile
             </button>
             <button
               onClick={() => setActiveTab("orders")}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "orders" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Package size={16} /> Orders ({orders.length})
+              Orders ({orders.length})
             </button>
           </div>
 
@@ -128,14 +126,12 @@ const ClientDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Link to="/categories">
                     <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center gap-2"><ShoppingBag size={16} /> Browse Products</span>
-                      <ChevronRight size={16} />
+                      Browse Products →
                     </Button>
                   </Link>
                   <button onClick={() => setActiveTab("orders")}>
                     <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center gap-2"><Package size={16} /> View Orders</span>
-                      <ChevronRight size={16} />
+                      View Orders →
                     </Button>
                   </button>
                 </div>
@@ -148,7 +144,6 @@ const ClientDashboard = () => {
             <div className="space-y-4">
               {orders.length === 0 ? (
                 <div className="text-center py-16 border border-border">
-                  <ShoppingBag size={48} className="mx-auto text-muted-foreground mb-4" />
                   <h3 className="font-serif text-lg font-semibold text-foreground mb-2">No orders yet</h3>
                   <p className="text-muted-foreground text-sm mb-4">Start shopping to see your orders here.</p>
                   <Link to="/categories"><Button>Browse Products</Button></Link>

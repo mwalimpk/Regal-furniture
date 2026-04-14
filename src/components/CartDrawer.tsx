@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ShoppingBag, CreditCard, MessageCircle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -102,8 +101,7 @@ const CartDrawer = () => {
 
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
-            <ShoppingBag size={48} className="text-muted-foreground" />
-            <p className="text-muted-foreground">Your cart is empty</p>
+            <p className="text-lg font-serif font-semibold text-muted-foreground">Your cart is empty</p>
             <Button variant="outline" onClick={() => setIsOpen(false)}>Continue Shopping</Button>
           </div>
         ) : (
@@ -116,15 +114,15 @@ const CartDrawer = () => {
                     <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
                     <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted">
-                        <Minus size={12} />
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted text-xs font-bold">
+                        −
                       </button>
                       <span className="text-sm w-6 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted">
-                        <Plus size={12} />
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted text-xs font-bold">
+                        +
                       </button>
-                      <button onClick={() => removeItem(item.id)} className="ml-auto text-destructive hover:text-destructive/80">
-                        <Trash2 size={14} />
+                      <button onClick={() => removeItem(item.id)} className="ml-auto text-destructive hover:text-destructive/80 text-xs font-medium">
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -137,12 +135,10 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-              <Button className="w-full gap-2" size="lg" onClick={handleStripeCheckout} disabled={checkingOut}>
-                <CreditCard size={16} />
+              <Button className="w-full" size="lg" onClick={handleStripeCheckout} disabled={checkingOut}>
                 {checkingOut ? "Processing..." : "Pay with Card"}
               </Button>
-              <Button variant="outline" className="w-full gap-2" size="lg" onClick={handleWhatsAppOrder}>
-                <MessageCircle size={16} />
+              <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
                 Order via WhatsApp
               </Button>
               <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>

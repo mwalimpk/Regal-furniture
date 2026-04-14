@@ -1,5 +1,4 @@
 import { useParams, Link } from "react-router-dom";
-import { ShoppingCart, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -47,9 +46,9 @@ const CategoryPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Link to="/" className="hover:text-foreground">Home</Link>
-            <ChevronRight size={12} />
+            <span>/</span>
             <Link to="/categories" className="hover:text-foreground">Categories</Link>
-            <ChevronRight size={12} />
+            <span>/</span>
             <span className="text-foreground">{category.name}</span>
           </div>
         </div>
@@ -82,9 +81,9 @@ const CategoryPage = () => {
                   <span className="text-sm md:text-lg font-semibold text-foreground">{formatPrice(product.price)}</span>
                   <button
                     onClick={() => handleAdd(product)}
-                    className="w-8 h-8 border border-foreground text-foreground flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
+                    className="text-xs font-medium border border-foreground text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors"
                   >
-                    <ShoppingCart size={14} />
+                    Add
                   </button>
                 </div>
               </div>
