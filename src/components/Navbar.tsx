@@ -41,7 +41,7 @@ const Navbar = () => {
           {/* Right: icons */}
           <div className="flex items-center justify-end gap-4 w-1/3">
             {user ? (
-              <Link to="/admin" className="hidden md:block">
+              <Link to={isAdmin ? "/admin" : "/dashboard"} className="hidden md:block">
                 <User size={20} className="text-foreground" />
               </Link>
             ) : (
@@ -84,7 +84,7 @@ const Navbar = () => {
             {user ? (
               <>
                 <span className="block text-sm text-muted-foreground">{profile?.full_name || user.email}</span>
-                {isAdmin && <Link to="/admin" className="block text-sm font-semibold text-primary">Admin Panel</Link>}
+                <Link to={isAdmin ? "/admin" : "/dashboard"} className="block text-sm font-semibold text-primary">{isAdmin ? "Admin Panel" : "My Account"}</Link>
                 <button onClick={signOut} className="text-sm text-destructive">Sign Out</button>
               </>
             ) : (
