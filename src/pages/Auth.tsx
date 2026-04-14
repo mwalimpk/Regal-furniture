@@ -16,6 +16,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<"user" | "admin">("user");
+  const [loginRole, setLoginRole] = useState<"user" | "admin">("user");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -34,26 +35,19 @@ const Auth = () => {
 
   useEffect(() => {
     if (authLoading || !user) return;
-
     let cancelled = false;
-
     const handleAuthenticatedUser = async () => {
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .maybeSingle();
-
       if (!cancelled) {
         navigate(roleData?.role === "admin" ? "/admin" : "/dashboard", { replace: true });
       }
     };
-
     void handleAuthenticatedUser();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +61,20 @@ const Auth = () => {
       } else {
         const { data: authData } = await supabase.auth.getUser();
         if (authData.user) {
-          await redirectUserByRole(authData.user.id);
+          // Check role matches selected login role
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", authData.user.id)
+            .eq("role", loginRole === "admin" ? "admin" : "user")
+            .maybeSingle();
+
+          if (loginRole === "admin" && !roleData) {
+            toast({ title: "Access denied", description: "You do not have admin privileges.", variant: "destructive" });
+            await supabase.auth.signOut();
+          } else {
+            await redirectUserByRole(authData.user.id);
+          }
         }
       }
     } else {
@@ -97,11 +104,9 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/auth`,
     });
-
     if (result.error) {
       toast({
         title: "Error",
@@ -111,11 +116,39 @@ const Auth = () => {
       setLoading(false);
       return;
     }
-
     if (result.redirected) return;
-
     setLoading(false);
   };
+
+  const RoleSelector = ({ value, onChange }: { value: "user" | "admin"; onChange: (v: "user" | "admin") => void }) => (
+    <div>
+      <Label>{isLogin ? "Sign in as" : "I am a"}</Label>
+      <div className="grid grid-cols-2 gap-2 mt-1.5">
+        <button
+          type="button"
+          onClick={() => onChange("user")}
+          className={`py-3 border text-sm font-medium transition-colors ${
+            value === "user"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-foreground hover:bg-muted"
+          }`}
+        >
+          Client / Buyer
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange("admin")}
+          className={`py-3 border text-sm font-medium transition-colors ${
+            value === "admin"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-foreground hover:bg-muted"
+          }`}
+        >
+          Admin / Staff
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -141,35 +174,12 @@ const Auth = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {/* Role selector - shown on both login and signup */}
+            {isLogin ? (
+              <RoleSelector value={loginRole} onChange={setLoginRole} />
+            ) : (
               <>
-                <div>
-                  <Label>I am a</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setRole("user")}
-                      className={`py-3 border text-sm font-medium transition-colors ${
-                        role === "user"
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      Client / Buyer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole("admin")}
-                      className={`py-3 border text-sm font-medium transition-colors ${
-                        role === "admin"
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      Admin / Staff
-                    </button>
-                  </div>
-                </div>
+                <RoleSelector value={role} onChange={setRole} />
                 <div>
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
