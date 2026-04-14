@@ -65,9 +65,15 @@ const Navbar = () => {
                 Book Visit
               </button>
               {user ? (
-                <Link to={isAdmin ? "/admin" : "/dashboard"} className="hidden md:block text-sm font-medium text-foreground hover:text-primary">
-                  Account
-                </Link>
+                <div className="hidden md:flex items-center gap-2">
+                  <Link to={isAdmin ? "/admin" : "/dashboard"} className="text-sm font-medium text-foreground hover:text-primary">
+                    {profile?.full_name || "Account"}
+                  </Link>
+                  <span className="text-border">|</span>
+                  <button onClick={signOut} className="text-xs font-medium text-destructive hover:text-destructive/80">
+                    Sign Out
+                  </button>
+                </div>
               ) : (
                 <Link to="/auth" className="hidden md:block text-sm font-medium text-foreground hover:text-primary">
                   Sign In
