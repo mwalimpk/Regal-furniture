@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Search, ShoppingCart, User, ChevronDown } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { Link } from "react-router-dom";
 import regalLogo from "@/assets/regal-logo.png";
 
@@ -12,6 +13,7 @@ const categories = [
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
+  const { itemCount, setIsOpen } = useCart();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
@@ -50,9 +52,11 @@ const Navbar = () => {
                 <User size={20} className="text-foreground" />
               </Link>
             )}
-            <button className="relative">
+            <button className="relative" onClick={() => setIsOpen(true)}>
               <ShoppingCart size={20} className="text-foreground" />
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-primary-foreground rounded-full text-[10px] flex items-center justify-center">0</span>
+              {itemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-primary-foreground rounded-full text-[10px] flex items-center justify-center">{itemCount}</span>
+              )}
             </button>
           </div>
         </div>
