@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, CreditCard, MessageCircle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -12,11 +13,29 @@ const CartDrawer = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
 
-  const handleCheckout = async () => {
+  const saveOrder = async (status: string) => {
+    if (!user) return null;
+    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
+    const { data, error } = await supabase.from("orders").insert({
+      user_id: user.id,
+      total,
+      currency: "USD",
+      items: orderItems,
+      status,
+    } as any).select().single();
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return null;
+    }
+    return data;
+  };
+
+  const handleStripeCheckout = async () => {
     if (!user) {
       setIsOpen(false);
       navigate("/auth");
@@ -24,29 +43,54 @@ const CartDrawer = () => {
       return;
     }
 
-    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
+    setCheckingOut(true);
 
-    const { error } = await supabase.from("orders").insert({
-      user_id: user.id,
-      total,
-      currency: "USD",
-      items: orderItems,
-      status: "pending",
-    } as any);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          items: items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity })),
+          success_url: `${window.location.origin}/dashboard?payment=success`,
+          cancel_url: `${window.location.origin}/?payment=cancelled`,
+          customer_email: user.email,
+        },
+      });
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      // Build WhatsApp message
-      const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — $${i.price * i.quantity}`).join("\n");
-      const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: $${total}*\n\nCustomer: ${user.email}`;
-      const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
-
-      clearCart();
-      setIsOpen(false);
-      toast({ title: "Order placed!", description: "Complete your order on WhatsApp." });
+      if (error) throw error;
+      if (data?.url) {
+        await saveOrder("pending");
+        clearCart();
+        setIsOpen(false);
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (err: any) {
+      toast({ title: "Payment error", description: err.message || "Could not start checkout.", variant: "destructive" });
+    } finally {
+      setCheckingOut(false);
     }
+  };
+
+  const handleWhatsAppOrder = async () => {
+    if (!user) {
+      setIsOpen(false);
+      navigate("/auth");
+      toast({ title: "Please sign in", description: "You need to be signed in to checkout." });
+      return;
+    }
+
+    const order = await saveOrder("pending");
+    if (!order) return;
+
+    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
+    const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — $${i.price * i.quantity}`).join("\n");
+    const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: $${total}*\n\nCustomer: ${user.email}`;
+    const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+
+    clearCart();
+    setIsOpen(false);
+    toast({ title: "Order placed!", description: "Complete your order on WhatsApp." });
   };
 
   return (
@@ -93,10 +137,15 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-              <Button className="w-full" size="lg" onClick={handleCheckout}>
-                Checkout
+              <Button className="w-full gap-2" size="lg" onClick={handleStripeCheckout} disabled={checkingOut}>
+                <CreditCard size={16} />
+                {checkingOut ? "Processing..." : "Pay with Card"}
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" className="w-full gap-2" size="lg" onClick={handleWhatsAppOrder}>
+                <MessageCircle size={16} />
+                Order via WhatsApp
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
                 Continue Shopping
               </Button>
             </div>
