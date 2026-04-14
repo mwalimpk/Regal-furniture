@@ -15,6 +15,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"user" | "admin">("user");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,10 +30,23 @@ const Auth = () => {
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
-        navigate("/");
+        // Check role and redirect
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (roleData?.role === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/dashboard");
+          }
+        }
       }
     } else {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -42,9 +56,18 @@ const Auth = () => {
       });
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
+      } else if (data.user) {
+        // Assign role
+        await supabase.from("user_roles").insert({
+          user_id: data.user.id,
+          role: role,
+        });
         toast({ title: "Welcome!", description: "Account created successfully." });
-        navigate("/");
+        if (role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }
     }
     setLoading(false);
@@ -59,7 +82,7 @@ const Auth = () => {
       return;
     }
     if (result.redirected) return;
-    navigate("/");
+    navigate("/dashboard");
   };
 
   return (
@@ -88,6 +111,34 @@ const Auth = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <>
+                {/* Role selection */}
+                <div>
+                  <Label>I am a</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setRole("user")}
+                      className={`py-3 border text-sm font-medium transition-colors ${
+                        role === "user"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Client / Buyer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole("admin")}
+                      className={`py-3 border text-sm font-medium transition-colors ${
+                        role === "admin"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Admin / Staff
+                    </button>
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />

@@ -1,0 +1,190 @@
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { User, ShoppingBag, Package, LogOut, ChevronRight } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import MobileBottomNav from "@/components/MobileBottomNav";
+
+interface Order {
+  id: string;
+  total: number;
+  currency: string;
+  status: string;
+  items: { name: string; quantity: number; price: number }[];
+  created_at: string;
+}
+
+const ClientDashboard = () => {
+  const { user, profile, signOut } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTab, setActiveTab] = useState<"profile" | "orders">("profile");
+
+  useEffect(() => {
+    if (user) fetchOrders();
+  }, [user]);
+
+  const fetchOrders = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false }) as any;
+    if (data) setOrders(data);
+  };
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case "confirmed": return "bg-green-100 text-green-800";
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "cancelled": return "bg-red-100 text-red-800";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <Navbar />
+      <div className="pt-[120px] md:pt-[140px]">
+        <div className="container mx-auto px-4 py-8 md:py-14">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-2xl md:text-4xl font-serif font-bold text-foreground">My Account</h1>
+              <p className="text-muted-foreground text-sm mt-1">Welcome back, {profile?.full_name || user?.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">Active</Badge>
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-destructive">
+                <LogOut size={16} className="mr-1" /> Sign Out
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-0 border-b border-border mb-8">
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "profile" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <User size={16} /> Profile
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "orders" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Package size={16} /> Orders ({orders.length})
+            </button>
+          </div>
+
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="max-w-lg space-y-6">
+              <div className="border border-border p-6 space-y-4">
+                <h2 className="font-serif text-lg font-semibold text-foreground">Account Details</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Full Name</p>
+                    <p className="font-medium text-foreground">{profile?.full_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Email</p>
+                    <p className="font-medium text-foreground">{user?.email || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Phone</p>
+                    <p className="font-medium text-foreground">{user?.user_metadata?.phone || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Currency</p>
+                    <p className="font-medium text-foreground">{profile?.currency || "USD"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Account Status</p>
+                    <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 mt-1">Active</Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Role</p>
+                    <p className="font-medium text-foreground capitalize">Client</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-border p-6 space-y-3">
+                <h2 className="font-serif text-lg font-semibold text-foreground">Quick Actions</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Link to="/categories">
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2"><ShoppingBag size={16} /> Browse Products</span>
+                      <ChevronRight size={16} />
+                    </Button>
+                  </Link>
+                  <button onClick={() => setActiveTab("orders")}>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2"><Package size={16} /> View Orders</span>
+                      <ChevronRight size={16} />
+                    </Button>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Orders Tab */}
+          {activeTab === "orders" && (
+            <div className="space-y-4">
+              {orders.length === 0 ? (
+                <div className="text-center py-16 border border-border">
+                  <ShoppingBag size={48} className="mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-serif text-lg font-semibold text-foreground mb-2">No orders yet</h3>
+                  <p className="text-muted-foreground text-sm mb-4">Start shopping to see your orders here.</p>
+                  <Link to="/categories"><Button>Browse Products</Button></Link>
+                </div>
+              ) : (
+                orders.map((order) => (
+                  <div key={order.id} className="border border-border p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Order #{order.id.slice(0, 8)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-medium px-2 py-1 capitalize ${statusColor(order.status)}`}>{order.status}</span>
+                        <span className="font-semibold text-foreground">{formatPrice(order.total)}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-border pt-3 space-y-1.5">
+                      {order.items?.map((item, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
+                          <span className="text-foreground">{formatPrice(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <Footer />
+      <MobileBottomNav />
+    </div>
+  );
+};
+
+export default ClientDashboard;
