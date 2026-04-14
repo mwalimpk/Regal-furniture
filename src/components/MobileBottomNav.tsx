@@ -13,7 +13,7 @@ const MobileBottomNav = () => {
     { icon: Search, label: "Search", href: "#shop", isLink: false },
     { icon: Grid3X3, label: "Categories", href: "/categories", isLink: true },
     { icon: ShoppingCart, label: "Cart", href: "#", isLink: false, isCart: true },
-    { icon: User, label: "Account", href: user ? "/admin" : "/auth", isLink: true },
+    { icon: User, label: "Account", href: user ? "/dashboard" : "/auth", isLink: true },
   ];
 
   return (
