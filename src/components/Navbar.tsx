@@ -1,108 +1,69 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Search, User, ShoppingCart } from "lucide-react";
+import { Menu, X, Search, User, Globe } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
-const topLinks = ["Discover & Design", "Shop Now", "Architectural Solutions"];
-const navCategories = [
-  "SEATING", "GAMING", "DESKS & TABLES", "WORKSPACE",
-  "LIGHTING", "ACCESSORIES & STORAGE", "OUTDOOR"
-];
+const navLinks = ["Home", "Properties", "About Us", "What We Do", "Contact"];
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, profile, isAdmin, signOut } = useAuth();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md">
-      {/* Top utility bar */}
-      <div className="border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      {/* Top bar */}
+      <div className="bg-primary text-primary-foreground">
         <div className="container mx-auto flex items-center justify-between h-8 px-4">
-          <div className="hidden md:flex items-center gap-1">
-            {topLinks.map((link, i) => (
-              <a
-                key={link}
-                href="#"
-                className={`text-xs px-3 py-1 transition-colors ${
-                  i === 1
-                    ? "font-semibold text-foreground border-b-2 border-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {link}
-              </a>
-            ))}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1"><Globe size={12} /> KES</span>
           </div>
-          <span className="text-xs text-muted-foreground hidden md:block">Shop by Region ▾</span>
-        </div>
-      </div>
-
-      {/* Announcement bar */}
-      <div className="bg-primary text-primary-foreground text-center text-xs py-2 tracking-wide font-medium">
-        25% off Elements 4-Function Table
-      </div>
-
-      {/* Main nav */}
-      <div className="border-b border-border">
-        <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-3">
-            <div className="relative hidden md:block">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="pl-9 pr-3 py-1.5 text-sm border border-border rounded-none bg-transparent w-40 focus:outline-none focus:border-foreground"
-              />
-            </div>
-          </div>
-
-          <span className="font-serif text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground uppercase">
-            Haworth
-          </span>
-
-          <div className="flex items-center gap-4">
-            <User size={18} className="text-muted-foreground hidden md:block cursor-pointer hover:text-foreground transition-colors" />
-            <div className="relative">
-              <ShoppingCart size={18} className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
-            </div>
-            <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+          <div className="flex items-center gap-4 text-xs">
+            {user ? (
+              <>
+                <span>{profile?.full_name || user.email}</span>
+                {isAdmin && <Link to="/admin" className="hover:underline font-semibold">Admin Panel</Link>}
+                <button onClick={signOut} className="hover:underline">Sign Out</button>
+              </>
+            ) : (
+              <Link to="/auth" className="hover:underline">Sign In / Sign Up</Link>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Secondary nav links */}
-      <div className="hidden md:flex items-center justify-center border-b border-border bg-background">
-        <div className="flex items-center gap-0">
-          <a href="#" className="text-xs px-4 py-2.5 text-muted-foreground hover:text-foreground transition-colors">New Arrivals</a>
-          <a href="#" className="text-xs px-4 py-2.5 text-muted-foreground hover:text-foreground transition-colors">Sustainability</a>
-          <a href="#" className="text-xs px-4 py-2.5 text-muted-foreground hover:text-foreground transition-colors">Ergonomics</a>
-          <a href="#" className="text-xs px-4 py-2.5 text-muted-foreground hover:text-foreground transition-colors">Our Brands ▾</a>
-          <a href="#" className="text-xs px-4 py-2.5 text-muted-foreground hover:text-foreground transition-colors">Articles</a>
-        </div>
-      </div>
+      <div className="container mx-auto flex items-center justify-between h-14 px-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">PC</span>
+          </div>
+          <span className="font-serif text-xl font-semibold text-foreground">Power of Circles</span>
+        </Link>
 
-      {/* Category nav row */}
-      <div className="hidden md:flex items-center justify-center gap-6 border-b border-border bg-background h-10">
-        {navCategories.map((cat) => (
-          <a
-            key={cat}
-            href="#"
-            className="text-[11px] font-semibold tracking-widest text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            {cat} {cat !== "OUTDOOR" && "▾"}
-          </a>
-        ))}
-        <span className="text-sm font-serif font-bold text-foreground tracking-wide">Heller</span>
+        <div className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <a key={link} href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              {link}
+            </a>
+          ))}
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
+          {!user && <Link to="/auth"><Button size="sm">Sign Up</Button></Link>}
+        </div>
+
+        <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-background p-4 space-y-3">
-          {navCategories.map((cat) => (
-            <a key={cat} href="#" className="block text-sm text-muted-foreground hover:text-primary">
-              {cat}
-            </a>
+          {navLinks.map((link) => (
+            <a key={link} href="#" className="block text-sm text-muted-foreground hover:text-primary">{link}</a>
           ))}
-          <Button size="sm" className="w-full mt-2">Shop Now</Button>
+          {!user && <Link to="/auth"><Button size="sm" className="w-full mt-2">Sign Up</Button></Link>}
+          {isAdmin && <Link to="/admin" className="block text-sm text-accent font-semibold">Admin Panel</Link>}
         </div>
       )}
     </nav>
