@@ -1,47 +1,34 @@
-import { Building2, ShieldCheck, CreditCard, TrendingUp } from "lucide-react";
+import { Truck, Leaf, ShieldCheck, Award } from "lucide-react";
 
-const features = [
-  {
-    icon: Building2,
-    title: "Extensive Listings",
-    description: "Browse thousands of verified properties across multiple countries and cities.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Verified Properties",
-    description: "Every listing is verified by our team to ensure quality and authenticity.",
-  },
-  {
-    icon: CreditCard,
-    title: "Flexible Plans",
-    description: "Choose from buying, renting, or booking options that fit your needs.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Market Insights",
-    description: "Get real-time market data and insights to make informed decisions.",
-  },
+const values = [
+  { icon: Truck, label: "Fast Closings" },
+  { icon: Leaf, label: "Sustainably Built" },
+  { icon: ShieldCheck, label: "Verified Listings" },
+  { icon: Award, label: "Quality Assured" },
 ];
 
 const WhyChooseUs = () => {
   return (
     <section className="py-20">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Why Choose Us</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            When professionals surround themselves with the right people, the results can be transformational.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature) => (
-            <div key={feature.title} className="text-center p-6 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
-                <feature.icon className="text-accent" size={28} />
+      <div className="container mx-auto px-4 text-center">
+        <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-3">
+          Elevate the everyday.
+        </h2>
+        <p className="text-muted-foreground text-base max-w-2xl mx-auto mb-12">
+          We make it easy to find a property that fuels your lifestyle and sparks new opportunities — day in, day out.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+          {values.map((v) => (
+            <a
+              key={v.label}
+              href="#"
+              className="group flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-secondary/50 transition-colors"
+            >
+              <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <v.icon className="text-accent" size={28} />
               </div>
-              <h3 className="font-serif text-xl font-semibold text-card-foreground mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm">{feature.description}</p>
-            </div>
+              <span className="font-semibold text-sm text-card-foreground">{v.label}</span>
+            </a>
           ))}
         </div>
       </div>
