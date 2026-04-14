@@ -9,21 +9,19 @@ const features = [
 
 const WhyChooseUs = () => {
   return (
-    <section id="about" className="py-12 md:py-20">
+    <section id="about" className="py-12 md:py-20 bg-secondary">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8 md:mb-12">
+        <div className="text-center mb-8 md:mb-14">
           <h2 className="text-2xl md:text-4xl font-bold font-serif text-foreground mb-2">Why Regal?</h2>
-          <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
             Decades of experience combining modern aesthetics with exceptional craftsmanship.
           </p>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
           {features.map((feature) => (
-            <div key={feature.title} className="text-center p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3">
-                <feature.icon className="text-accent" size={24} />
-              </div>
-              <h3 className="font-serif text-base md:text-xl font-semibold text-card-foreground mb-1">{feature.title}</h3>
+            <div key={feature.title} className="bg-background text-center p-6 md:p-10">
+              <feature.icon className="text-foreground mx-auto mb-4" size={28} strokeWidth={1.5} />
+              <h3 className="font-serif text-sm md:text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
               <p className="text-muted-foreground text-xs md:text-sm">{feature.description}</p>
             </div>
           ))}

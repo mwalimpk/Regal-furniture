@@ -34,7 +34,7 @@
     --input: 0 0% 90%;
     --ring: 348 62% 32%;
 
-    --radius: 0.5rem;
+    --radius: 0rem;
 
     --hero-gradient: linear-gradient(135deg, hsl(348 62% 32%), hsl(348 62% 22%));
     --card-shadow: 0 4px 20px -4px hsl(348 62% 32% / 0.1);
