@@ -24,26 +24,28 @@ const Auth = () => {
   const { user, loading: authLoading } = useAuth();
 
   const redirectUserByRole = async (userId: string) => {
-    const { data: roleData } = await supabase
+    const { data: adminRow } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
+      .eq("role", "admin")
       .maybeSingle();
 
-    navigate(roleData?.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+    navigate(adminRow ? "/admin" : "/dashboard", { replace: true });
   };
 
   useEffect(() => {
     if (authLoading || !user) return;
     let cancelled = false;
     const handleAuthenticatedUser = async () => {
-      const { data: roleData } = await supabase
+      const { data: adminRow } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
+        .eq("role", "admin")
         .maybeSingle();
       if (!cancelled) {
-        navigate(roleData?.role === "admin" ? "/admin" : "/dashboard", { replace: true });
+        navigate(adminRow ? "/admin" : "/dashboard", { replace: true });
       }
     };
     void handleAuthenticatedUser();
