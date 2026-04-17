@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { categories, products, Product } from "@/data/products";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import OrderFormDialog from "@/components/OrderFormDialog";
 import BookVisitDialog from "@/components/BookVisitDialog";
+import placeholderImg from "@/assets/product-exec-desk.jpg";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -20,7 +23,37 @@ const CategoryPage = () => {
   const [visitOpen, setVisitOpen] = useState(false);
 
   const category = categories.find((c) => c.slug === slug);
-  const categoryProducts = products.filter((p) => p.categorySlug === slug);
+
+  const { data: dbProducts } = useQuery({
+    queryKey: ["category-products", category?.name],
+    queryFn: async () => {
+      if (!category) return [];
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("status", "approved")
+        .eq("property_type", category.name)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!category,
+  });
+
+  const categoryProducts: Product[] = useMemo(() => {
+    const fromDb: Product[] = (dbProducts || []).map((p: any) => ({
+      id: p.id,
+      name: p.title,
+      category: p.property_type,
+      categorySlug: slug || "",
+      price: Number(p.price),
+      currency: p.currency,
+      image: p.images?.[0] || placeholderImg,
+      description: p.description || "",
+    }));
+    const fromStatic = products.filter((p) => p.categorySlug === slug);
+    return [...fromDb, ...fromStatic];
+  }, [dbProducts, slug]);
 
   const handleAdd = (product: Product) => {
     addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency, image: product.image });
