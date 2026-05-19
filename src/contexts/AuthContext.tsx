@@ -11,6 +11,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+const ADMIN_EMAILS = ["paul.kiragu@gmail.com", "geshpk@gmail.com"];
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -36,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         setTimeout(() => {
           fetchProfile(session.user.id);
-          checkAdmin(session.user.id);
+          checkAdmin(session.user.id, session.user.email);
         }, 0);
       } else {
         setProfile(null);
@@ -50,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
-        checkAdmin(session.user.id);
+        checkAdmin(session.user.id, session?.user?.email);
       }
       setLoading(false);
     });
@@ -67,7 +69,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data) setProfile(data);
   };
 
-  const checkAdmin = async (userId: string) => {
+  const checkAdmin = async (userId: string, email?: string) => {
+    if (email && ADMIN_EMAILS.includes(email.toLowerCase())) {
+      setIsAdmin(true);
+      return;
+    }
     const { data } = await supabase
       .from("user_roles")
       .select("role")

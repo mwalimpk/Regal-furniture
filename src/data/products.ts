@@ -6,6 +6,7 @@ import sofaImg from "@/assets/product-sofa.jpg";
 import standingDeskImg from "@/assets/product-standing-desk.jpg";
 import ergoChairImg from "@/assets/product-ergonomic-chair.jpg";
 import storageImg from "@/assets/product-storage.jpg";
+import { greenProducts } from "./greenProducts";
 
 export interface Product {
   id: string;
@@ -15,6 +16,7 @@ export interface Product {
   price: number;
   currency: string;
   image: string;
+  images?: string[];
   description: string;
 }
 
@@ -40,7 +42,22 @@ export const categories: Category[] = [
   { name: "Accessories", slug: "accessories", image: storageImg, description: "Bar stools, coffee tables, reception counters, bar fridges and desk accessories." },
 ];
 
+export const categoryPairings: Record<string, string> = {
+  "executive-desking": "executive-chairs",
+  "managerial-desking": "executive-chairs",
+  "l-shaped-desks": "executive-chairs",
+  "adjustable-desking": "ergonomic-chairs",
+  "workstations": "ergonomic-chairs",
+  "conference-tables": "visitor-chairs",
+  "sofas-lounge": "accessories",
+  "executive-chairs": "executive-desking",
+  "ergonomic-chairs": "workstations",
+  "visitor-chairs": "conference-tables",
+  "accessories": "sofas-lounge",
+};
+
 export const products: Product[] = [
+  ...greenProducts,
   // Executive Desking
   { id: "1", name: "B002 Executive Desk", category: "Executive Desking", categorySlug: "executive-desking", price: 1299, currency: "USD", image: execDeskImg, description: "Premium executive desk with mahogany finish and brass accents." },
   { id: "2", name: "B018 Executive Desk", category: "Executive Desking", categorySlug: "executive-desking", price: 1399, currency: "USD", image: execDeskImg, description: "Executive desk with spacious surface and integrated storage." },

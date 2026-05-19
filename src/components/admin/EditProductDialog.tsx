@@ -69,6 +69,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
       toast({ title: "Saved" });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
       onOpenChange(false);
     }
   };

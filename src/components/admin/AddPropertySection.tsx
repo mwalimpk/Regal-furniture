@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -80,72 +81,151 @@ const AddProductSection = () => {
       setImages([]);
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
     }
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Add Product</h1>
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label>Product Name</Label><Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. B002 Executive Desk" required /></div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Catalog Management</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Add a new product</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Build each listing with clear specs, polished media, and enough context for the storefront, quote flow, and search tools.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Status</p>
+            <p className="mt-2 font-medium text-foreground">Drafting</p>
+          </div>
+          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Images</p>
+            <p className="mt-2 font-medium text-foreground">{images.length} / 10 added</p>
+          </div>
+          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Category</p>
+            <p className="mt-2 font-medium text-foreground">{form.property_type}</p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+          <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Product details</CardTitle>
+              <CardDescription>Set the storefront-facing identity of the item before pricing and logistics.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Product Name</Label>
+                  <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. B002 Executive Desk" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={form.property_type} onValueChange={(v) => update("property_type", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Key Features (for AI)</Label>
+                <Input value={form.features} onChange={(e) => update("features", e.target.value)} placeholder="e.g. mahogany finish, 1.6m wide, lockable drawers" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Label>Description</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={handleGenerate} disabled={aiLoading} className="w-full sm:w-auto">
+                    {aiLoading ? "Generating..." : "Generate with AI"}
+                  </Button>
+                </div>
+                <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Product description..." rows={7} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Pricing and stock</CardTitle>
+                <CardDescription>Define price presentation, SKU reference, and warehouse allocation.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Price</Label>
+                    <Input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} placeholder="0.00" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Currency</Label>
+                    <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["USD", "ZWL"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>SKU / Model</Label>
+                  <Input value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="B002" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Warehouse</Label>
+                  <Select value={form.city} onValueChange={(v) => update("city", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Harare">Harare</SelectItem>
+                      <SelectItem value="Bulawayo">Bulawayo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-[#fbf7f2] shadow-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Publishing notes</CardTitle>
+                <CardDescription>Use at least three polished product images and keep names aligned with your catalog structure.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm leading-7 text-muted-foreground">
+                <p>Use one hero image and supporting views that show scale, finish, and detail.</p>
+                <p>Keep category naming consistent so filters and collection dropdowns stay reliable.</p>
+                <p>Descriptions generated with AI can be edited before publishing.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Product media</CardTitle>
+            <CardDescription>Upload up to ten images. Lead with your strongest showroom-ready photo.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ImageUploader images={images} onChange={setImages} max={10} />
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-[#dac9b2] bg-[#f4ede2] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Label>Category</Label>
-            <Select value={form.property_type} onValueChange={(v) => update("property_type", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {categories.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <p className="font-medium text-foreground">Ready to add this product to the store?</p>
+            <p className="text-sm text-muted-foreground">Saving here updates the local storefront catalog immediately.</p>
           </div>
+          <Button type="submit" disabled={loading} className="min-w-40">
+            {loading ? "Adding..." : "Add Product"}
+          </Button>
         </div>
-
-        <div>
-          <Label>Key Features (for AI)</Label>
-          <Input value={form.features} onChange={(e) => update("features", e.target.value)} placeholder="e.g. mahogany finish, 1.6m wide, lockable drawers" />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between">
-            <Label>Description</Label>
-            <Button type="button" size="sm" variant="outline" onClick={handleGenerate} disabled={aiLoading}>
-              {aiLoading ? "Generating..." : "Generate with AI"}
-            </Button>
-          </div>
-          <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Product description..." rows={4} />
-        </div>
-
-        <div>
-          <Label>Product Images (up to 10)</Label>
-          <ImageUploader images={images} onChange={setImages} max={10} />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div><Label>Price</Label><Input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} placeholder="0.00" required /></div>
-          <div>
-            <Label>Currency</Label>
-            <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["USD", "ZWL"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div><Label>SKU / Model</Label><Input value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="B002" /></div>
-        </div>
-
-        <div>
-          <Label>Warehouse</Label>
-          <Select value={form.city} onValueChange={(v) => update("city", v)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Harare">Harare</SelectItem>
-              <SelectItem value="Bulawayo">Bulawayo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add Product"}</Button>
       </form>
     </div>
   );

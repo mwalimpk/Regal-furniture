@@ -52,15 +52,27 @@ const OverviewSection = () => {
   ];
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Store Dashboard</h1>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Overview</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Store dashboard</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Keep an eye on catalog health, lead activity, and the volume moving through the local store workspace.
+          </p>
+        </div>
+        <div className="rounded-[1.75rem] border border-[#dfd0bc] bg-white/85 px-5 py-4 text-sm text-muted-foreground">
+          Today&apos;s view reflects local project data and storefront activity connected inside this workspace.
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
             <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
-              <p className="text-3xl font-bold font-serif text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{stat.label}</p>
+              <p className="mt-3 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">{stat.value}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{stat.sub}</p>
             </CardContent>
           </Card>
         ))}

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import regalLogo from "@/assets/regal-logo.png";
+import regalLogo from "@/assets/regal-logo-brand.svg";
+
+const ADMIN_EMAILS = ["paul.kiragu@gmail.com", "geshpk@gmail.com"];
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,7 +24,12 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
-  const redirectUserByRole = async (userId: string) => {
+  const redirectUserByRole = async (userId: string, email?: string | null) => {
+    if (email && ADMIN_EMAILS.includes(email.toLowerCase())) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
     const { data: adminRow } = await supabase
       .from("user_roles")
       .select("role")
@@ -45,7 +51,7 @@ const Auth = () => {
         .eq("role", "admin")
         .maybeSingle();
       if (!cancelled) {
-        navigate(adminRow ? "/admin" : "/dashboard", { replace: true });
+        navigate(adminRow || ADMIN_EMAILS.includes(user.email?.toLowerCase() || "") ? "/admin" : "/dashboard", { replace: true });
       }
     };
     void handleAuthenticatedUser();
@@ -75,7 +81,7 @@ const Auth = () => {
             toast({ title: "Access denied", description: "You do not have admin privileges.", variant: "destructive" });
             await supabase.auth.signOut();
           } else {
-            await redirectUserByRole(authData.user.id);
+            await redirectUserByRole(authData.user.id, authData.user.email);
           }
         }
       }
@@ -97,28 +103,10 @@ const Auth = () => {
           role,
         });
         toast({ title: "Welcome!", description: "Account created successfully." });
-        await redirectUserByRole(data.user.id);
+        await redirectUserByRole(data.user.id, data.user.email);
       }
     }
 
-    setLoading(false);
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth`,
-    });
-    if (result.error) {
-      toast({
-        title: "Error",
-        description: result.error instanceof Error ? result.error.message : String(result.error),
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-    if (result.redirected) return;
     setLoading(false);
   };
 
@@ -153,83 +141,120 @@ const Auth = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/">
-            <img src={regalLogo} alt="Regal Office & Home" className="h-16 mx-auto mb-4" />
-          </Link>
-          <p className="text-muted-foreground">
-            {isLogin ? "Sign in to your account" : "Create a new account"}
+    <div className="min-h-screen bg-[linear-gradient(180deg,#efe8dc_0%,#fbf8f3_32%,#ffffff_100%)] px-4 py-8 md:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-[32px] border border-[#ded6ca] bg-white shadow-[0_30px_90px_rgba(28,33,30,0.08)] md:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative hidden overflow-hidden bg-[#1d241f] p-10 text-white md:flex md:flex-col md:justify-between">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(199,175,131,0.35),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(123,31,52,0.45),transparent_45%)]" />
+          <div className="relative z-10">
+            <img src={regalLogo} alt="Regal Office & Home" className="h-14 w-auto object-contain" />
+          </div>
+          <div className="relative z-10 max-w-lg space-y-6">
+            <p className="text-xs uppercase tracking-[0.35em] text-white/60">Client Access</p>
+            <h1 className="font-serif text-5xl leading-[1.05] text-[#f7f1e8]">
+              Manage your showroom, orders, and catalog from one place.
+            </h1>
+            <p className="max-w-md text-sm leading-7 text-white/72">
+              We’ve removed the external dependency and kept access inside the project. Admins can manage products, leads, RFQs, and orders directly from the local store workspace.
+            </p>
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <div className="text-2xl font-serif text-[#f3dcc0]">1</div>
+                <p className="mt-1 text-xs text-white/65">Storefront</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <div className="text-2xl font-serif text-[#f3dcc0]">1</div>
+                <p className="mt-1 text-xs text-white/65">Admin space</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <div className="text-2xl font-serif text-[#f3dcc0]">0</div>
+                <p className="mt-1 text-xs text-white/65">Supabase calls</p>
+              </div>
+            </div>
+          </div>
+          <p className="relative z-10 text-xs text-white/55">
+            Admin access is available for `geshpk@gmail.com`.
           </p>
         </div>
 
-        <div className="bg-card p-8 border border-border space-y-5">
-          <Button variant="outline" className="w-full gap-2" onClick={handleGoogleSignIn} type="button" disabled={loading}>
-            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Continue with Google
-          </Button>
+        <div className="flex items-center justify-center p-6 md:p-10">
+          <div className="w-full max-w-md">
+            <div className="mb-8 text-center md:text-left">
+              <Link to="/" className="md:hidden">
+                <img src={regalLogo} alt="Regal Office & Home" className="mx-auto mb-5 h-14 md:mx-0" />
+              </Link>
+              <p className="text-xs uppercase tracking-[0.28em] text-[#8c8274]">
+                {isLogin ? "Welcome Back" : "Create Access"}
+              </p>
+              <h2 className="mt-3 font-serif text-4xl leading-tight text-[#171a18]">
+                {isLogin ? "Sign in to continue." : "Create your account."}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#6f6659]">
+                Use buyer access for client activity or admin access for catalog and operations management.
+              </p>
+            </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="rounded-[28px] border border-[#e7dfd3] bg-[#fdfbf8] p-7 shadow-[0_20px_60px_rgba(23,26,24,0.05)]">
+              <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role selector - shown on both login and signup */}
-            {isLogin ? (
-              <RoleSelector value={loginRole} onChange={setLoginRole} />
-            ) : (
-              <>
-                <RoleSelector value={role} onChange={setRole} />
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="+263..." value={phone} onChange={(e) => setPhone(e.target.value)} />
-                </div>
-              </>
-            )}
+                {isLogin ? (
+                  <RoleSelector value={loginRole} onChange={setLoginRole} />
+                ) : (
+                  <>
+                    <RoleSelector value={role} onChange={setRole} />
+                    <div>
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="mt-1.5 rounded-2xl border-[#d9d1c6] bg-white h-12" />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input id="phone" type="tel" placeholder="+263..." value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1.5 rounded-2xl border-[#d9d1c6] bg-white h-12" />
+                    </div>
+                  </>
+                )}
 
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1.5 rounded-2xl border-[#d9d1c6] bg-white h-12" />
+                </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="pr-16"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-medium"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-12 rounded-2xl border-[#d9d1c6] bg-white pr-16"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a705f]"
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                <Button type="submit" className="h-12 w-full rounded-full bg-[#7b1f34] text-white hover:bg-[#63182a]" disabled={loading}>
+                  {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+                </Button>
+              </form>
+
+              <div className="mt-5 rounded-2xl border border-[#ece4d8] bg-white px-4 py-3 text-xs leading-6 text-[#6f6659]">
+                <p>Admin access uses local project data. That keeps the website and its management tools in one place while the backend migration is being finalized.</p>
               </div>
+
+              <p className="mt-5 text-center text-sm text-muted-foreground">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-semibold text-primary hover:underline">
+                  {isLogin ? "Sign Up" : "Sign In"}
+                </button>
+              </p>
             </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary font-semibold hover:underline">
-              {isLogin ? "Sign Up" : "Sign In"}
-            </button>
-          </p>
+          </div>
         </div>
       </div>
     </div>

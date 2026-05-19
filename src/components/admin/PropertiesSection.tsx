@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import EditProductDialog from "./EditProductDialog";
@@ -45,6 +46,7 @@ const PropertiesSection = () => {
       toast({ title: "Deleted" });
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
     }
   };
 
@@ -69,30 +71,40 @@ const PropertiesSection = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-serif font-bold text-foreground">Products</h1>
-        <Button variant="outline" onClick={exportCsv}>Export CSV</Button>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Catalog</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Products</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Review live products, narrow the list quickly, and export the current catalog view when you need a working sheet.
+          </p>
+        </div>
+        <Button variant="outline" onClick={exportCsv} className="w-full sm:w-auto">Export CSV</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <Input placeholder="Search name, category, SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="md:col-span-2" />
-        <div>
-          <label className="text-xs text-muted-foreground">From</label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground">To</label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-      </div>
+      <Card className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
+        <CardContent className="grid grid-cols-1 gap-3 p-5 md:grid-cols-4">
+          <Input placeholder="Search name, category, SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="md:col-span-2" />
+          <div>
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">From</label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div>
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">To</label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !filtered.length ? (
-        <p className="text-muted-foreground">No products match your filters.</p>
+        <Card className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
+          <CardContent className="p-8 text-muted-foreground">No products match your filters.</CardContent>
+        </Card>
       ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
+        <div className="overflow-x-auto rounded-[1.75rem] border border-[#e3d7c8] bg-white/92">
           <Table>
             <TableHeader>
               <TableRow>
