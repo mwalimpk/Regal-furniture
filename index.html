@@ -15,6 +15,22 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/favicon.svg" />
+    <script>
+      (() => {
+        const storageKey = "regal-office-home-theme";
+        const root = document.documentElement;
+
+        try {
+          const storedTheme = window.localStorage.getItem(storageKey);
+          const theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+          root.classList.toggle("dark", theme === "dark");
+          root.style.colorScheme = theme;
+        } catch (_error) {
+          root.classList.add("dark");
+          root.style.colorScheme = "dark";
+        }
+      })();
+    </script>
   </head>
 
   <body>

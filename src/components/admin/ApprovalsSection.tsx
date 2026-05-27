@@ -33,23 +33,37 @@ const ApprovalsSection = () => {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Product Categories & Approvals</h1>
-      <div className="mb-6">
-        <h2 className="font-serif text-lg font-semibold text-foreground mb-3">Categories</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Catalog governance</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Categories and approvals</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Keep category names consistent and approve pending products before they enter the storefront.
+          </p>
+        </div>
+      </div>
+
+      <div className="admin-panel-soft p-5">
+        <h2 className="mb-3 font-serif text-lg font-semibold text-foreground">Categories</h2>
         <div className="flex flex-wrap gap-2">
           {["Executive Desks", "Managerial Desks", "L-Shaped Desks", "Adjustable Desks", "Workstations", "Executive Chairs", "Ergonomic Chairs", "Operator Chairs", "Visitor Chairs", "Conference Tables", "Sofas & Lounge", "Storage & Filing", "Training Furniture", "Accessories", "Home Furniture"].map(cat => (
-            <span key={cat} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs font-medium">{cat}</span>
+            <span key={cat} className="border border-grid/20 bg-background px-3 py-1 text-xs font-medium text-foreground">{cat}</span>
           ))}
         </div>
       </div>
-      <h2 className="font-serif text-lg font-semibold text-foreground mb-3">Pending Approval</h2>
+
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="font-serif text-lg font-semibold text-foreground">Pending approval</h2>
+        {pending?.length ? <span className="text-sm text-muted-foreground">{pending.length} waiting</span> : null}
+      </div>
+
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !pending?.length ? (
-        <p className="text-muted-foreground">No products pending approval.</p>
+        <div className="admin-panel p-8 text-muted-foreground">No products pending approval.</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
+        <div className="admin-table-panel">
           <Table>
             <TableHeader>
               <TableRow>

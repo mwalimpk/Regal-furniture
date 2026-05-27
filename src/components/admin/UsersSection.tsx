@@ -13,14 +13,20 @@ const UsersSection = () => {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Users</h1>
+    <div className="space-y-6">
+      <div className="max-w-2xl">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Customers</p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Users</h1>
+        <p className="mt-3 text-sm leading-7 text-muted-foreground">
+          Browse customer profiles created through the storefront and account workspace.
+        </p>
+      </div>
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !profiles?.length ? (
-        <p className="text-muted-foreground">No users yet.</p>
+        <div className="admin-panel p-8 text-muted-foreground">No users yet.</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
+        <div className="admin-table-panel">
           <Table>
             <TableHeader>
               <TableRow>

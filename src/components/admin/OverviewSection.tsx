@@ -61,14 +61,14 @@ const OverviewSection = () => {
             Keep an eye on catalog health, lead activity, and the volume moving through the local store workspace.
           </p>
         </div>
-        <div className="rounded-[1.75rem] border border-[#dfd0bc] bg-white/85 px-5 py-4 text-sm text-muted-foreground">
+        <div className="admin-panel-soft max-w-xl px-5 py-4 text-sm leading-6 text-muted-foreground">
           Today&apos;s view reflects local project data and storefront activity connected inside this workspace.
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map((stat) => (
-          <Card key={stat.label} className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
+          <Card key={stat.label} className="border-grid/25 bg-card shadow-none">
             <CardContent className="p-5">
               <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{stat.label}</p>
               <p className="mt-3 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">{stat.value}</p>

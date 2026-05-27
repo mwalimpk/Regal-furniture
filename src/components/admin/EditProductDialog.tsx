@@ -78,10 +78,10 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="admin-workspace max-h-[90vh] max-w-2xl overflow-y-auto border-grid bg-card">
         <DialogHeader><DialogTitle>Edit Product</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2">
             <div><Label>Name</Label><Input value={form.title} onChange={(e) => update("title", e.target.value)} /></div>
             <div>
               <Label>Category</Label>
@@ -96,7 +96,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
             <Label>Images (up to 10)</Label>
             <ImageUploader images={images} onChange={setImages} max={10} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 md:grid-cols-3">
             <div><Label>Price</Label><Input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} /></div>
             <div>
               <Label>Currency</Label>
@@ -117,7 +117,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <div><Label>SKU / Model</Label><Input value={form.location} onChange={(e) => update("location", e.target.value)} /></div>
             <div>
               <Label>Warehouse</Label>
@@ -130,7 +130,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col justify-end gap-2 pt-2 sm:flex-row">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={save} disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
           </div>

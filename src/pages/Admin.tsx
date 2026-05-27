@@ -4,6 +4,8 @@ import OverviewSection from "@/components/admin/OverviewSection";
 import UsersSection from "@/components/admin/UsersSection";
 import PropertiesSection from "@/components/admin/PropertiesSection";
 import AddPropertySection from "@/components/admin/AddPropertySection";
+import CataloguesSection from "@/components/admin/CataloguesSection";
+import PromotionalBannersSection from "@/components/admin/PromotionalBannersSection";
 import ApprovalsSection from "@/components/admin/ApprovalsSection";
 import LeadsSection from "@/components/admin/LeadsSection";
 import RFQSection from "@/components/admin/RFQSection";
@@ -23,6 +25,8 @@ const Admin = () => {
       case "users": return <UsersSection />;
       case "properties": return <PropertiesSection />;
       case "add-property": return <AddPropertySection />;
+      case "catalogues": return <CataloguesSection />;
+      case "promotions": return <PromotionalBannersSection />;
       case "approvals": return <ApprovalsSection />;
       case "rfq": return <RFQSection />;
       case "leads": return <LeadsSection />;

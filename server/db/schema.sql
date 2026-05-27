@@ -61,6 +61,48 @@ CREATE TABLE IF NOT EXISTS product_pairings (
   recommended_ids LONGTEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS catalogues (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  category VARCHAR(255) NOT NULL,
+  year INT NOT NULL,
+  month INT NOT NULL,
+  document_url LONGTEXT NOT NULL,
+  document_name VARCHAR(255) NOT NULL,
+  document_type VARCHAR(128) NOT NULL,
+  cover_image_url LONGTEXT NOT NULL,
+  imported_count INT NOT NULL DEFAULT 0,
+  status VARCHAR(32) NOT NULL DEFAULT 'uploaded',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  INDEX idx_catalogues_user_id (user_id),
+  INDEX idx_catalogues_year_month (year, month),
+  INDEX idx_catalogues_category (category)
+);
+
+CREATE TABLE IF NOT EXISTS promotional_banners (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  subtitle LONGTEXT NULL,
+  category VARCHAR(255) NOT NULL,
+  background_image_url LONGTEXT NULL,
+  cta_label VARCHAR(128) NULL,
+  cta_href VARCHAR(255) NULL,
+  placements LONGTEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  has_countdown TINYINT(1) NOT NULL DEFAULT 0,
+  countdown_ends_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  INDEX idx_promotional_banners_status (status),
+  INDEX idx_promotional_banners_category (category),
+  INDEX idx_promotional_banners_user_id (user_id)
+);
+
 CREATE TABLE IF NOT EXISTS inquiries (
   id VARCHAR(64) PRIMARY KEY,
   created_at DATETIME NOT NULL,

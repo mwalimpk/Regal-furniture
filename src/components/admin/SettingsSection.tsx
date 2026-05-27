@@ -78,9 +78,15 @@ const SettingsSection = () => {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Settings</h1>
-      <Card className="border-[#e8dfd4]">
+    <div className="space-y-6">
+      <div className="max-w-2xl">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Configuration</p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Settings</h1>
+        <p className="mt-3 text-sm leading-7 text-muted-foreground">
+          Control storefront filter behavior from the admin workspace.
+        </p>
+      </div>
+      <Card className="border-grid/25 bg-card shadow-none">
         <CardContent className="p-6 md:p-8 space-y-8">
           <div>
             <h2 className="font-serif text-xl text-foreground">Category Filter Controls</h2>
@@ -96,7 +102,7 @@ const SettingsSection = () => {
               { key: "showMaxPrice", label: "Show maximum price" },
               { key: "showSort", label: "Show sort menu" },
             ].map((item) => (
-              <label key={item.key} className="flex items-center justify-between rounded-2xl border border-[#e8dfd4] bg-[#fcfaf7] px-4 py-3">
+              <label key={item.key} className="flex items-center justify-between border border-grid/20 bg-background px-4 py-3">
                 <span className="text-sm font-medium text-foreground">{item.label}</span>
                 <input
                   type="checkbox"
@@ -109,14 +115,13 @@ const SettingsSection = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="font-semibold text-foreground">Quick Filter Chips</h3>
                 <p className="text-sm text-muted-foreground">Add, remove, or disable shortcut filters shown above the catalog grid.</p>
               </div>
               <Button
                 variant="outline"
-                className="rounded-full"
                 onClick={() => syncDraft({ ...draft, quickFilters: [...draft.quickFilters, emptyQuickFilter()] })}
               >
                 Add Filter
@@ -125,7 +130,7 @@ const SettingsSection = () => {
 
             <div className="space-y-3">
               {draft.quickFilters.map((filter) => (
-                <div key={filter.id} className="rounded-2xl border border-[#e8dfd4] bg-white p-4">
+                <div key={filter.id} className="border border-grid/20 bg-background p-4">
                   <div className="grid gap-3 md:grid-cols-[1.2fr_1fr_1fr_auto]">
                     <div>
                       <Label>Label</Label>
@@ -133,7 +138,7 @@ const SettingsSection = () => {
                         value={filter.label}
                         onChange={(e) => updateQuickFilter(filter.id, { label: e.target.value })}
                         placeholder="Under $500"
-                        className="mt-1.5 rounded-2xl"
+                        className="mt-1.5"
                       />
                     </div>
                     <div>
@@ -141,7 +146,7 @@ const SettingsSection = () => {
                       <select
                         value={filter.type}
                         onChange={(e) => updateQuickFilter(filter.id, { type: e.target.value as QuickFilterType })}
-                        className="mt-1.5 h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
+                        className="mt-1.5 h-10 w-full border border-input bg-background px-3 text-sm"
                       >
                         <option value="keyword">Keyword</option>
                         <option value="max_price">Max price</option>
@@ -154,10 +159,10 @@ const SettingsSection = () => {
                         value={filter.value}
                         onChange={(e) => updateQuickFilter(filter.id, { value: e.target.value })}
                         placeholder={filter.type === "keyword" ? "ergonomic" : "500"}
-                        className="mt-1.5 rounded-2xl"
+                        className="mt-1.5"
                       />
                     </div>
-                    <div className="flex items-end gap-3">
+                    <div className="flex flex-wrap items-end gap-3">
                       <label className="flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"
@@ -186,7 +191,7 @@ const SettingsSection = () => {
 
             <div className="space-y-3">
               {categoryOptions.map((category) => (
-                <div key={category.slug} className="rounded-2xl border border-[#e8dfd4] bg-white p-4">
+                <div key={category.slug} className="border border-grid/20 bg-background p-4">
                   <div className="grid gap-3 md:grid-cols-[220px_1fr] md:items-center">
                     <div>
                       <p className="font-medium text-foreground">{category.name}</p>
@@ -198,7 +203,7 @@ const SettingsSection = () => {
                         value={(draft.collectionGroups[category.slug] || []).join(", ")}
                         onChange={(e) => updateCollectionGroup(category.slug, e.target.value)}
                         placeholder="executive-desking, managerial-desking"
-                        className="mt-1.5 rounded-2xl"
+                        className="mt-1.5"
                       />
                     </div>
                   </div>
@@ -208,10 +213,10 @@ const SettingsSection = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button className="rounded-full bg-[#7b1f34] text-white hover:bg-[#63182a]" onClick={saveSettings}>
+            <Button className="bg-heritage text-primary-foreground hover:bg-heritage/90" onClick={saveSettings}>
               Save Filter Settings
             </Button>
-            <Button variant="outline" className="rounded-full" onClick={resetDefaults}>
+            <Button variant="outline" onClick={resetDefaults}>
               Reset to Defaults
             </Button>
           </div>

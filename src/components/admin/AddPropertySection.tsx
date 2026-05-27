@@ -96,15 +96,15 @@ const AddProductSection = () => {
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+          <div className="admin-panel-soft px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Status</p>
             <p className="mt-2 font-medium text-foreground">Drafting</p>
           </div>
-          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+          <div className="admin-panel-soft px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Images</p>
             <p className="mt-2 font-medium text-foreground">{images.length} / 10 added</p>
           </div>
-          <div className="rounded-3xl border border-[#e1d3c1] bg-white/80 px-4 py-3">
+          <div className="admin-panel-soft px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Category</p>
             <p className="mt-2 font-medium text-foreground">{form.property_type}</p>
           </div>
@@ -113,7 +113,7 @@ const AddProductSection = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
-          <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+          <Card className="border-grid/25 bg-card shadow-none">
             <CardHeader className="pb-4">
               <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Product details</CardTitle>
               <CardDescription>Set the storefront-facing identity of the item before pricing and logistics.</CardDescription>
@@ -153,7 +153,7 @@ const AddProductSection = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+            <Card className="border-grid/25 bg-card shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Pricing and stock</CardTitle>
                 <CardDescription>Define price presentation, SKU reference, and warehouse allocation.</CardDescription>
@@ -193,7 +193,7 @@ const AddProductSection = () => {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-[#fbf7f2] shadow-none">
+            <Card className="border-grid/25 bg-muted shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Publishing notes</CardTitle>
                 <CardDescription>Use at least three polished product images and keep names aligned with your catalog structure.</CardDescription>
@@ -207,7 +207,7 @@ const AddProductSection = () => {
           </div>
         </div>
 
-        <Card className="rounded-[1.75rem] border-[#e3d8ca] bg-white/90 shadow-none">
+        <Card className="border-grid/25 bg-card shadow-none">
           <CardHeader className="pb-4">
             <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Product media</CardTitle>
             <CardDescription>Upload up to ten images. Lead with your strongest showroom-ready photo.</CardDescription>
@@ -217,7 +217,7 @@ const AddProductSection = () => {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-[#dac9b2] bg-[#f4ede2] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="admin-panel-soft flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium text-foreground">Ready to add this product to the store?</p>
             <p className="text-sm text-muted-foreground">Saving here updates the local storefront catalog immediately.</p>

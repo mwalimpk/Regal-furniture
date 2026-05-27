@@ -89,6 +89,8 @@ const buildInitialState = () => {
     user_roles,
     properties: [],
     product_pairings: [],
+    catalogues: [],
+    promotional_banners: [],
     inquiries: [],
     leads: [],
     orders: [],
@@ -247,6 +249,32 @@ const normalizeInsertRow = (table, row) => {
         recommended_ids: [],
         ...row,
       };
+    case "catalogues":
+      return {
+        id: uid("catalogue"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        imported_count: 0,
+        status: "uploaded",
+        ...row,
+      };
+    case "promotional_banners":
+      return {
+        id: uid("banner"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        subtitle: null,
+        background_image_url: null,
+        cta_label: null,
+        cta_href: null,
+        placements: [],
+        status: "active",
+        starts_at: null,
+        ends_at: null,
+        has_countdown: false,
+        countdown_ends_at: null,
+        ...row,
+      };
     case "inquiries":
       return {
         id: uid("inq"),
@@ -328,6 +356,123 @@ const normalizeInsertRow = (table, row) => {
     default:
       return row;
   }
+};
+
+const firstTextValue = (row, keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return "";
+};
+
+const parseImportPrice = (value) => {
+  if (typeof value === "number") return value;
+  const normalized = String(value ?? "").replace(/[^0-9.-]/g, "");
+  return Number(normalized);
+};
+
+const productImportKey = (product) =>
+  [product.title, product.property_type, product.location || ""].map((value) => String(value || "").trim().toLowerCase()).join("|");
+
+const normalizeImportedProduct = (row, rowNumber) => {
+  const title = firstTextValue(row, ["title", "name", "product_name", "product", "item", "item_name"]);
+  const propertyType = firstTextValue(row, ["property_type", "category", "product_type", "type", "collection"]);
+  const rawPrice = row?.price ?? row?.unit_price ?? row?.selling_price ?? row?.amount ?? row?.cost;
+  const price = parseImportPrice(rawPrice);
+  const currency = firstTextValue(row, ["currency"]).toUpperCase() || "USD";
+  const description = firstTextValue(row, ["description", "details", "notes"]);
+  const location = firstTextValue(row, ["location", "sku", "model", "code"]);
+  const city = firstTextValue(row, ["city", "warehouse"]) || "Harare";
+  const imageUrl = firstTextValue(row, ["image", "image_url", "images", "photo"]);
+  const errors = [];
+
+  if (!title) errors.push("Missing product name.");
+  if (!propertyType) errors.push("Missing category.");
+  if (!Number.isFinite(price) || price < 0) errors.push("Invalid price.");
+  if (!["USD", "ZWL"].includes(currency)) errors.push("Unsupported currency.");
+
+  return {
+    rowNumber,
+    errors,
+    product: {
+      title,
+      description,
+      property_type: propertyType,
+      price,
+      currency,
+      location,
+      city,
+      country: "Zimbabwe",
+      images: imageUrl ? [imageUrl] : [],
+      status: "approved",
+      bedrooms: 0,
+      bathrooms: 0,
+      area_sqft: 0,
+    },
+  };
+};
+
+export const importCatalogueProducts = async ({ catalogueId, userId, rows }) => {
+  if (!userId) {
+    return { data: null, error: { message: "A signed-in admin is required to import products." } };
+  }
+
+  if (!Array.isArray(rows) || !rows.length) {
+    return { data: null, error: { message: "No catalogue product rows were provided." } };
+  }
+
+  const state = loadState();
+  if (!Array.isArray(state.catalogues)) state.catalogues = [];
+  if (!Array.isArray(state.properties)) state.properties = [];
+
+  const existingKeys = new Set(state.properties.map(productImportKey));
+  const rejected = [];
+  const imported = [];
+
+  rows.slice(0, 500).forEach((row, index) => {
+    const rowNumber = Number(row?.rowNumber || index + 2);
+    const normalized = normalizeImportedProduct(row, rowNumber);
+
+    if (normalized.errors.length) {
+      rejected.push({ rowNumber, reason: normalized.errors.join(" ") });
+      return;
+    }
+
+    const key = productImportKey(normalized.product);
+    if (existingKeys.has(key)) {
+      rejected.push({ rowNumber, reason: "Duplicate product name, category, and SKU/model." });
+      return;
+    }
+
+    existingKeys.add(key);
+    const product = normalizeInsertRow("properties", {
+      ...normalized.product,
+      user_id: userId,
+    });
+    state.properties.push(product);
+    imported.push(product);
+  });
+
+  if (catalogueId) {
+    const catalogue = state.catalogues.find((item) => item.id === catalogueId);
+    if (catalogue) {
+      catalogue.imported_count = Number(catalogue.imported_count || 0) + imported.length;
+      catalogue.status = imported.length ? "imported" : "uploaded";
+      catalogue.updated_at = nowIso();
+    }
+  }
+
+  saveState(state);
+
+  return {
+    data: {
+      importedCount: imported.length,
+      rejected,
+      products: imported,
+    },
+    error: null,
+  };
 };
 
 const executeMutation = (state, payload) => {
@@ -529,6 +674,42 @@ export const signUp = async ({ email, password, options }) => {
   return { data: { user: session.user, session }, error: null };
 };
 
+export const resetPasswordDirect = async ({ email, password }) => {
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const nextPassword = typeof password === "string" ? password : "";
+
+  if (!normalizedEmail) {
+    return { data: { user: null }, error: { message: "Enter the email address for this account." } };
+  }
+
+  if (nextPassword.length < 6) {
+    return { data: { user: null }, error: { message: "Password must be at least 6 characters." } };
+  }
+
+  const state = loadState();
+  const user = state.authUsers.find((entry) => entry.email.toLowerCase() === normalizedEmail);
+
+  if (!user) {
+    return { data: { user: null }, error: { message: "No account exists for that email." } };
+  }
+
+  user.password = nextPassword;
+  state.sessions = state.sessions.filter((entry) => entry.user_id !== user.id);
+  saveState(state);
+
+  return {
+    data: {
+      user: {
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+        user_metadata: user.user_metadata || {},
+      },
+    },
+    error: null,
+  };
+};
+
 export const signOut = async (accessToken) => {
   const state = loadState();
   state.sessions = state.sessions.filter((entry) => entry.access_token !== accessToken);
@@ -598,6 +779,22 @@ const mimeFromExt = (ext) => {
       return "image/gif";
     case ".svg":
       return "image/svg+xml";
+    case ".pdf":
+      return "application/pdf";
+    case ".csv":
+      return "text/csv";
+    case ".tsv":
+      return "text/tab-separated-values";
+    case ".txt":
+      return "text/plain";
+    case ".xls":
+      return "application/vnd.ms-excel";
+    case ".xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case ".doc":
+      return "application/msword";
+    case ".docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     case ".jpeg":
     case ".jpg":
     default:
@@ -615,15 +812,24 @@ export const uploadFile = async ({ path: relativePath, dataUrl }) => {
     return { data: null, error: { message: "Invalid upload payload." } };
   }
 
-  const destination = path.join(uploadRoot, relativePath);
+  const safeRelativePath = path.normalize(String(relativePath).replace(/^\/+/, ""));
+  if (safeRelativePath.startsWith("..") || path.isAbsolute(safeRelativePath)) {
+    return { data: null, error: { message: "Invalid upload path." } };
+  }
+
+  const destination = path.join(uploadRoot, safeRelativePath);
+  if (!destination.startsWith(uploadRoot)) {
+    return { data: null, error: { message: "Invalid upload path." } };
+  }
+
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.writeFileSync(destination, Buffer.from(match[2], "base64"));
 
   return {
     data: {
-      path: relativePath,
-      publicUrl: `/uploads/${relativePath}`,
-      contentType: match[1] || mimeFromExt(path.extname(relativePath)),
+      path: safeRelativePath,
+      publicUrl: `/uploads/${safeRelativePath}`,
+      contentType: match[1] || mimeFromExt(path.extname(safeRelativePath)),
     },
     error: null,
   };

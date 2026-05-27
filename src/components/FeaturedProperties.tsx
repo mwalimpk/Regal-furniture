@@ -6,6 +6,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { products, Product } from "@/data/products";
 import OrderFormDialog from "@/components/OrderFormDialog";
+import ProductHoverMedia from "@/components/ProductHoverMedia";
 
 const FeaturedProducts = () => {
   const { addItem } = useCart();
@@ -23,7 +24,7 @@ const FeaturedProducts = () => {
   return (
     <>
       <section id="shop" className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-10">
           <div className="text-center mb-8 md:mb-14">
             <h2 className="text-2xl md:text-4xl font-bold font-serif text-foreground mb-2">Featured Products</h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
@@ -33,8 +34,8 @@ const FeaturedProducts = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
             {featured.map((product) => (
               <div key={product.id} className="group bg-background">
-                <div className="relative overflow-hidden aspect-square">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+                <div className="relative aspect-square overflow-hidden">
+                  <ProductHoverMedia product={product} relatedProducts={products} className="h-full w-full" />
                   <Link
                     to={`/category/${product.categorySlug}`}
                     className="absolute top-3 left-3 bg-background text-foreground text-[10px] md:text-xs font-medium tracking-wider uppercase px-2 py-1 hover:bg-primary hover:text-primary-foreground transition-colors"

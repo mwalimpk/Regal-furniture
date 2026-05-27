@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import regalLogo from "@/assets/regal-logo-homepage.png";
 import OrderFormDialog from "@/components/OrderFormDialog";
+import ThemeToggle from "@/components/ThemeToggle";
 import { categories } from "@/data/products";
 
 type MegaMenuItem = {
@@ -94,23 +95,19 @@ const utilityLinks = [
   { label: "New Arrivals", href: "/categories" },
   { label: "Catalogue", href: "/catalogue" },
   { label: "Sustainability", href: "/category/storage-filing" },
-  { label: "Ergonomics", href: "/category/ergonomic-chairs" },
-  { label: "Articles", href: "/categories" },
 ];
+
+const desktopUtilityLinkClass =
+  "relative px-4 py-3 text-[15px] text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
+const mobileListLinkClass =
+  "flex items-center justify-between px-4 py-4 text-sm text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [orderOpen, setOrderOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
   const { itemCount, setIsOpen } = useCart();
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const menuLookup = useMemo(
     () =>
@@ -122,7 +119,8 @@ const Navbar = () => {
             category.slug === item.slug ||
             category.slug.includes(item.slug.split("-")[0]) ||
             (item.slug === "executive-chairs" && ["ergonomic-chairs", "visitor-chairs"].includes(category.slug)) ||
-            (item.slug === "executive-desking" && ["managerial-desking", "adjustable-desking", "l-shaped-desks"].includes(category.slug)) ||
+            (item.slug === "executive-desking" &&
+              ["managerial-desking", "adjustable-desking", "l-shaped-desks"].includes(category.slug)) ||
             (item.slug === "workstations" && ["conference-tables"].includes(category.slug)) ||
             (item.slug === "storage-filing" && ["accessories", "sofas-lounge"].includes(category.slug))
           )
@@ -132,125 +130,150 @@ const Navbar = () => {
   );
 
   const activeMenu = menuLookup.find((item) => item.label === openMenu) || null;
+  const accountHref = user ? (isAdmin ? "/admin" : "/dashboard") : "/auth";
+  const accountLabel = user ? `${profile?.full_name?.split(" ")[0] || "Account"} account` : "Account";
 
   return (
     <>
-      <nav className="fixed left-0 right-0 top-0 z-50">
-        <div
-          className={`border-b border-black/5 bg-[rgba(255,255,255,0.96)] backdrop-blur-lg transition-all duration-300 ${
-            isScrolled ? "shadow-[0_14px_40px_rgba(21,24,22,0.08)]" : ""
-          }`}
-          onMouseLeave={() => setOpenMenu(null)}
-        >
-          <div className="container mx-auto hidden px-6 lg:block">
-            <div className="grid grid-cols-[220px_1fr_220px] items-center gap-6 border-b border-[#ece6db] py-4">
-              <div className="flex items-center border-b border-[#c9c0b4] pb-2 text-sm text-[#7a7267]">
-                <Search size={16} className="mr-2 text-[#45413a]" />
-                <span>Search collections</span>
+      <nav className="fixed inset-x-0 top-0 z-50 border-t border-heritage bg-[rgb(var(--nav-surface-rgb)/0.96)] text-[rgb(var(--nav-ink-rgb)/1)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--nav-surface-rgb)/0.92)]">
+        <div className="hidden lg:block" onMouseLeave={() => setOpenMenu(null)}>
+          <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)]">
+            <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-6 px-10 py-4">
+              <div className="col-span-4">
+                <button
+                  type="button"
+                  className="group flex w-full max-w-[320px] items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-2 text-left text-[17px] text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                >
+                  <span>Search</span>
+                  <Search
+                    size={24}
+                    className="text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear group-hover:text-interactive"
+                  />
+                </button>
               </div>
 
-              <div className="flex justify-center">
+              <div className="col-span-4 flex justify-center">
                 <Link to="/" className="inline-flex items-center">
-                  <img src={regalLogo} alt="Regal Office & Home" className="h-14 w-auto object-contain" />
+                  <img src={regalLogo} alt="Regal Office & Home" className="h-12 w-auto object-contain" />
                 </Link>
               </div>
 
-            <div className="flex items-center justify-end gap-4">
-              <Link
-                to="/admin"
-                className="text-sm font-semibold text-[#2e2a25] transition-colors hover:text-brand-red"
-              >
-                Admin
-              </Link>
-
-              {user ? (
-                <Link
-                  to={isAdmin ? "/admin" : "/dashboard"}
-                    className="text-sm font-medium text-[#2e2a25] transition-colors hover:text-brand-red"
+              <div className="col-span-4 flex items-center justify-end gap-2 xl:gap-4">
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
                   >
-                    {profile?.full_name?.split(" ")[0] || "Account"}
-                  </Link>
-                ) : (
-                  <Link to="/auth" className="text-[#2e2a25] transition-colors hover:text-brand-red">
-                    <User size={19} />
+                    // Admin
                   </Link>
                 )}
+
+                <ThemeToggle
+                  className="h-10 w-10 rounded-none border-0 bg-transparent text-[rgb(var(--nav-ink-rgb)/1)] hover:border-0 hover:bg-transparent hover:text-interactive"
+                />
+
+                <Link
+                  to={accountHref}
+                  className="inline-flex h-10 w-10 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  aria-label={accountLabel}
+                >
+                  <User size={24} />
+                </Link>
 
                 <button
                   type="button"
                   onClick={() => setIsOpen(true)}
-                  className="relative text-[#2e2a25] transition-colors hover:text-brand-red"
+                  className="relative inline-flex h-10 w-10 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  aria-label="Open cart"
                 >
-                  <ShoppingCart size={19} />
+                  <ShoppingCart size={24} />
                   {itemCount > 0 && (
-                    <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold text-white">
+                    <span className="absolute right-0 top-0 flex min-w-[1.1rem] items-center justify-center border border-heritage bg-heritage px-1 py-[1px] font-mono text-[9px] uppercase tracking-[0.16em] text-primary-foreground">
                       {itemCount}
                     </span>
                   )}
                 </button>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center justify-center gap-8 py-3 text-sm text-[#3a3630]">
-              {utilityLinks.map((link) => (
-                <Link key={link.label} to={link.href} className="transition-colors hover:text-brand-red">
-                  {link.label}
-                </Link>
-              ))}
-              <button
-                type="button"
-                onClick={() => setOrderOpen(true)}
-                className="rounded-full border border-[#d9cfbf] px-4 py-2 text-sm font-semibold text-[#221f1b] transition-colors hover:border-brand-red hover:text-brand-red"
-              >
-                Quick Order
-              </button>
+          <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)]">
+            <div className="mx-auto max-w-7xl px-10">
+              <div className="flex min-h-[52px] items-center justify-center">
+                <div className="flex items-center gap-2">
+                  {utilityLinks.map((link) => (
+                    <Link key={link.label} to={link.href} className={desktopUtilityLinkClass}>
+                      {link.label}
+                    </Link>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderOpen(true)}
+                    className="px-4 py-3 text-[15px] text-heritage transition-colors duration-150 ease-linear hover:text-interactive"
+                  >
+                    Quick Order
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="hidden border-t border-[#ece6db] lg:block">
-            <div className="container mx-auto grid grid-cols-[1fr_auto_1fr] items-center px-6">
-              <div />
+          <div className={`${activeMenu ? "" : "border-b border-[rgb(var(--nav-divider-rgb)/1)]"}`}>
+            <div className="mx-auto max-w-7xl px-10">
+              <div className="grid grid-cols-4">
+                {menuLookup.map((item) => {
+                  const isActive = openMenu === item.label;
 
-              <div className="flex items-center justify-center gap-8">
-                {menuLookup.map((item) => (
-                  <div key={item.label} className="relative">
+                  return (
                     <button
+                      key={item.label}
                       type="button"
                       onMouseEnter={() => setOpenMenu(item.label)}
-                      className={`flex items-center gap-2 border-b-2 py-3 text-sm font-semibold uppercase tracking-[0.12em] transition-colors ${
-                        openMenu === item.label
-                          ? "border-[#25211d] text-[#1e1a17]"
-                          : "border-transparent text-[#37332e] hover:text-brand-red"
+                      className={`group relative flex min-h-[72px] items-center justify-center gap-3 px-4 font-mono text-[12px] uppercase tracking-[0.22em] transition-colors duration-150 ease-linear ${
+                        isActive ? "text-[rgb(var(--nav-ink-rgb)/1)]" : "text-[rgb(var(--nav-ink-rgb)/1)] hover:text-interactive"
                       }`}
                     >
-                      {item.label}
-                      <ChevronDown size={15} />
+                      <span
+                        className={`absolute inset-x-6 bottom-0 transition-all duration-150 ease-linear ${
+                          isActive ? "h-[2px] bg-heritage" : "h-px bg-transparent group-hover:bg-heritage"
+                        }`}
+                      />
+                      <span>{item.label}</span>
+                      <ChevronDown
+                        size={16}
+                        className={`transition-colors duration-150 ease-linear ${
+                          isActive ? "text-[rgb(var(--nav-ink-rgb)/1)]" : "text-[rgb(var(--nav-ink-rgb)/1)] group-hover:text-interactive"
+                        }`}
+                      />
                     </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-
-              <div />
             </div>
           </div>
 
           {activeMenu && (
-            <div className="hidden border-t border-[#ece6db] bg-[#fcfaf6] lg:block">
-              <div className="container mx-auto grid grid-cols-[280px_1fr] gap-10 px-6 py-6">
-                <div className="pr-2">
-                  <Link to={`/category/${activeMenu.slug}`} className="block">
-                    <h3 className="font-serif text-3xl text-[#171a18] hover:text-brand-red">
-                      Shop All {activeMenu.label}
-                    </h3>
+            <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)] bg-[rgb(var(--nav-surface-rgb)/0.98)]">
+              <div className="mx-auto grid max-w-7xl grid-cols-12 gap-8 px-10 py-8">
+                <div className="col-span-4 border-r border-[rgb(var(--nav-divider-rgb)/1)] pr-6">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-muted-rgb)/1)]">// {activeMenu.label}</p>
+                  <Link
+                    to={`/category/${activeMenu.slug}`}
+                    className="mt-4 block font-serif text-3xl leading-none text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  >
+                    Shop All {activeMenu.label}
                   </Link>
-                  <p className="mt-3 text-sm leading-7 text-[#61584e]">{activeMenu.description}</p>
+                  <p className="mt-4 text-sm leading-7 text-[rgb(var(--nav-ink-rgb)/0.7)]">{activeMenu.description}</p>
 
-                  <div className="mt-6 space-y-3">
-                    {activeMenu.relatedCategories.map((category) => (
+                  <div className="mt-6 flex flex-col">
+                    {activeMenu.relatedCategories.map((category, index) => (
                       <Link
                         key={category.slug}
                         to={`/category/${category.slug}`}
-                        className="block text-base text-[#2d2823] transition-colors hover:text-brand-red"
+                        className={`py-3 text-sm text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive ${
+                          index > 0 ? "border-t border-[rgb(var(--nav-divider-rgb)/1)]" : ""
+                        }`}
                       >
                         {category.name}
                       </Link>
@@ -258,17 +281,18 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-8">
+                <div className="col-span-8 grid grid-cols-2 gap-6">
                   {activeMenu.spotlight.map((spot) => (
                     <Link key={spot.title} to={spot.href} className="group block">
-                      <div className="overflow-hidden bg-[#efe6d8]">
+                      <div className="overflow-hidden border border-[rgb(var(--nav-divider-rgb)/1)] bg-[rgb(var(--nav-elevated-rgb)/1)]">
                         <img
                           src={spot.image}
                           alt={spot.title}
-                          className="h-[260px] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="h-[240px] w-full object-cover transition-transform duration-300 ease-linear group-hover:scale-[1.02]"
                         />
                       </div>
-                      <p className="mt-3 text-base font-semibold text-[#1f1c18] transition-colors group-hover:text-brand-red">
+                      <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-muted-rgb)/1)]">// Feature</p>
+                      <p className="mt-2 text-base text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear group-hover:text-interactive">
                         {spot.title}
                       </p>
                     </Link>
@@ -277,73 +301,113 @@ const Navbar = () => {
               </div>
             </div>
           )}
+        </div>
 
-          <div className="flex items-center justify-between px-4 py-4 lg:hidden">
-            <button className="rounded-full p-2 text-gray-700" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-
-            <Link to="/" className="inline-flex items-center">
-              <img src={regalLogo} alt="Regal Office & Home" className="h-12 w-auto object-contain" />
-            </Link>
-
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setIsOpen(true)} className="relative text-[#2e2a25]">
-                <ShoppingCart size={20} />
-                {itemCount > 0 && (
-                  <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold text-white">
-                    {itemCount}
-                  </span>
-                )}
+        <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)] lg:hidden">
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="flex min-h-[76px] items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileOpen((current) => !current)}
+                className="flex h-10 w-10 items-center justify-center border border-[rgb(var(--nav-divider-rgb)/1)] text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+              >
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
-              <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"} className="text-[#2e2a25]">
-                <User size={20} />
+
+              <Link to="/" className="inline-flex items-center">
+                <img src={regalLogo} alt="Regal Office & Home" className="h-11 w-auto object-contain" />
               </Link>
+
+              <div className="flex items-center gap-2">
+                <ThemeToggle
+                  className="h-10 w-10 rounded-none border border-[rgb(var(--nav-divider-rgb)/1)] bg-transparent text-[rgb(var(--nav-ink-rgb)/1)] hover:border-[rgb(var(--nav-divider-rgb)/1)] hover:bg-transparent hover:text-interactive"
+                />
+
+                <Link
+                  to={accountHref}
+                  className="inline-flex h-10 w-10 items-center justify-center border border-[rgb(var(--nav-divider-rgb)/1)] text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  aria-label={accountLabel}
+                >
+                  <User size={18} />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(true)}
+                  className="relative inline-flex h-10 w-10 items-center justify-center border border-[rgb(var(--nav-divider-rgb)/1)] text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  aria-label="Open cart"
+                >
+                  <ShoppingCart size={18} />
+                  {itemCount > 0 && (
+                    <span className="absolute right-0 top-0 flex min-w-[1rem] items-center justify-center border border-heritage bg-heritage px-1 py-[1px] font-mono text-[8px] uppercase tracking-[0.12em] text-primary-foreground">
+                      {itemCount}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {mobileOpen && (
-          <div className="border-t border-[#e8dfd4] bg-[#fcfaf7] p-5 shadow-xl lg:hidden">
-            <div className="mb-4 flex items-center border-b border-[#d3c8b7] pb-2 text-sm text-[#7a7267]">
-              <Search size={16} className="mr-2 text-[#45413a]" />
-              <span>Search collections</span>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {menuLookup.map((item) => (
-                <Link
-                  key={item.label}
-                  to={`/category/${item.slug}`}
-                  className="rounded-2xl border border-[#ece4d8] px-4 py-3 text-sm font-medium text-[#26231f]"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {utilityLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.href}
-                  className="rounded-2xl border border-[#ece4d8] px-4 py-3 text-sm text-[#4a443d]"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+          <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)] bg-[rgb(var(--nav-surface-rgb)/0.98)] lg:hidden">
+            <div className="mx-auto max-w-7xl px-4 py-4">
               <button
-                onClick={() => {
-                  setOrderOpen(true);
-                  setMobileOpen(false);
-                }}
-                className="rounded-2xl bg-[#ede4d7] px-4 py-3 text-sm font-semibold text-[#1a1f1b]"
+                type="button"
+                className="group flex w-full items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-2 text-left text-[16px] text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
               >
-                Quick Order
+                <span>Search</span>
+                <Search
+                  size={20}
+                  className="text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear group-hover:text-interactive"
+                />
               </button>
-              <div className="border-t border-[#ece4d8] pt-3">
+
+              <div className="mt-4 divide-y divide-[rgb(var(--nav-divider-rgb)/1)] border border-[rgb(var(--nav-divider-rgb)/1)]">
+                {utilityLinks.map((link) => (
+                  <Link
+                    key={link.label}
+                    to={link.href}
+                    className={mobileListLinkClass}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderOpen(true);
+                      setMobileOpen(false);
+                    }}
+                    className="flex w-full items-center justify-between px-4 py-4 text-left text-sm text-heritage transition-colors duration-150 ease-linear hover:text-interactive"
+                  >
+                    <span>Quick Order</span>
+                  </button>
+              </div>
+
+              <div className="mt-4 divide-y divide-[rgb(var(--nav-divider-rgb)/1)] border border-[rgb(var(--nav-divider-rgb)/1)]">
+                {menuLookup.map((item) => (
+                  <Link
+                    key={item.label}
+                    to={`/category/${item.slug}`}
+                    className={mobileListLinkClass}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="font-mono uppercase tracking-[0.2em]">{item.label}</span>
+                    <ChevronDown size={16} className="text-[rgb(var(--nav-ink-rgb)/1)]" />
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-4">
                 {!user ? (
-                  <Link to="/auth" onClick={() => setMobileOpen(false)} className="w-full">
-                    <Button className="h-12 w-full rounded-full bg-[#7b1f34] text-white">Sign in</Button>
+                  <Link to="/auth" onClick={() => setMobileOpen(false)} className="block">
+                    <Button className="h-12 w-full rounded-none border border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive">
+                      Sign In
+                    </Button>
                   </Link>
                 ) : (
                   <Button
@@ -352,7 +416,7 @@ const Navbar = () => {
                       setMobileOpen(false);
                     }}
                     variant="outline"
-                    className="h-12 w-full rounded-full border-brand-red text-brand-red"
+                    className="h-12 w-full rounded-none border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive"
                   >
                     Sign Out
                   </Button>

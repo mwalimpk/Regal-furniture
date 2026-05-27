@@ -1,41 +1,54 @@
-import { CreditCard, ShieldCheck, Truck, RefreshCw } from "lucide-react";
+import { CreditCard, RefreshCw, ShieldCheck, Truck } from "lucide-react";
 
 const features = [
   {
     title: "Easy Payment",
-    icon: <CreditCard className="w-6 h-6 text-brand-red" strokeWidth={1.5} />,
+    body: "Flexible payment coordination for retail orders and project accounts.",
+    icon: <CreditCard className="h-6 w-6 text-current" strokeWidth={1.5} />,
   },
   {
     title: "Secure Data",
-    icon: <ShieldCheck className="w-6 h-6 text-brand-red" strokeWidth={1.5} />,
+    body: "Protected customer information from inquiry to order completion.",
+    icon: <ShieldCheck className="h-6 w-6 text-current" strokeWidth={1.5} />,
   },
   {
     title: "Fast Delivery",
-    icon: <Truck className="w-6 h-6 text-brand-red" strokeWidth={1.5} />,
+    body: "Coordinated dispatch and assembly for city and nationwide fulfillment.",
+    icon: <Truck className="h-6 w-6 text-current" strokeWidth={1.5} />,
   },
   {
-    title: "Easy return",
-    icon: <RefreshCw className="w-6 h-6 text-brand-red" strokeWidth={1.5} />,
+    title: "Easy Return",
+    body: "Straightforward support if a product or fit-out detail needs attention.",
+    icon: <RefreshCw className="h-6 w-6 text-current" strokeWidth={1.5} />,
   },
 ];
 
 const FeaturesSection = () => {
   return (
-    <section className="py-20 md:py-32 bg-white">
-      <div className="container mx-auto px-4 lg:px-8">
-        <h2 className="text-3xl md:text-5xl font-serif font-bold text-center text-gray-900 mb-16">
-          What makes us the Preferred choices?
-        </h2>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-          {features.map((feature) => (
-            <div key={feature.title} className="flex flex-col items-center text-center group">
-              <div className="h-20 w-20 rounded-2xl bg-brand-red/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                {feature.icon}
+    <section className="surface-inverse py-16 md:py-20">
+      <div className="container mx-auto px-10">
+        <div className="grid gap-10 lg:grid-cols-[0.36fr_0.64fr] lg:items-center">
+          <div>
+            <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-[rgb(var(--inverse-foreground-rgb)/0.6)]">
+              Operational Assurances
+            </p>
+            <h2 className="font-serif text-3xl leading-tight md:text-5xl">
+              The service layer behind every workspace decision.
+            </h2>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-0">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className={`py-2 xl:px-6 ${index > 0 ? "xl:border-l xl:border-[rgb(var(--inverse-foreground-rgb)/0.18)]" : ""}`}
+              >
+                <div className="mb-5 text-interactive">{feature.icon}</div>
+                <h3 className="font-serif text-2xl text-[rgb(var(--inverse-foreground-rgb)/1)]">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[rgb(var(--inverse-foreground-rgb)/0.68)]">{feature.body}</p>
               </div>
-              <h3 className="text-sm font-semibold text-gray-900">{feature.title}</h3>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

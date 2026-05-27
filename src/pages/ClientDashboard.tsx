@@ -44,9 +44,9 @@ const ClientDashboard = () => {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case "confirmed": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "cancelled": return "bg-red-100 text-red-800";
+      case "confirmed": return "bg-[rgb(70_138_102/0.16)] text-[rgb(70_138_102/1)]";
+      case "pending": return "bg-[rgb(196_143_38/0.18)] text-[rgb(196_143_38/1)]";
+      case "cancelled": return "bg-[rgb(150_54_70/0.16)] text-[rgb(150_54_70/1)]";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -54,8 +54,8 @@ const ClientDashboard = () => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
-      <div className="pt-[120px] md:pt-[140px]">
-        <div className="container mx-auto px-4 py-8 md:py-14">
+      <div className="pt-[96px] lg:pt-[172px]">
+        <div className="container mx-auto px-10 py-8 md:py-14">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -63,7 +63,7 @@ const ClientDashboard = () => {
               <p className="text-muted-foreground text-sm mt-1">Welcome back, {profile?.full_name || user?.email}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">Active</Badge>
+              <Badge variant="outline" className="border-[rgb(70_138_102/0.38)] bg-[rgb(70_138_102/0.12)] text-[rgb(70_138_102/1)]">Active</Badge>
               <Button variant="ghost" size="sm" onClick={signOut} className="text-destructive">
                 Sign Out
               </Button>
@@ -93,7 +93,7 @@ const ClientDashboard = () => {
           {/* Profile Tab */}
           {activeTab === "profile" && (
             <div className="max-w-lg space-y-6">
-              <div className="border border-border p-6 space-y-4">
+              <div className="surface-elevated border border-border/40 p-6 space-y-4">
                 <h2 className="font-serif text-lg font-semibold text-foreground">Account Details</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -114,7 +114,7 @@ const ClientDashboard = () => {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Account Status</p>
-                    <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 mt-1">Active</Badge>
+                    <Badge variant="outline" className="mt-1 border-[rgb(70_138_102/0.38)] bg-[rgb(70_138_102/0.12)] text-[rgb(70_138_102/1)]">Active</Badge>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Role</p>
@@ -123,7 +123,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
 
-              <div className="border border-border p-6 space-y-3">
+              <div className="surface-elevated border border-border/40 p-6 space-y-3">
                 <h2 className="font-serif text-lg font-semibold text-foreground">Quick Actions</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Link to="/categories">
@@ -145,14 +145,14 @@ const ClientDashboard = () => {
           {activeTab === "orders" && (
             <div className="space-y-4">
               {orders.length === 0 ? (
-                <div className="text-center py-16 border border-border">
+                <div className="surface-elevated border border-border/40 py-16 text-center">
                   <h3 className="font-serif text-lg font-semibold text-foreground mb-2">No orders yet</h3>
                   <p className="text-muted-foreground text-sm mb-4">Start shopping to see your orders here.</p>
                   <Link to="/categories"><Button>Browse Products</Button></Link>
                 </div>
               ) : (
                 orders.map((order) => (
-                  <div key={order.id} className="border border-border p-5 space-y-3">
+                  <div key={order.id} className="surface-elevated border border-border/40 p-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Order #{order.id.slice(0, 8)}</p>

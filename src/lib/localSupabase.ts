@@ -3,6 +3,8 @@ type TableName =
   | "user_roles"
   | "properties"
   | "product_pairings"
+  | "catalogues"
+  | "promotional_banners"
   | "inquiries"
   | "leads"
   | "orders"
@@ -223,6 +225,22 @@ export const supabase = {
 
       return response;
     },
+    async resetPasswordDirect({ email, password }: { email: string; password: string }) {
+      const response = await apiRequest<{ data: { user: Session["user"] | null }; error: null | { message: string } }>(
+        "/api/auth/reset-password",
+        {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        },
+      );
+
+      if (!response.error) {
+        setAccessToken(null);
+        notifyAuthListeners("PASSWORD_RESET", null);
+      }
+
+      return response;
+    },
     async signOut() {
       const response = await apiRequest<{ error: null | { message: string } }>("/api/auth/sign-out", {
         method: "POST",
@@ -253,6 +271,17 @@ export const supabase = {
       return apiRequest<{ data: unknown; error: null | { message: string } }>(`/api/functions/${name}`, {
         method: "POST",
         body: JSON.stringify({ body }),
+      });
+    },
+  },
+  catalogues: {
+    async importProducts(payload: { catalogueId?: string; userId: string; rows: Array<Record<string, unknown>> }) {
+      return apiRequest<{
+        data: { importedCount: number; rejected: Array<{ rowNumber: number; reason: string }>; products: unknown[] } | null;
+        error: null | { message: string };
+      }>("/api/catalogues/import-products", {
+        method: "POST",
+        body: JSON.stringify(payload),
       });
     },
   },

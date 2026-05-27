@@ -1,20 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Info, ShoppingCart, ShieldCheck, Star, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import StorefrontProductTile from "@/components/StorefrontProductTile";
+import ProductCombinationCarousel from "@/components/ProductCombinationCarousel";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { formatCurrency } from "@/utils/formatCurrency";
-import { useToast } from "@/hooks/use-toast";
-import { products, Product } from "@/data/products";
+import { products, Product, categories } from "@/data/products";
 import { greenProducts } from "@/data/greenProducts";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import RFQModal from "@/components/RFQModal";
-import { Star, ShoppingCart, Info, Truck, ShieldCheck, ArrowRight } from "lucide-react";
+import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
+import { supabase } from "@/integrations/supabase/client";
+import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
+import { rankProductCombinations } from "@/lib/productCombinations";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,21 +44,42 @@ const ProductPage = () => {
   });
 
   const uniqueProducts = useMemo(
-    () => mergeProducts(
-      (dbProducts || []).map(propertyToProduct),
-      [...products, ...greenProducts],
-    ),
+    () =>
+      mergeProducts(
+        (dbProducts || []).map(propertyToProduct),
+        [...products, ...greenProducts],
+      ),
     [dbProducts],
   );
+
   const product = useMemo(
-    () => uniqueProducts.find((p) => p.id === id),
+    () => uniqueProducts.find((item) => item.id === id),
     [id, uniqueProducts],
   );
+
+  const productCategory = useMemo(
+    () => categories.find((category) => category.slug === product?.categorySlug),
+    [product],
+  );
+
   const galleryImages = useMemo(() => {
     if (!product) return [];
     const images = product.images?.length ? product.images : [product.image];
     return Array.from(new Set(images.filter(Boolean)));
   }, [product]);
+
+  const featureVisuals = useMemo(() => {
+    if (!product) return [];
+    const visuals = Array.from(
+      new Set([selectedImage || product.image, ...galleryImages, productCategory?.image, product.image].filter(Boolean)),
+    );
+
+    while (visuals.length < 3) {
+      visuals.push(product.image);
+    }
+
+    return visuals.slice(0, 3);
+  }, [galleryImages, product, productCategory, selectedImage]);
 
   useEffect(() => {
     if (galleryImages.length) {
@@ -62,41 +87,44 @@ const ProductPage = () => {
     }
   }, [galleryImages]);
 
-  // Manage Recent Views locally in LocalStorage
   useEffect(() => {
     if (!product) return;
-    
+
     try {
-      const existing = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+      const existing = JSON.parse(localStorage.getItem("recentlyViewed") || "[]");
       const updated = [product.id, ...existing.filter((viewId: string) => viewId !== product.id)].slice(0, 4);
-      localStorage.setItem('recentlyViewed', JSON.stringify(updated));
-      
+      localStorage.setItem("recentlyViewed", JSON.stringify(updated));
+
       const loadedRecent = updated
-        .map((vid: string) => uniqueProducts.find(p => p.id === vid))
+        .map((viewId: string) => uniqueProducts.find((item) => item.id === viewId))
         .filter(Boolean) as Product[];
-      
-      setRecentlyViewed(loadedRecent.filter(p => p.id !== product.id));
-    } catch (e) {
-      console.error(e);
+
+      setRecentlyViewed(loadedRecent.filter((item) => item.id !== product.id));
+    } catch (error) {
+      console.error(error);
     }
   }, [product, uniqueProducts]);
 
-  // Fetch Supabase Pairings
   useEffect(() => {
     if (!product) return;
+
+    const fallbackPairings = () => {
+      setRecommended(rankProductCombinations(product, uniqueProducts, 8).map((item) => item.product));
+    };
+
     const fetchPairings = async () => {
       try {
         const { data, error } = await supabase
-          .from('product_pairings')
-          .select('recommended_ids')
-          .eq('product_id', product.id)
+          .from("product_pairings")
+          .select("recommended_ids")
+          .eq("product_id", product.id)
           .maybeSingle();
-        
+
         if (!error && data && data.recommended_ids?.length > 0) {
           const matched = data.recommended_ids
-            .map((recId: string) => uniqueProducts.find((p) => p.id === recId))
+            .map((recId: string) => uniqueProducts.find((item) => item.id === recId))
             .filter(Boolean) as Product[];
-          setRecommended(matched);
+          setRecommended(matched.length ? matched : rankProductCombinations(product, uniqueProducts, 8).map((item) => item.product));
         } else {
           fallbackPairings();
         }
@@ -104,38 +132,39 @@ const ProductPage = () => {
         fallbackPairings();
       }
     };
-    
-    const fallbackPairings = () => {
-        const matched = uniqueProducts
-            .filter(p => p.categorySlug === product.categorySlug && p.id !== product.id)
-            .slice(0, 4);
-        setRecommended(matched);
-    };
 
     fetchPairings();
   }, [product, uniqueProducts]);
 
   if (isLoading && !product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col pt-32 text-center items-center">
+      <div className="flex min-h-screen flex-col items-center bg-background pt-[104px] text-center lg:pt-[180px]">
         <Navbar />
-        <p className="text-gray-600">Loading product...</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Loading product...</p>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col pt-32 text-center items-center">
+      <div className="flex min-h-screen flex-col items-center bg-background pt-[104px] text-center lg:pt-[180px]">
         <Navbar />
-        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-6">Product not found</h1>
-        <Link to="/categories"><Button>Browse All Categories</Button></Link>
+        <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">Product not found</h1>
+        <Link to="/categories">
+          <Button>Browse All Categories</Button>
+        </Link>
       </div>
     );
   }
 
   const handleAdd = () => {
-    addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency, image: product.image });
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      currency: product.currency,
+      image: product.image,
+    });
     setIsOpen(true);
     toast({ title: "Cart Updated", description: `${product.name} ready for checkout.` });
   };
@@ -143,216 +172,291 @@ const ProductPage = () => {
   const oldPrice = parseFloat((product.price * 1.22).toFixed(0));
 
   return (
-    <div className="min-h-screen bg-[#fcfaf7] pb-20 pt-20 md:pb-0">
+    <div className="min-h-screen bg-background pb-20 pt-[96px] md:pb-0 lg:pt-[172px]">
       <Navbar />
 
-      <div className="border-b border-[#ece3d7] bg-white/90 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 lg:px-8">
-          <div className="flex items-center gap-2 text-xs font-medium text-[#7d7468]">
-            <Link to="/" className="hover:text-brand-red">Home</Link>
-            <span className="text-[#c4b7a7]">›</span>
-            <Link to={`/category/${product.categorySlug}`} className="hover:text-brand-red">{product.category}</Link>
-            <span className="text-[#c4b7a7]">›</span>
-            <span className="text-[#171a18]">{product.name}</span>
+      <div className="border-b border-grid/40 bg-background/92 backdrop-blur">
+        <div className="container mx-auto px-10 py-4">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <Link to="/" className="transition-colors hover:text-interactive">Home</Link>
+            <span>/</span>
+            <Link to={`/category/${product.categorySlug}`} className="transition-colors hover:text-interactive">
+              {product.category}
+            </Link>
+            <span>/</span>
+            <span className="text-foreground">{product.name}</span>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-10 lg:px-8 md:py-16">
-        <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-          <div className="space-y-5">
-            <div className="overflow-hidden rounded-[32px] border border-[#e8dfd4] bg-[linear-gradient(180deg,#faf7f2_0%,#f2ece5_100%)] p-6 shadow-[0_30px_70px_rgba(27,31,28,0.06)] md:p-8">
-              <div className="aspect-[4/3] rounded-[24px] bg-white/40 p-4">
-                <img src={selectedImage || product.image} alt={product.name} className="h-full w-full object-contain mix-blend-multiply drop-shadow-[0_18px_30px_rgba(0,0,0,0.15)]" />
+      <div className="container mx-auto px-10 py-10 md:py-14">
+        <div className="grid gap-12 xl:grid-cols-12">
+          <div className="xl:col-span-7">
+            <div className="grid gap-4 lg:grid-cols-[92px_minmax(0,1fr)] lg:items-start">
+              <div className="order-2 flex gap-3 overflow-x-auto pb-2 lg:order-1 lg:flex-col lg:overflow-visible lg:pb-0">
+                {galleryImages.slice(0, 6).map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImage(image)}
+                    className={`product-media-panel relative flex h-24 w-24 flex-none items-center justify-center overflow-hidden p-2 transition-colors ${
+                      selectedImage === image ? "ring-1 ring-heritage" : "hover:ring-1 hover:ring-interactive/60"
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} view ${index + 1}`}
+                      className="max-h-full max-w-full object-contain object-center"
+                    />
+                  </button>
+                ))}
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 md:grid-cols-4">
-              {galleryImages.slice(0, 6).map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  onClick={() => setSelectedImage(image)}
-                  className={`aspect-square overflow-hidden rounded-[20px] border p-2 transition-all ${selectedImage === image ? "border-brand-red bg-[#fff8f7] shadow-sm" : "border-[#e4dacf] bg-white hover:border-[#cdb79a]"}`}
-                >
-                  <img src={image} alt={`${product.name} view ${index + 1}`} className="h-full w-full object-contain mix-blend-multiply" />
-                </button>
-              ))}
+
+              <div className="order-1">
+                <div className="product-media-panel relative flex aspect-[4/4.5] items-center justify-center overflow-hidden p-4 md:p-6">
+                  <img
+                    src={selectedImage || product.image}
+                    alt={product.name}
+                    className="max-h-full max-w-full object-contain transition-transform duration-500 hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-[28px] border border-[#e8dfd4] bg-white p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-serif text-2xl text-[#171a18]">What you’ll receive</h3>
-                <span className="text-xs uppercase tracking-[0.2em] text-[#8a7f70]">3+ image ready</span>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <div className="surface-elevated p-5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Delivery</p>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  Coordinated city delivery with assembly support where needed.
+                </p>
               </div>
-              <div className="grid gap-3 text-sm text-[#5f584f] md:grid-cols-3">
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="font-semibold text-[#171a18]">Primary product image</p>
-                  <p className="mt-2 leading-6">Clean hero framing for category cards, catalog pages, and the featured homepage blocks.</p>
-                </div>
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="font-semibold text-[#171a18]">Detail and angle views</p>
-                  <p className="mt-2 leading-6">Support material quality, finish choices, and size confidence before the quote request.</p>
-                </div>
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="font-semibold text-[#171a18]">Project-ready descriptions</p>
-                  <p className="mt-2 leading-6">The page now supports richer visual presentation without overwhelming the buyer.</p>
-                </div>
+              <div className="surface-elevated p-5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Bulk Buying</p>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  Suitable for team rollouts, hospitality, and multi-room fit-outs.
+                </p>
+              </div>
+              <div className="surface-elevated p-5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Warranty</p>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  Backed by manufacturer cover and after-sales support.
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="lg:sticky lg:top-28 lg:self-start">
-            <div className="mb-4 inline-flex rounded-full bg-[#f8ebe8] px-3 py-1 text-xs font-medium text-brand-red">
-              {product.category}
-            </div>
-
-            <h1 className="font-serif text-4xl leading-tight text-[#171a18] md:text-5xl">{product.name}</h1>
-
-            <div className="mb-6 mt-4 flex items-center gap-3">
-              <div className="flex text-[#fdb528]">
-                {[...Array(5)].map((_, i) => (
-                   <Star key={i} className={`${i < 4 ? "fill-current" : "fill-current opacity-25"} h-4 w-4`} />
-                ))}
-              </div>
-              <span className="text-sm font-medium text-[#6d655b]">Trusted workspace essential</span>
-            </div>
-
-            <p className="mb-8 text-sm leading-7 text-[#5f584f] md:text-base">
-              {product.description} Built for modern offices, reception areas, and disciplined home workstations, with a layout that now prioritizes image quality, trust, and a clearer path to purchase or quotation.
-            </p>
-
-            <div className="mb-8 rounded-[30px] border border-[#e6ddd1] bg-white p-6 shadow-[0_20px_50px_rgba(23,26,24,0.05)]">
-              <div className="flex flex-wrap items-end gap-4">
-                <span className="font-serif text-5xl text-brand-red">{formatCurrency(product.price, currency)}</span>
-              {product.price > 0 && (
-                <>
-                    <span className="mb-1 text-xl font-medium text-[#a89e92] line-through">{formatCurrency(oldPrice, currency)}</span>
-                    <span className="mb-2 rounded-full bg-[#f8ebe8] px-3 py-1 text-xs font-bold text-brand-red">Project rate available</span>
-                </>
-              )}
+          <div className="xl:col-span-5 xl:pl-4">
+            <div className="xl:sticky xl:top-[188px]">
+              <div className="inline-flex bg-heritage/12 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-heritage">
+                {product.category}
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[#8d8272]">Delivery</p>
-                  <p className="mt-2 text-sm font-medium text-[#171a18]">City delivery and assembly support</p>
+              <h1 className="mt-5 font-serif text-4xl leading-tight text-foreground md:text-5xl">
+                {product.name}
+              </h1>
+
+              <div className="mt-5 flex items-center gap-3">
+                <div className="flex text-interactive">
+                  {[...Array(5)].map((_, index) => (
+                    <Star
+                      key={index}
+                      className={`${index < 4 ? "fill-current" : "fill-current opacity-25"} h-4 w-4`}
+                    />
+                  ))}
                 </div>
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[#8d8272]">Bulk Buying</p>
-                  <p className="mt-2 text-sm font-medium text-[#171a18]">Quotes for 10+ units and fit-outs</p>
+                <span className="text-sm font-medium text-muted-foreground">Trusted workspace essential</span>
+              </div>
+
+              <p className="mt-6 text-sm leading-8 text-muted-foreground md:text-base">
+                {product.description} Built for modern offices, reception areas, and disciplined home workstations,
+                with a layout that puts finish, proportion, and buying clarity ahead of visual clutter.
+              </p>
+
+              <div className="product-media-panel mt-8 p-6 md:p-7">
+                <div className="flex flex-wrap items-end gap-4">
+                  <span className="font-serif text-5xl text-heritage">
+                    {formatCurrency(product.price, currency)}
+                  </span>
+                  <span className="mb-1 text-xl font-medium text-muted-foreground/70 line-through">
+                    {formatCurrency(oldPrice, currency)}
+                  </span>
+                  <span className="mb-2 bg-background/78 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-label">
+                    Project rate available
+                  </span>
                 </div>
-                <div className="rounded-2xl bg-[#f7f2ea] p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[#8d8272]">Warranty</p>
-                  <p className="mt-2 text-sm font-medium text-[#171a18]">5-year manufacturer cover</p>
+
+                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                  <Button
+                    onClick={handleAdd}
+                    className="h-14 flex-1 rounded-none bg-heritage font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-heritage/90"
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Add to Cart
+                  </Button>
+                  <Button
+                    onClick={() => setRfqOpen(true)}
+                    variant="outline"
+                    className="h-14 flex-1 rounded-none border-0 bg-background/80 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground hover:bg-background hover:text-foreground"
+                  >
+                    Request Quote
+                  </Button>
                 </div>
               </div>
-            </div>
 
-            <div className="mb-8 overflow-hidden rounded-[28px] border border-[#e6ddd1] bg-white">
-              <div className="border-b border-[#eee4d8] bg-[#fbf7f1] px-5 py-4 text-xs font-semibold uppercase tracking-[0.26em] text-[#7d7468]">
-                Specifications
+              <div className="mt-8 border-t border-grid/30 pt-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="font-serif text-2xl text-foreground">Specifications</h2>
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-label">
+                    Practical summary
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
+                    <span className="text-muted-foreground">Dimensions</span>
+                    <span className="text-right font-medium text-foreground">160cm × 160cm</span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
+                    <span className="text-muted-foreground">Material</span>
+                    <span className="text-right font-medium text-foreground">Premium grade finish</span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
+                    <span className="text-muted-foreground">Availability</span>
+                    <span className="text-right font-medium text-foreground">In stock, ships in 3-5 days</span>
+                  </div>
+                  <div className="flex justify-between gap-4 pb-1 text-sm">
+                    <span className="text-muted-foreground">Warranty</span>
+                    <span className="text-right font-medium text-foreground">5 years</span>
+                  </div>
+                </div>
               </div>
-              <div className="divide-y divide-[#f0e8de] text-sm">
-                <div className="flex justify-between px-5 py-4">
-                   <span className="text-[#7d7468]">Dimensions</span>
-                   <span className="text-right font-medium text-[#171a18]">160cm × 160cm</span>
-                </div>
-                <div className="flex justify-between px-5 py-4">
-                   <span className="text-[#7d7468]">Material</span>
-                   <span className="text-right font-medium text-[#171a18]">Premium Grade</span>
-                </div>
-                <div className="flex justify-between px-5 py-4">
-                   <span className="text-[#7d7468]">Availability</span>
-                   <span className="text-right font-medium text-[#171a18]">In Stock — Ships in 3-5 days</span>
-                </div>
-                <div className="flex justify-between px-5 py-4">
-                   <span className="text-[#7d7468]">Warranty</span>
-                   <span className="text-right font-medium text-[#171a18]">5 Years</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="mb-8 flex flex-col gap-4 sm:flex-row">
-               <Button onClick={handleAdd} className="h-14 flex-1 rounded-full bg-[#7b1f34] text-base font-semibold text-white shadow-lg shadow-brand-red/20 transition-all hover:bg-[#661828]">
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Add to Cart
-               </Button>
-               <Button onClick={() => setRfqOpen(true)} variant="outline" className="h-14 flex-1 rounded-full border-brand-red text-base font-semibold text-brand-red hover:bg-red-50">
-                  Request Quote
-               </Button>
-            </div>
-
-            <div className="space-y-4">
-               <div className="flex gap-4 rounded-[24px] border border-[#f0d9d6] bg-[#fcf5f5] p-4">
-                  <div className="mt-1 text-brand-red"><Info size={20} /></div>
+              <div className="mt-8 space-y-4">
+                <div className="flex gap-4 bg-heritage/8 p-4">
+                  <div className="mt-1 text-heritage"><Info size={20} /></div>
                   <div>
-                    <h4 className="pb-1 text-sm font-semibold text-[#171a18]">Need 10+ units?</h4>
-                    <p className="text-xs text-[#6f6659]">
-                      Get special bulk pricing for offices, hotels, and large projects. <button onClick={() => setRfqOpen(true)} className="cursor-pointer font-bold text-brand-red underline">Request a bulk quote</button>
+                    <h3 className="pb-1 text-sm font-semibold text-foreground">Need 10+ units?</h3>
+                    <p className="text-xs leading-6 text-muted-foreground">
+                      Get special bulk pricing for offices, hotels, and large projects.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setRfqOpen(true)}
+                        className="cursor-pointer font-semibold text-heritage underline"
+                      >
+                        Request a bulk quote
+                      </button>
                     </p>
                   </div>
-               </div>
-               
-               <div className="flex gap-4 rounded-[24px] bg-white p-4 border border-[#e6ddd1]">
-                  <div className="mt-1 text-gray-700"><Truck size={20} /></div>
-                  <div>
-                    <h4 className="pb-1 text-sm font-semibold text-[#171a18]">Delivery Information</h4>
-                    <p className="text-xs text-[#6f6659]">Free delivery & assembly within city limits. Nationwide shipping available.</p>
-                  </div>
-               </div>
+                </div>
 
-               <div className="flex gap-4 rounded-[24px] bg-white p-4 border border-[#e6ddd1]">
-                  <div className="mt-1 text-gray-700"><ShieldCheck size={20} /></div>
-                  <div>
-                    <h4 className="pb-1 text-sm font-semibold text-[#171a18]">Warranty</h4>
-                    <p className="text-xs text-[#6f6659]">5 Years manufacturer warranty included.</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="surface-elevated p-4">
+                    <div className="mb-3 text-foreground/76"><Truck size={20} /></div>
+                    <h3 className="pb-1 text-sm font-semibold text-foreground">Delivery Information</h3>
+                    <p className="text-xs leading-6 text-muted-foreground">
+                      Free delivery and assembly within city limits. Nationwide shipping available.
+                    </p>
                   </div>
-               </div>
+                  <div className="surface-elevated p-4">
+                    <div className="mb-3 text-foreground/76"><ShieldCheck size={20} /></div>
+                    <h3 className="pb-1 text-sm font-semibold text-foreground">Warranty</h3>
+                    <p className="text-xs leading-6 text-muted-foreground">
+                      Manufacturer warranty included with after-sales support from our team.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="border-t border-[#ebe2d8] bg-white py-16">
-        <div className="container mx-auto space-y-16 px-4 lg:px-8">
-          {recommended.length > 0 && (
+        <div className="mt-16 border-t border-grid/40 pt-12">
+          <div className="grid gap-10 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
             <div>
-              <div className="mb-8 flex items-center justify-between">
-                <h2 className="font-serif text-3xl text-[#171a18]">You May Also Like</h2>
-                <span className="hidden text-sm text-[#7d7468] md:block">Recommended companion pieces</span>
-              </div>
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                {recommended.map((prod) => (
-                  <Link key={prod.id} to={`/product/${prod.id}`} className="group flex flex-col rounded-[24px] border border-[#ebe3d8] bg-[#fdfbf8] p-4 transition-all hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(23,26,24,0.06)]">
-                    <div className="mb-4 flex aspect-square items-center justify-center rounded-[18px] bg-[#f4eee7] p-4">
-                       <img src={prod.image} alt={prod.name} className="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-110" />
-                    </div>
-                    <h3 className="mb-1 line-clamp-1 text-sm font-bold text-[#171a18]">{prod.name}</h3>
-                    <p className="font-serif font-bold text-brand-red">{formatCurrency(prod.price, currency)}</p>
-                  </Link>
-                ))}
+              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">Why this piece works</p>
+              <h2 className="mt-4 font-serif text-3xl leading-tight text-foreground md:text-5xl">
+                Designed to feel resolved in the room, not just attractive in isolation.
+              </h2>
+              <p className="mt-5 max-w-xl text-sm leading-8 text-muted-foreground md:text-base">
+                Buyers usually need more than a price point. They need confidence in finish, scale,
+                delivery, and how a product will sit inside a broader workplace scheme.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
+                  Strong proportions for executive offices, focused home setups, and client-facing spaces.
+                </div>
+                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
+                  Ready for both one-off purchases and project-scale sourcing conversations.
+                </div>
+                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
+                  Supported by a buying journey that stays structured without overwhelming the customer.
+                </div>
               </div>
             </div>
-          )}
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <div className="product-media-panel flex aspect-[16/10] items-center justify-center overflow-hidden">
+                  <img
+                    src={featureVisuals[0]}
+                    alt={`${product.name} highlight view`}
+                    className="h-full w-full object-cover object-center"
+                  />
+                </div>
+              </div>
+              <div className="product-media-panel flex aspect-square items-center justify-center overflow-hidden">
+                <img
+                  src={featureVisuals[1]}
+                  alt={`${product.name} alternate view`}
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
+              <div className="product-media-panel flex aspect-square items-center justify-center overflow-hidden">
+                <img
+                  src={featureVisuals[2]}
+                  alt={`${product.name} styled detail`}
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <PromotionalBannerSlot placement="product-after-summary" pageCategory={product.category} className="mt-14" />
+      </div>
+
+      <PromotionalBannerSlot placement="product-before-recommendations" pageCategory={product.category} />
+
+      <ProductCombinationCarousel product={product} combinations={recommended} relatedProducts={uniqueProducts} />
+
+      <div className="border-t border-grid/40 bg-background py-16">
+        <div className="container mx-auto space-y-16 px-10">
           {recentlyViewed.length > 0 && (
             <div>
-              <div className="mb-8 flex items-center justify-between">
-                <h2 className="font-serif text-3xl text-[#171a18]">Recently Viewed</h2>
-                <Link to="/categories" className="hidden items-center gap-2 text-sm font-semibold text-[#171a18] md:flex">
+              <div className="mb-10 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-label">History</p>
+                  <h2 className="mt-3 font-serif text-3xl text-foreground">Recently Viewed</h2>
+                </div>
+                <Link
+                  to="/categories"
+                  className="hidden items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-interactive hover:text-interactive md:flex"
+                >
                   Continue browsing
                   <ArrowRight size={16} />
                 </Link>
               </div>
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                {recentlyViewed.map((prod) => (
-                  <Link key={prod.id} to={`/product/${prod.id}`} className="group flex flex-col rounded-[24px] border border-[#ebe3d8] bg-[#fdfbf8] p-4 transition-all hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(23,26,24,0.06)]">
-                    <div className="mb-4 flex aspect-square items-center justify-center rounded-[18px] bg-[#f4eee7] p-4">
-                       <img src={prod.image} alt={prod.name} className="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-110" />
-                    </div>
-                    <h3 className="mb-1 line-clamp-1 text-sm font-bold text-[#171a18]">{prod.name}</h3>
-                    <p className="font-serif font-bold text-brand-red">{formatCurrency(prod.price, currency)}</p>
-                  </Link>
+              <div className="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 xl:grid-cols-4">
+                {recentlyViewed.map((item) => (
+                  <StorefrontProductTile
+                    key={item.id}
+                    product={item}
+                    relatedProducts={uniqueProducts}
+                    compact
+                    showDescription={false}
+                    imagePanelClassName="product-media-panel"
+                  />
                 ))}
               </div>
             </div>
@@ -362,7 +466,6 @@ const ProductPage = () => {
 
       <Footer />
       <MobileBottomNav />
-
       <RFQModal open={rfqOpen} onOpenChange={setRfqOpen} productName={product.name} />
     </div>
   );

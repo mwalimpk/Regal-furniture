@@ -32,6 +32,7 @@ const JSON_COLUMNS = {
   auth_users: ["user_metadata"],
   properties: ["images"],
   product_pairings: ["recommended_ids"],
+  promotional_banners: ["placements"],
   orders: ["items"],
 };
 
@@ -42,6 +43,8 @@ const TABLE_COLUMNS = {
   user_roles: ["id", "user_id", "role"],
   properties: ["id", "title", "description", "property_type", "price", "currency", "location", "city", "country", "images", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
   product_pairings: ["id", "product_id", "recommended_ids"],
+  catalogues: ["id", "title", "category", "year", "month", "document_url", "document_name", "document_type", "cover_image_url", "imported_count", "status", "created_at", "updated_at", "user_id"],
+  promotional_banners: ["id", "title", "subtitle", "category", "background_image_url", "cta_label", "cta_href", "placements", "status", "starts_at", "ends_at", "has_countdown", "countdown_ends_at", "created_at", "updated_at", "user_id"],
   inquiries: ["id", "created_at", "email", "message", "name", "phone", "property_id", "status", "user_id"],
   leads: ["id", "created_at", "email", "name", "notes", "phone", "source", "status"],
   orders: ["id", "created_at", "currency", "items", "phone", "shipping_address", "status", "total", "updated_at", "user_id"],
@@ -58,6 +61,12 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 let pool;
 let initialized = false;
+
+const OPTIONAL_SCHEMA_COLUMNS = {
+  promotional_banners: [
+    { name: "background_image_url", definition: "LONGTEXT NULL" },
+  ],
+};
 
 export const isMysqlConfigured = () =>
   Boolean(process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_DATABASE);
@@ -89,11 +98,12 @@ const serializeRow = (table, row) => {
   jsonColumns.forEach((column) => {
     if (column in next) next[column] = JSON.stringify(next[column] ?? null);
   });
-  ["created_at", "updated_at", "start_date", "end_date", "booking_date"].forEach((key) => {
+  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at"].forEach((key) => {
     if (key in next && next[key]) next[key] = asDbDateTime(next[key]);
   });
   if ("featured" in next && typeof next.featured === "boolean") next.featured = next.featured ? 1 : 0;
   if ("read" in next && typeof next.read === "boolean") next.read = next.read ? 1 : 0;
+  if ("has_countdown" in next && typeof next.has_countdown === "boolean") next.has_countdown = next.has_countdown ? 1 : 0;
   return next;
 };
 
@@ -111,10 +121,11 @@ const deserializeRow = (table, row) => {
   });
   if ("featured" in next) next.featured = next.featured === null ? null : Boolean(next.featured);
   if ("read" in next) next.read = next.read === null ? null : Boolean(next.read);
-  ["price", "total", "amount", "quantity"].forEach((key) => {
+  if ("has_countdown" in next) next.has_countdown = next.has_countdown === null ? null : Boolean(next.has_countdown);
+  ["price", "total", "amount", "quantity", "year", "month", "imported_count"].forEach((key) => {
     if (key in next && next[key] !== null) next[key] = Number(next[key]);
   });
-  ["created_at", "updated_at", "start_date", "end_date", "booking_date"].forEach((key) => {
+  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at"].forEach((key) => {
     if (next[key] instanceof Date) next[key] = next[key].toISOString();
   });
   return next;
@@ -166,6 +177,8 @@ const seedState = () => {
     ],
     properties: [],
     product_pairings: [],
+    catalogues: [],
+    promotional_banners: [],
     inquiries: [],
     leads: [],
     orders: [],
@@ -225,6 +238,18 @@ export const ensureMysqlReady = async () => {
     await db.query(statement);
   }
 
+  for (const [table, columns] of Object.entries(OPTIONAL_SCHEMA_COLUMNS)) {
+    for (const column of columns) {
+      const [[existing]] = await db.query(
+        "SELECT COUNT(*) AS count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+        [table, column.name],
+      );
+      if (!Number(existing.count)) {
+        await db.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column.name}\` ${column.definition}`);
+      }
+    }
+  }
+
   const [[countRow]] = await db.query("SELECT COUNT(*) AS count FROM auth_users");
   if (!countRow.count) {
     if (fs.existsSync(legacyStoreFile)) {
@@ -262,6 +287,25 @@ const normalizeInsertRow = (table, row) => {
       return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], ...row };
     case "product_pairings":
       return { id: uid("pair"), recommended_ids: [], ...row };
+    case "catalogues":
+      return { id: uid("catalogue"), created_at: timestamp, updated_at: timestamp, imported_count: 0, status: "uploaded", ...row };
+    case "promotional_banners":
+      return {
+        id: uid("banner"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        subtitle: null,
+        background_image_url: null,
+        cta_label: null,
+        cta_href: null,
+        placements: [],
+        status: "active",
+        starts_at: null,
+        ends_at: null,
+        has_countdown: false,
+        countdown_ends_at: null,
+        ...row,
+      };
     case "inquiries":
       return { id: uid("inq"), created_at: timestamp, property_id: null, status: "new", user_id: null, phone: null, message: null, ...row };
     case "leads":
@@ -279,6 +323,124 @@ const normalizeInsertRow = (table, row) => {
     default:
       return row;
   }
+};
+
+const firstTextValue = (row, keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return "";
+};
+
+const parseImportPrice = (value) => {
+  if (typeof value === "number") return value;
+  const normalized = String(value ?? "").replace(/[^0-9.-]/g, "");
+  return Number(normalized);
+};
+
+const productImportKey = (product) =>
+  [product.title, product.property_type, product.location || ""].map((value) => String(value || "").trim().toLowerCase()).join("|");
+
+const normalizeImportedProduct = (row, rowNumber) => {
+  const title = firstTextValue(row, ["title", "name", "product_name", "product", "item", "item_name"]);
+  const propertyType = firstTextValue(row, ["property_type", "category", "product_type", "type", "collection"]);
+  const rawPrice = row?.price ?? row?.unit_price ?? row?.selling_price ?? row?.amount ?? row?.cost;
+  const price = parseImportPrice(rawPrice);
+  const currency = firstTextValue(row, ["currency"]).toUpperCase() || "USD";
+  const description = firstTextValue(row, ["description", "details", "notes"]);
+  const location = firstTextValue(row, ["location", "sku", "model", "code"]);
+  const city = firstTextValue(row, ["city", "warehouse"]) || "Harare";
+  const imageUrl = firstTextValue(row, ["image", "image_url", "images", "photo"]);
+  const errors = [];
+
+  if (!title) errors.push("Missing product name.");
+  if (!propertyType) errors.push("Missing category.");
+  if (!Number.isFinite(price) || price < 0) errors.push("Invalid price.");
+  if (!["USD", "ZWL"].includes(currency)) errors.push("Unsupported currency.");
+
+  return {
+    rowNumber,
+    errors,
+    product: {
+      title,
+      description,
+      property_type: propertyType,
+      price,
+      currency,
+      location,
+      city,
+      country: "Zimbabwe",
+      images: imageUrl ? [imageUrl] : [],
+      status: "approved",
+      bedrooms: 0,
+      bathrooms: 0,
+      area_sqft: 0,
+    },
+  };
+};
+
+export const importCatalogueProducts = async ({ catalogueId, userId, rows }) => {
+  await ensureMysqlReady();
+
+  if (!userId) {
+    return { data: null, error: { message: "A signed-in admin is required to import products." } };
+  }
+
+  if (!Array.isArray(rows) || !rows.length) {
+    return { data: null, error: { message: "No catalogue product rows were provided." } };
+  }
+
+  const db = getPool();
+  const [existingRows] = await db.query("SELECT title, property_type, location FROM properties");
+  const existingKeys = new Set(existingRows.map((row) => productImportKey(row)));
+  const rejected = [];
+  const imported = [];
+
+  for (const [index, row] of rows.slice(0, 500).entries()) {
+    const rowNumber = Number(row?.rowNumber || index + 2);
+    const normalized = normalizeImportedProduct(row, rowNumber);
+
+    if (normalized.errors.length) {
+      rejected.push({ rowNumber, reason: normalized.errors.join(" ") });
+      continue;
+    }
+
+    const key = productImportKey(normalized.product);
+    if (existingKeys.has(key)) {
+      rejected.push({ rowNumber, reason: "Duplicate product name, category, and SKU/model." });
+      continue;
+    }
+
+    existingKeys.add(key);
+    const product = normalizeInsertRow("properties", {
+      ...normalized.product,
+      user_id: userId,
+    });
+    const serialized = serializeRow("properties", product);
+    const columns = TABLE_COLUMNS.properties.filter((column) => column in serialized);
+    await db.query(
+      `INSERT INTO properties (${columns.map((column) => `\`${column}\``).join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
+      columns.map((column) => serialized[column]),
+    );
+    imported.push(product);
+  }
+
+  if (catalogueId) {
+    await db.query(
+      "UPDATE catalogues SET imported_count = imported_count + ?, status = ?, updated_at = ? WHERE id = ?",
+      [imported.length, imported.length ? "imported" : "uploaded", asDbDateTime(nowIso()), catalogueId],
+    );
+  }
+
+  return {
+    data: {
+      importedCount: imported.length,
+      rejected,
+      products: imported,
+    },
+    error: null,
+  };
 };
 
 const buildWhere = (filters = []) => {
@@ -460,6 +622,44 @@ export const signUp = async ({ email, password, options }) => {
   const session = buildSession(user);
   await db.query("INSERT INTO sessions (access_token, user_id, expires_at) VALUES (?, ?, ?)", [session.access_token, user.id, session.expires_at]);
   return { data: { user: session.user, session }, error: null };
+};
+
+export const resetPasswordDirect = async ({ email, password }) => {
+  await ensureMysqlReady();
+
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const nextPassword = typeof password === "string" ? password : "";
+
+  if (!normalizedEmail) {
+    return { data: { user: null }, error: { message: "Enter the email address for this account." } };
+  }
+
+  if (nextPassword.length < 6) {
+    return { data: { user: null }, error: { message: "Password must be at least 6 characters." } };
+  }
+
+  const db = getPool();
+  const [rows] = await db.query("SELECT * FROM auth_users WHERE LOWER(email) = LOWER(?) LIMIT 1", [normalizedEmail]);
+
+  if (!rows.length) {
+    return { data: { user: null }, error: { message: "No account exists for that email." } };
+  }
+
+  const user = deserializeRow("auth_users", rows[0]);
+  await db.query("UPDATE auth_users SET password = ? WHERE id = ?", [nextPassword, user.id]);
+  await db.query("DELETE FROM sessions WHERE user_id = ?", [user.id]);
+
+  return {
+    data: {
+      user: {
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+        user_metadata: user.user_metadata || {},
+      },
+    },
+    error: null,
+  };
 };
 
 export const signOut = async (accessToken) => {

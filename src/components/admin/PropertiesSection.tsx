@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import EditProductDialog from "./EditProductDialog";
 
@@ -13,8 +14,12 @@ const PropertiesSection = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sortBy, setSortBy] = useState("created-desc");
   const [editing, setEditing] = useState<any | null>(null);
 
   const { data: products, isLoading } = useQuery({
@@ -26,17 +31,57 @@ const PropertiesSection = () => {
     },
   });
 
+  const categories = useMemo(() => {
+    if (!products) return [];
+    return [...new Set(products.map((product) => product.property_type).filter(Boolean))].sort((left, right) => String(left).localeCompare(String(right)));
+  }, [products]);
+
   const filtered = useMemo(() => {
     if (!products) return [];
-    return products.filter((p) => {
+    const min = minPrice === "" ? null : Number(minPrice);
+    const max = maxPrice === "" ? null : Number(maxPrice);
+
+    const next = products.filter((p) => {
       const s = search.toLowerCase();
       const matches = !s || p.title?.toLowerCase().includes(s) || p.property_type?.toLowerCase().includes(s) || p.location?.toLowerCase().includes(s);
+      const matchesCategory = category === "all" || p.property_type === category;
+      const price = Number(p.price || 0);
+      const matchesMin = min === null || price >= min;
+      const matchesMax = max === null || price <= max;
       const created = new Date(p.created_at);
       const okFrom = !from || created >= new Date(from);
       const okTo = !to || created <= new Date(to + "T23:59:59");
-      return matches && okFrom && okTo;
+      return matches && matchesCategory && matchesMin && matchesMax && okFrom && okTo;
     });
-  }, [products, search, from, to]);
+
+    return next.sort((left, right) => {
+      switch (sortBy) {
+        case "created-asc":
+          return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+        case "price-asc":
+          return Number(left.price || 0) - Number(right.price || 0);
+        case "price-desc":
+          return Number(right.price || 0) - Number(left.price || 0);
+        case "category-asc":
+          return String(left.property_type || "").localeCompare(String(right.property_type || ""));
+        case "category-desc":
+          return String(right.property_type || "").localeCompare(String(left.property_type || ""));
+        case "created-desc":
+        default:
+          return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+      }
+    });
+  }, [products, search, category, minPrice, maxPrice, from, to, sortBy]);
+
+  const resetFilters = () => {
+    setSearch("");
+    setCategory("all");
+    setMinPrice("");
+    setMaxPrice("");
+    setFrom("");
+    setTo("");
+    setSortBy("created-desc");
+  };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this product permanently?")) return;
@@ -63,9 +108,9 @@ const PropertiesSection = () => {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case "approved": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "rejected": return "bg-red-100 text-red-800";
+      case "approved": return "border border-grid/20 bg-primary/10 text-foreground";
+      case "pending": return "border border-accent/30 bg-accent/15 text-foreground";
+      case "rejected": return "border border-destructive/30 bg-destructive/10 text-destructive";
       default: return "";
     }
   };
@@ -83,9 +128,32 @@ const PropertiesSection = () => {
         <Button variant="outline" onClick={exportCsv} className="w-full sm:w-auto">Export CSV</Button>
       </div>
 
-      <Card className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
-        <CardContent className="grid grid-cols-1 gap-3 p-5 md:grid-cols-4">
-          <Input placeholder="Search name, category, SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="md:col-span-2" />
+      <Card className="border-grid/25 bg-card shadow-none">
+        <CardContent className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-8">
+          <div className="xl:col-span-2">
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Search</label>
+            <Input placeholder="Name, category, SKU..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="xl:col-span-2">
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Category</label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((item) => (
+                  <SelectItem key={item} value={item}>{item}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Min price</label>
+            <Input type="number" min="0" placeholder="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+          </div>
+          <div>
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Max price</label>
+            <Input type="number" min="0" placeholder="5000" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+          </div>
           <div>
             <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">From</label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -94,17 +162,34 @@ const PropertiesSection = () => {
             <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">To</label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
+          <div className="xl:col-span-2">
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Sort</label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created-desc">Newest first</SelectItem>
+                <SelectItem value="created-asc">Oldest first</SelectItem>
+                <SelectItem value="price-asc">Price: low to high</SelectItem>
+                <SelectItem value="price-desc">Price: high to low</SelectItem>
+                <SelectItem value="category-asc">Category: A to Z</SelectItem>
+                <SelectItem value="category-desc">Category: Z to A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end xl:col-span-2">
+            <Button type="button" variant="outline" className="w-full" onClick={resetFilters}>Reset filters</Button>
+          </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !filtered.length ? (
-        <Card className="rounded-[1.75rem] border-[#e3d7c8] bg-white/90 shadow-none">
+        <Card className="border-grid/25 bg-card shadow-none">
           <CardContent className="p-8 text-muted-foreground">No products match your filters.</CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-[1.75rem] border border-[#e3d7c8] bg-white/92">
+        <div className="admin-table-panel">
           <Table>
             <TableHeader>
               <TableRow>
@@ -122,9 +207,9 @@ const PropertiesSection = () => {
                 <TableRow key={p.id}>
                   <TableCell>
                     {p.images?.[0] ? (
-                      <img src={p.images[0]} alt={p.title} className="w-12 h-12 object-cover rounded" />
+                      <img src={p.images[0]} alt={p.title} className="h-12 w-12 object-cover" />
                     ) : (
-                      <div className="w-12 h-12 bg-muted rounded" />
+                      <div className="h-12 w-12 bg-muted" />
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{p.title}</TableCell>

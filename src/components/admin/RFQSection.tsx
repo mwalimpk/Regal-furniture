@@ -38,20 +38,26 @@ const RFQSection = () => {
   });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-serif font-bold text-foreground">Quote Requests</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Sales desk</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Quote requests</h1>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            Review custom order requests and move each conversation through the response queue.
+          </p>
+        </div>
         {rfqs?.length ? (
-          <span className="text-sm text-muted-foreground">{rfqs.length} total</span>
+          <span className="admin-panel-soft px-4 py-3 text-sm text-muted-foreground">{rfqs.length} total</span>
         ) : null}
       </div>
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
       ) : !rfqs?.length ? (
-        <p className="text-muted-foreground">No quote requests yet.</p>
+        <div className="admin-panel p-8 text-muted-foreground">No quote requests yet.</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
+        <div className="admin-table-panel">
           <Table>
             <TableHeader>
               <TableRow>

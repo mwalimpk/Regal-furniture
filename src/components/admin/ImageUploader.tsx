@@ -52,7 +52,7 @@ const ImageUploader = ({ images, onChange, max = 10 }: ImageUploaderProps) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <label className="cursor-pointer">
           <input
             type="file"
@@ -62,16 +62,16 @@ const ImageUploader = ({ images, onChange, max = 10 }: ImageUploaderProps) => {
             disabled={uploading || images.length >= max}
             className="hidden"
           />
-          <span className="inline-block px-4 py-2 border border-foreground text-sm font-medium hover:bg-foreground hover:text-background transition-colors">
+          <span className="inline-block border border-grid/50 px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground hover:text-background">
             {uploading ? "Uploading..." : "Upload Images"}
           </span>
         </label>
         <span className="text-xs text-muted-foreground">{images.length} / {max} images</span>
       </div>
       {images.length > 0 && (
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
           {images.map((url, i) => (
-            <div key={url} className="relative group aspect-square border border-border overflow-hidden">
+            <div key={url} className="group relative aspect-square overflow-hidden border border-grid/30">
               <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
               <button
                 type="button"

@@ -8,8 +8,10 @@ import {
   executeQuery,
   getSessionForToken,
   getUploadFile,
+  importCatalogueProducts,
   isMysqlConfigured,
   invokeFunction,
+  resetPasswordDirect,
   setSession,
   signInWithPassword,
   signOut,
@@ -127,6 +129,12 @@ const handleApi = async (req, res) => {
     return true;
   }
 
+  if (pathname === "/api/auth/reset-password" && req.method === "POST") {
+    const response = await resetPasswordDirect(await readJsonBody(req));
+    sendJson(res, 200, response);
+    return true;
+  }
+
   if (pathname === "/api/auth/sign-out" && req.method === "POST") {
     const response = await signOut(getAccessToken(req));
     sendJson(res, 200, response);
@@ -135,6 +143,12 @@ const handleApi = async (req, res) => {
 
   if (pathname === "/api/auth/set-session" && req.method === "POST") {
     const response = await setSession(await readJsonBody(req));
+    sendJson(res, 200, response);
+    return true;
+  }
+
+  if (pathname === "/api/catalogues/import-products" && req.method === "POST") {
+    const response = await importCatalogueProducts(await readJsonBody(req));
     sendJson(res, 200, response);
     return true;
   }

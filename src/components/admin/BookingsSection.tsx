@@ -14,12 +14,18 @@ const BookingsSection = () => {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-serif font-bold text-foreground mb-6">Orders</h1>
+    <div className="space-y-6">
+      <div className="max-w-2xl">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Fulfillment</p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Orders</h1>
+        <p className="mt-3 text-sm leading-7 text-muted-foreground">
+          Monitor customer orders and the product activity attached to each request.
+        </p>
+      </div>
       {isLoading ? <p className="text-muted-foreground">Loading...</p> : !orders?.length ? (
-        <p className="text-muted-foreground">No orders yet. Orders placed by customers will appear here.</p>
+        <div className="admin-panel p-8 text-muted-foreground">No orders yet. Orders placed by customers will appear here.</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
+        <div className="admin-table-panel">
           <Table>
             <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Order Date</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
             <TableBody>
