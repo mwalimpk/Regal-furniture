@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Product, products as catalogueProducts } from "@/data/products";
+import type { Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
 const CAROUSEL_INTERVAL_MS = 3200;
@@ -27,7 +27,7 @@ const uniqueImages = (images: Array<string | null | undefined>) => {
 };
 
 const getProductGallery = (product: Product, relatedProducts?: Product[]) => {
-  const sourceProducts = relatedProducts?.length ? relatedProducts : catalogueProducts;
+  const sourceProducts = relatedProducts?.length ? relatedProducts : [product];
   const categoryProducts = sourceProducts.filter(
     (item) => item.categorySlug === product.categorySlug,
   );

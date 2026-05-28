@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { categories, products } from "@/data/products";
-import { greenProducts } from "@/data/greenProducts";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
-import { supabase } from "@/integrations/supabase/client";
+import { categories } from "@/data/products";
+import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
 const featuredCategoryImages: Record<string, { image: string; position?: string }> = {
   "executive-chairs": {
@@ -30,23 +28,10 @@ const featuredCategoryImages: Record<string, { image: string; position?: string 
 };
 
 const CategoryCards = () => {
-  const { data: dbProducts } = useQuery({
-    queryKey: ["storefront-products", "category-cards"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+  const { data: liveProducts = [] } = useQuery({
+    queryKey: ["storefront-products"],
+    queryFn: fetchApprovedStorefrontProducts,
   });
-
-  const liveProducts = mergeProducts(
-    (dbProducts || []).map(propertyToProduct),
-    [...products, ...greenProducts],
-  );
 
   const featuredCategories = [
     "executive-chairs",
@@ -58,7 +43,7 @@ const CategoryCards = () => {
     const category = categories.find((item) => item.slug === slug);
     const count = liveProducts.filter((product) => product.categorySlug === slug).length;
     const curated = featuredCategoryImages[slug];
-    const fallbackImage = curated?.image || liveProducts.find((product) => product.categorySlug === slug)?.image || category?.image || "";
+    const fallbackImage = liveProducts.find((product) => product.categorySlug === slug)?.image || curated?.image || category?.image || "";
 
     return {
       name: category?.name || slug,

@@ -5,10 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { products } from "@/data/products";
-import { greenProducts } from "@/data/greenProducts";
 import { buildCombinationInsight, rankProductCombinations } from "@/lib/productCombinations";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
+import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
 const ProductRecommendations = () => {
   const { toast } = useToast();
@@ -20,23 +18,10 @@ const ProductRecommendations = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [recommendationSearchTerm, setRecommendationSearchTerm] = useState("");
 
-  const { data: dbProducts = [] } = useQuery({
-    queryKey: ["admin-pairing-products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["storefront-products"],
+    queryFn: fetchApprovedStorefrontProducts,
   });
-
-  const allProducts = useMemo(
-    () => mergeProducts((dbProducts || []).map(propertyToProduct), [...products, ...greenProducts]),
-    [dbProducts],
-  );
 
   const selectedProduct = allProducts.find((product) => product.id === selectedProductId);
 

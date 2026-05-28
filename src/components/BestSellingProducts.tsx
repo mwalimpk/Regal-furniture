@@ -3,32 +3,17 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
-import { supabase } from "@/integrations/supabase/client";
-import { greenProducts } from "@/data/greenProducts";
+import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
 const TABS = ["All", "Office Chairs", "Desks", "Conference Tables", "Lounge", "Storage", "Accessories"];
 
 const BestSellingProducts = () => {
   const [activeTab, setActiveTab] = useState("All");
 
-  const { data: dbProducts } = useQuery({
-    queryKey: ["storefront-products", "best-selling"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+  const { data: allProducts = [], isLoading } = useQuery({
+    queryKey: ["storefront-products"],
+    queryFn: fetchApprovedStorefrontProducts,
   });
-
-  const allProducts = mergeProducts(
-    (dbProducts || []).map(propertyToProduct),
-    greenProducts,
-  );
 
   const filteredProducts = activeTab === "All"
     ? allProducts.slice(0, 4)
@@ -79,19 +64,30 @@ const BestSellingProducts = () => {
           </div>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 xl:grid-cols-4">
-          {displayProducts.map((product) => (
-            <StorefrontProductTile
-              key={product.id}
-              product={product}
-              relatedProducts={allProducts}
-              compact
-              showDescription={false}
-              showRating
-              imagePanelClassName="product-media-panel"
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="mt-14 bg-card/60 px-6 py-14 text-center text-sm text-muted-foreground">
+            Loading products...
+          </div>
+        ) : displayProducts.length === 0 ? (
+          <div className="mt-14 bg-card/60 px-6 py-14 text-center">
+            <h3 className="font-serif text-2xl text-foreground">No featured products yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Add approved products in the admin catalog to populate this section.</p>
+          </div>
+        ) : (
+          <div className="mt-14 grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 xl:grid-cols-4">
+            {displayProducts.map((product) => (
+              <StorefrontProductTile
+                key={product.id}
+                product={product}
+                relatedProducts={allProducts}
+                compact
+                showDescription={false}
+                showRating
+                imagePanelClassName="product-media-panel"
+              />
+            ))}
+          </div>
+        )}
 
         <div className="mt-12 flex justify-center">
           <Link

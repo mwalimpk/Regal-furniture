@@ -1,5 +1,6 @@
 import placeholderImg from "@/assets/product-exec-desk.jpg";
-import { categories, Product } from "@/data/products";
+import { categories, type Product } from "@/data/products";
+import { supabase } from "@/integrations/supabase/client";
 
 type PropertyRow = {
   id: string;
@@ -35,11 +36,14 @@ export const propertyToProduct = (property: PropertyRow): Product => ({
   description: property.description || "",
 });
 
-export const mergeProducts = (dbProducts: Product[], staticProducts: Product[]) => {
-  const merged = new Map<string, Product>();
+export const fetchApprovedStorefrontProducts = async () => {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
 
-  staticProducts.forEach((product) => merged.set(product.id, product));
-  dbProducts.forEach((product) => merged.set(product.id, product));
+  if (error) throw error;
 
-  return Array.from(merged.values());
+  return (data || []).map(propertyToProduct);
 };

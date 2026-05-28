@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Plus } from "lucide-react";
-import { Product } from "@/data/products";
+import type { Product } from "@/data/products";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { buildCombinationInsight } from "@/lib/productCombinations";
 import ProductHoverMedia from "@/components/ProductHoverMedia";

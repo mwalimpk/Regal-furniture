@@ -1,7 +1,7 @@
 import { ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { Product } from "@/data/products";
+import type { Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import ProductHoverMedia from "@/components/ProductHoverMedia";

@@ -98,7 +98,7 @@ const utilityLinks = [
 ];
 
 const desktopUtilityLinkClass =
-  "relative px-4 py-3 text-[15px] text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
+  "relative px-4 py-3 text-base text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
 const mobileListLinkClass =
   "flex items-center justify-between px-4 py-4 text-sm text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
 
@@ -138,15 +138,15 @@ const Navbar = () => {
       <nav className="fixed inset-x-0 top-0 z-50 border-t border-heritage bg-[rgb(var(--nav-surface-rgb)/0.96)] text-[rgb(var(--nav-ink-rgb)/1)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--nav-surface-rgb)/0.92)]">
         <div className="hidden lg:block" onMouseLeave={() => setOpenMenu(null)}>
           <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)]">
-            <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-6 px-10 py-4">
+            <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-5 px-[40px] py-3">
               <div className="col-span-4">
                 <button
                   type="button"
-                  className="group flex w-full max-w-[320px] items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-2 text-left text-[17px] text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  className="group flex w-full max-w-[240px] items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-1.5 text-left text-sm text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
                 >
                   <span>Search</span>
                   <Search
-                    size={24}
+                    size={18}
                     className="text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear group-hover:text-interactive"
                   />
                 </button>
@@ -154,11 +154,11 @@ const Navbar = () => {
 
               <div className="col-span-4 flex justify-center">
                 <Link to="/" className="inline-flex items-center">
-                  <img src={regalLogo} alt="Regal Office & Home" className="h-12 w-auto object-contain" />
+                  <img src={regalLogo} alt="Regal Office & Home" className="h-10 w-auto object-contain" />
                 </Link>
               </div>
 
-              <div className="col-span-4 flex items-center justify-end gap-2 xl:gap-4">
+              <div className="col-span-4 flex items-center justify-end gap-2 xl:gap-3">
                 {isAdmin && (
                   <Link
                     to="/admin"
@@ -169,24 +169,24 @@ const Navbar = () => {
                 )}
 
                 <ThemeToggle
-                  className="h-10 w-10 rounded-none border-0 bg-transparent text-[rgb(var(--nav-ink-rgb)/1)] hover:border-0 hover:bg-transparent hover:text-interactive"
+                  className="h-9 w-9 rounded-none border-0 bg-transparent text-[rgb(var(--nav-ink-rgb)/1)] hover:border-0 hover:bg-transparent hover:text-interactive"
                 />
 
                 <Link
                   to={accountHref}
-                  className="inline-flex h-10 w-10 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  className="inline-flex h-9 w-9 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
                   aria-label={accountLabel}
                 >
-                  <User size={24} />
+                  <User size={20} />
                 </Link>
 
                 <button
                   type="button"
                   onClick={() => setIsOpen(true)}
-                  className="relative inline-flex h-10 w-10 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  className="relative inline-flex h-9 w-9 items-center justify-center text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
                   aria-label="Open cart"
                 >
-                  <ShoppingCart size={24} />
+                  <ShoppingCart size={20} />
                   {itemCount > 0 && (
                     <span className="absolute right-0 top-0 flex min-w-[1.1rem] items-center justify-center border border-heritage bg-heritage px-1 py-[1px] font-mono text-[9px] uppercase tracking-[0.16em] text-primary-foreground">
                       {itemCount}
@@ -210,7 +210,7 @@ const Navbar = () => {
                   <button
                     type="button"
                     onClick={() => setOrderOpen(true)}
-                    className="px-4 py-3 text-[15px] text-heritage transition-colors duration-150 ease-linear hover:text-interactive"
+                    className="px-4 py-3 text-base text-heritage transition-colors duration-150 ease-linear hover:text-interactive"
                   >
                     Quick Order
                   </button>
@@ -230,7 +230,7 @@ const Navbar = () => {
                       key={item.label}
                       type="button"
                       onMouseEnter={() => setOpenMenu(item.label)}
-                      className={`group relative flex min-h-[72px] items-center justify-center gap-3 px-4 font-mono text-[12px] uppercase tracking-[0.22em] transition-colors duration-150 ease-linear ${
+                      className={`group relative flex min-h-[56px] items-center justify-center gap-2 px-4 py-4 text-base transition-colors duration-150 ease-linear ${
                         isActive ? "text-[rgb(var(--nav-ink-rgb)/1)]" : "text-[rgb(var(--nav-ink-rgb)/1)] hover:text-interactive"
                       }`}
                     >

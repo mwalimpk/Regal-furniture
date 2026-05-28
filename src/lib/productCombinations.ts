@@ -1,4 +1,4 @@
-import { Product, categoryPairings } from "@/data/products";
+import { categoryPairings, type Product } from "@/data/products";
 
 export type ProductCombinationInsight = {
   product: Product;

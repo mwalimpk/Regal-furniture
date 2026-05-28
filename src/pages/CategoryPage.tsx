@@ -8,10 +8,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { categories, Product, products } from "@/data/products";
+import { categories, type Product } from "@/data/products";
 import { QuickFilter, loadFilterSettings } from "@/lib/filterSettings";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -44,27 +43,15 @@ const CategoryPage = () => {
     .map((itemSlug) => categories.find((categoryItem) => categoryItem.slug === itemSlug))
     .filter(Boolean)) as typeof categories;
 
-  const { data: dbProducts } = useQuery({
-    queryKey: ["category-products", category?.name],
-    queryFn: async () => {
-      if (!category) return [];
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .eq("property_type", category.name)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["storefront-products"],
+    queryFn: fetchApprovedStorefrontProducts,
     enabled: !!category,
   });
 
   const categoryProducts: Product[] = useMemo(() => {
-    const fromDb: Product[] = (dbProducts || []).map(propertyToProduct);
-    const fromStatic = products.filter((product) => product.categorySlug === slug);
-    return mergeProducts(fromDb, fromStatic);
-  }, [dbProducts, slug]);
+    return allProducts.filter((product) => product.categorySlug === slug);
+  }, [allProducts, slug]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();

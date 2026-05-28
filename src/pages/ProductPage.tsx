@@ -7,8 +7,7 @@ import StorefrontProductTile from "@/components/StorefrontProductTile";
 import ProductCombinationCarousel from "@/components/ProductCombinationCarousel";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { products, Product, categories } from "@/data/products";
-import { greenProducts } from "@/data/greenProducts";
+import { type Product, categories } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,7 +15,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import RFQModal from "@/components/RFQModal";
 import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 import { supabase } from "@/integrations/supabase/client";
-import { mergeProducts, propertyToProduct } from "@/lib/storefrontProducts";
+import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 import { rankProductCombinations } from "@/lib/productCombinations";
 import { formatCurrency } from "@/utils/formatCurrency";
 
@@ -30,27 +29,10 @@ const ProductPage = () => {
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
 
-  const { data: dbProducts, isLoading } = useQuery({
+  const { data: uniqueProducts = [], isLoading } = useQuery({
     queryKey: ["storefront-products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchApprovedStorefrontProducts,
   });
-
-  const uniqueProducts = useMemo(
-    () =>
-      mergeProducts(
-        (dbProducts || []).map(propertyToProduct),
-        [...products, ...greenProducts],
-      ),
-    [dbProducts],
-  );
 
   const product = useMemo(
     () => uniqueProducts.find((item) => item.id === id),
