@@ -115,6 +115,8 @@ const PropertiesSection = () => {
     }
   };
 
+  const storefrontProductUrl = (id: string) => `/product/${id}`;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -212,7 +214,16 @@ const PropertiesSection = () => {
                       <div className="h-12 w-12 bg-muted" />
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{p.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <a
+                      href={storefrontProductUrl(p.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-foreground underline decoration-grid/50 underline-offset-4 transition-colors hover:text-crimson hover:decoration-crimson"
+                    >
+                      {p.title}
+                    </a>
+                  </TableCell>
                   <TableCell>{p.property_type}</TableCell>
                   <TableCell>{p.currency} {Number(p.price).toLocaleString()}</TableCell>
                   <TableCell><Badge className={statusColor(p.status)}>{p.status}</Badge></TableCell>

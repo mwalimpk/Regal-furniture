@@ -10,6 +10,7 @@ type PropertyRow = {
   currency: string;
   images: string[] | null;
   description: string | null;
+  long_description?: string | null;
 };
 
 export const categoryNameToSlug = (categoryName: string | null | undefined) => {
@@ -34,6 +35,7 @@ export const propertyToProduct = (property: PropertyRow): Product => ({
   image: property.images?.[0] || placeholderImg,
   images: property.images || undefined,
   description: property.description || "",
+  longDescription: property.long_description || "",
 });
 
 export const fetchApprovedStorefrontProducts = async () => {

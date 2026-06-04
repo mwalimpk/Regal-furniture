@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import ImageUploader from "./ImageUploader";
+import RichTextEditor from "./RichTextEditor";
 
 const categories = [
   "Executive Desking", "Managerial Desking", "L-Shaped Desks", "Adjustable Desking",
@@ -19,7 +20,7 @@ const categories = [
 ];
 
 const initialForm = {
-  title: "", description: "", property_type: "Executive Desking", price: "",
+  title: "", description: "", long_description: "", property_type: "Executive Desking", price: "",
   currency: "USD", location: "", city: "Harare", features: "",
 };
 
@@ -61,6 +62,7 @@ const AddProductSection = () => {
       user_id: user.id,
       title: form.title,
       description: form.description,
+      long_description: form.long_description,
       property_type: form.property_type,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
@@ -148,6 +150,15 @@ const AddProductSection = () => {
                   </Button>
                 </div>
                 <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Product description..." rows={7} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Long Description</Label>
+                <RichTextEditor
+                  value={form.long_description}
+                  onChange={(value) => update("long_description", value)}
+                  placeholder="Add detailed product copy, specifications, care notes, and project-use context..."
+                />
               </div>
             </CardContent>
           </Card>

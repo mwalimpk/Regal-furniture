@@ -25,7 +25,7 @@ export default {
         rifle: "#3A402D",
         olive: "#848961",
         taupe: "#63543F",
-        crimson: "#63543F",
+        crimson: "#9F1D2E",
         orange: "#FCB040",
         ivory: "#F9F9F6",
         white: "#FFFFFF",
@@ -45,7 +45,7 @@ export default {
           foreground: colorVar("--primary-foreground"),
         },
         "brand-green": "#3A402D",
-        "brand-red": "#63543F",
+        "brand-red": "#9F1D2E",
         secondary: {
           DEFAULT: colorVar("--secondary"),
           foreground: colorVar("--secondary-foreground"),
