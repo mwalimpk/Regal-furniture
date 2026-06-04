@@ -3,6 +3,7 @@ type TableName =
   | "user_roles"
   | "properties"
   | "product_pairings"
+  | "product_promotions"
   | "catalogues"
   | "promotional_banners"
   | "inquiries"

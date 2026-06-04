@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import ImageUploader from "./ImageUploader";
+import RichTextEditor from "./RichTextEditor";
 
 const categories = [
   "Executive Desking", "Managerial Desking", "L-Shaped Desks", "Adjustable Desking",
@@ -35,6 +36,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
       setForm({
         title: product.title || "",
         description: product.description || "",
+        long_description: product.long_description || "",
         property_type: product.property_type || "Executive Desking",
         price: String(product.price || ""),
         currency: product.currency || "USD",
@@ -54,6 +56,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
     const { error } = await supabase.from("properties").update({
       title: form.title,
       description: form.description,
+      long_description: form.long_description,
       property_type: form.property_type,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
@@ -78,7 +81,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-workspace max-h-[90vh] max-w-2xl overflow-y-auto border-grid bg-card">
+      <DialogContent className="admin-workspace max-h-[90vh] max-w-4xl overflow-y-auto border-grid bg-card">
         <DialogHeader><DialogTitle>Edit Product</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
@@ -92,6 +95,14 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
             </div>
           </div>
           <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={3} /></div>
+          <div>
+            <Label>Long Description</Label>
+            <RichTextEditor
+              value={form.long_description || ""}
+              onChange={(value) => update("long_description", value)}
+              placeholder="Add detailed product copy, specifications, care notes, and project-use context..."
+            />
+          </div>
           <div>
             <Label>Images (up to 10)</Label>
             <ImageUploader images={images} onChange={setImages} max={10} />

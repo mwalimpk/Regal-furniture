@@ -89,6 +89,7 @@ const buildInitialState = () => {
     user_roles,
     properties: [],
     product_pairings: [],
+    product_promotions: [],
     catalogues: [],
     promotional_banners: [],
     inquiries: [],
@@ -249,6 +250,23 @@ const normalizeInsertRow = (table, row) => {
         recommended_ids: [],
         ...row,
       };
+    case "product_promotions":
+      return {
+        id: uid("promo"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        description: null,
+        promotion_type: "single_product",
+        discount_type: "percentage",
+        discount_value: null,
+        offer_label: null,
+        product_ids: [],
+        category_targets: [],
+        status: "active",
+        starts_at: null,
+        ends_at: null,
+        ...row,
+      };
     case "catalogues":
       return {
         id: uid("catalogue"),
@@ -382,6 +400,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
   const price = parseImportPrice(rawPrice);
   const currency = firstTextValue(row, ["currency"]).toUpperCase() || "USD";
   const description = firstTextValue(row, ["description", "details", "notes"]);
+  const longDescription = firstTextValue(row, ["long_description", "full_description", "rich_description"]);
   const location = firstTextValue(row, ["location", "sku", "model", "code"]);
   const city = firstTextValue(row, ["city", "warehouse"]) || "Harare";
   const imageUrl = firstTextValue(row, ["image", "image_url", "images", "photo"]);
@@ -398,6 +417,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
     product: {
       title,
       description,
+      long_description: longDescription,
       property_type: propertyType,
       price,
       currency,

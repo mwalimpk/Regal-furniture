@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS properties (
   id VARCHAR(64) PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description LONGTEXT NULL,
+  long_description LONGTEXT NULL,
   property_type VARCHAR(255) NOT NULL,
   price DECIMAL(12,2) NOT NULL DEFAULT 0,
   currency VARCHAR(16) NOT NULL DEFAULT 'USD',
@@ -59,6 +60,27 @@ CREATE TABLE IF NOT EXISTS product_pairings (
   id VARCHAR(64) PRIMARY KEY,
   product_id VARCHAR(64) NOT NULL UNIQUE,
   recommended_ids LONGTEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_promotions (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description LONGTEXT NULL,
+  promotion_type VARCHAR(32) NOT NULL,
+  discount_type VARCHAR(32) NOT NULL DEFAULT 'percentage',
+  discount_value DECIMAL(12,2) NULL,
+  offer_label VARCHAR(128) NULL,
+  product_ids LONGTEXT NOT NULL,
+  category_targets LONGTEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  INDEX idx_product_promotions_status (status),
+  INDEX idx_product_promotions_type (promotion_type),
+  INDEX idx_product_promotions_user_id (user_id)
 );
 
 CREATE TABLE IF NOT EXISTS catalogues (

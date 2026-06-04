@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Info, ShoppingCart, ShieldCheck, Star, Truck } from "lucide-react";
+import { ArrowRight, Info, PackageCheck, ShoppingCart, ShieldCheck, Star, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
 import ProductCombinationCarousel from "@/components/ProductCombinationCarousel";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { type Product, categories } from "@/data/products";
+import { type Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,7 +16,7 @@ import RFQModal from "@/components/RFQModal";
 import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
-import { rankProductCombinations } from "@/lib/productCombinations";
+import { sanitizeRichTextHtml } from "@/lib/richText";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 const ProductPage = () => {
@@ -39,29 +39,16 @@ const ProductPage = () => {
     [id, uniqueProducts],
   );
 
-  const productCategory = useMemo(
-    () => categories.find((category) => category.slug === product?.categorySlug),
-    [product],
-  );
-
   const galleryImages = useMemo(() => {
     if (!product) return [];
     const images = product.images?.length ? product.images : [product.image];
     return Array.from(new Set(images.filter(Boolean)));
   }, [product]);
 
-  const featureVisuals = useMemo(() => {
-    if (!product) return [];
-    const visuals = Array.from(
-      new Set([selectedImage || product.image, ...galleryImages, productCategory?.image, product.image].filter(Boolean)),
-    );
-
-    while (visuals.length < 3) {
-      visuals.push(product.image);
-    }
-
-    return visuals.slice(0, 3);
-  }, [galleryImages, product, productCategory, selectedImage]);
+  const longDescriptionHtml = useMemo(
+    () => (product?.longDescription ? sanitizeRichTextHtml(product.longDescription) : ""),
+    [product],
+  );
 
   useEffect(() => {
     if (galleryImages.length) {
@@ -88,11 +75,13 @@ const ProductPage = () => {
   }, [product, uniqueProducts]);
 
   useEffect(() => {
-    if (!product) return;
+    if (!product) {
+      setRecommended([]);
+      return;
+    }
 
-    const fallbackPairings = () => {
-      setRecommended(rankProductCombinations(product, uniqueProducts, 8).map((item) => item.product));
-    };
+    let ignore = false;
+    setRecommended([]);
 
     const fetchPairings = async () => {
       try {
@@ -102,20 +91,38 @@ const ProductPage = () => {
           .eq("product_id", product.id)
           .maybeSingle();
 
-        if (!error && data && data.recommended_ids?.length > 0) {
-          const matched = data.recommended_ids
+        if (ignore) return;
+
+        if (error) {
+          console.error("Failed to load product pairings", error);
+          setRecommended([]);
+          return;
+        }
+
+        const pairing = data as { recommended_ids?: string[] } | null;
+
+        if (pairing?.recommended_ids?.length) {
+          const matched = pairing.recommended_ids
             .map((recId: string) => uniqueProducts.find((item) => item.id === recId))
             .filter(Boolean) as Product[];
-          setRecommended(matched.length ? matched : rankProductCombinations(product, uniqueProducts, 8).map((item) => item.product));
-        } else {
-          fallbackPairings();
+          setRecommended(matched);
+          return;
         }
-      } catch {
-        fallbackPairings();
+
+        setRecommended([]);
+      } catch (error) {
+        if (!ignore) {
+          console.error("Failed to load product pairings", error);
+          setRecommended([]);
+        }
       }
     };
 
     fetchPairings();
+
+    return () => {
+      ignore = true;
+    };
   }, [product, uniqueProducts]);
 
   if (isLoading && !product) {
@@ -188,7 +195,7 @@ const ProductPage = () => {
                     <img
                       src={image}
                       alt={`${product.name} view ${index + 1}`}
-                      className="max-h-full max-w-full object-contain object-center"
+                      className="h-full w-full object-contain object-center"
                     />
                   </button>
                 ))}
@@ -199,7 +206,7 @@ const ProductPage = () => {
                   <img
                     src={selectedImage || product.image}
                     alt={product.name}
-                    className="max-h-full max-w-full object-contain transition-transform duration-500 hover:scale-[1.02]"
+                    className="h-full w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02]"
                   />
                 </div>
               </div>
@@ -207,19 +214,28 @@ const ProductPage = () => {
 
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               <div className="surface-elevated p-5">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Delivery</p>
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center border border-grid/25 bg-background text-heritage">
+                  <Truck className="h-5 w-5" />
+                </div>
+                <p className="font-serif text-xl leading-tight text-foreground">Delivery</p>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   Coordinated city delivery with assembly support where needed.
                 </p>
               </div>
               <div className="surface-elevated p-5">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Bulk Buying</p>
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center border border-grid/25 bg-background text-heritage">
+                  <PackageCheck className="h-5 w-5" />
+                </div>
+                <p className="font-serif text-xl leading-tight text-foreground">Bulk Buying</p>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   Suitable for team rollouts, hospitality, and multi-room fit-outs.
                 </p>
               </div>
               <div className="surface-elevated p-5">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-label">Warranty</p>
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center border border-grid/25 bg-background text-heritage">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <p className="font-serif text-xl leading-tight text-foreground">Warranty</p>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   Backed by manufacturer cover and after-sales support.
                 </p>
@@ -277,8 +293,7 @@ const ProductPage = () => {
                   </Button>
                   <Button
                     onClick={() => setRfqOpen(true)}
-                    variant="outline"
-                    className="h-14 flex-1 rounded-none border-0 bg-background/80 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground hover:bg-background hover:text-foreground"
+                    className="h-14 flex-1 rounded-none bg-crimson font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-crimson/90 hover:text-primary-foreground"
                   >
                     Request Quote
                   </Button>
@@ -330,77 +345,31 @@ const ProductPage = () => {
                     </p>
                   </div>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="surface-elevated p-4">
-                    <div className="mb-3 text-foreground/76"><Truck size={20} /></div>
-                    <h3 className="pb-1 text-sm font-semibold text-foreground">Delivery Information</h3>
-                    <p className="text-xs leading-6 text-muted-foreground">
-                      Free delivery and assembly within city limits. Nationwide shipping available.
-                    </p>
-                  </div>
-                  <div className="surface-elevated p-4">
-                    <div className="mb-3 text-foreground/76"><ShieldCheck size={20} /></div>
-                    <h3 className="pb-1 text-sm font-semibold text-foreground">Warranty</h3>
-                    <p className="text-xs leading-6 text-muted-foreground">
-                      Manufacturer warranty included with after-sales support from our team.
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="mt-16 border-t border-grid/40 pt-12">
-          <div className="grid gap-10 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
+          <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr]">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">Why this piece works</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">Product details</p>
               <h2 className="mt-4 font-serif text-3xl leading-tight text-foreground md:text-5xl">
-                Designed to feel resolved in the room, not just attractive in isolation.
+                Full product description
               </h2>
-              <p className="mt-5 max-w-xl text-sm leading-8 text-muted-foreground md:text-base">
-                Buyers usually need more than a price point. They need confidence in finish, scale,
-                delivery, and how a product will sit inside a broader workplace scheme.
-              </p>
-
-              <div className="mt-8 space-y-4">
-                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
-                  Strong proportions for executive offices, focused home setups, and client-facing spaces.
-                </div>
-                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
-                  Ready for both one-off purchases and project-scale sourcing conversations.
-                </div>
-                <div className="border-t border-grid/30 pt-4 text-sm leading-7 text-muted-foreground">
-                  Supported by a buying journey that stays structured without overwhelming the customer.
-                </div>
-              </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <div className="product-media-panel flex aspect-[16/10] items-center justify-center overflow-hidden">
-                  <img
-                    src={featureVisuals[0]}
-                    alt={`${product.name} highlight view`}
-                    className="h-full w-full object-cover object-center"
-                  />
+            <div className="border border-grid/25 bg-card p-6 md:p-8">
+              {longDescriptionHtml ? (
+                <div
+                  className="rich-text-content"
+                  dangerouslySetInnerHTML={{ __html: longDescriptionHtml }}
+                />
+              ) : (
+                <div className="rich-text-content">
+                  <p>{product.description}</p>
                 </div>
-              </div>
-              <div className="product-media-panel flex aspect-square items-center justify-center overflow-hidden">
-                <img
-                  src={featureVisuals[1]}
-                  alt={`${product.name} alternate view`}
-                  className="h-full w-full object-cover object-center"
-                />
-              </div>
-              <div className="product-media-panel flex aspect-square items-center justify-center overflow-hidden">
-                <img
-                  src={featureVisuals[2]}
-                  alt={`${product.name} styled detail`}
-                  className="h-full w-full object-cover object-center"
-                />
-              </div>
+              )}
             </div>
           </div>
         </div>

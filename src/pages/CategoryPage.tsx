@@ -529,7 +529,7 @@ const CategoryPage = () => {
                     <button
                       type="button"
                       onClick={() => handleAdd(product)}
-                      className="mt-5 inline-flex min-h-12 items-center justify-center bg-card/80 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:bg-card"
+                      className="mt-5 inline-flex min-h-12 items-center justify-center bg-crimson px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-crimson/90"
                     >
                       Add to cart
                     </button>

@@ -32,6 +32,7 @@ const JSON_COLUMNS = {
   auth_users: ["user_metadata"],
   properties: ["images"],
   product_pairings: ["recommended_ids"],
+  product_promotions: ["product_ids", "category_targets"],
   promotional_banners: ["placements"],
   orders: ["items"],
 };
@@ -41,8 +42,9 @@ const TABLE_COLUMNS = {
   sessions: ["access_token", "user_id", "expires_at"],
   profiles: ["id", "user_id", "full_name", "currency", "phone", "status", "created_at", "updated_at"],
   user_roles: ["id", "user_id", "role"],
-  properties: ["id", "title", "description", "property_type", "price", "currency", "location", "city", "country", "images", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
+  properties: ["id", "title", "description", "long_description", "property_type", "price", "currency", "location", "city", "country", "images", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
   product_pairings: ["id", "product_id", "recommended_ids"],
+  product_promotions: ["id", "title", "description", "promotion_type", "discount_type", "discount_value", "offer_label", "product_ids", "category_targets", "status", "starts_at", "ends_at", "created_at", "updated_at", "user_id"],
   catalogues: ["id", "title", "category", "year", "month", "document_url", "document_name", "document_type", "cover_image_url", "imported_count", "status", "created_at", "updated_at", "user_id"],
   promotional_banners: ["id", "title", "subtitle", "category", "background_image_url", "cta_label", "cta_href", "placements", "status", "starts_at", "ends_at", "has_countdown", "countdown_ends_at", "created_at", "updated_at", "user_id"],
   inquiries: ["id", "created_at", "email", "message", "name", "phone", "property_id", "status", "user_id"],
@@ -63,6 +65,9 @@ let pool;
 let initialized = false;
 
 const OPTIONAL_SCHEMA_COLUMNS = {
+  properties: [
+    { name: "long_description", definition: "LONGTEXT NULL AFTER `description`" },
+  ],
   promotional_banners: [
     { name: "background_image_url", definition: "LONGTEXT NULL" },
   ],
@@ -122,7 +127,7 @@ const deserializeRow = (table, row) => {
   if ("featured" in next) next.featured = next.featured === null ? null : Boolean(next.featured);
   if ("read" in next) next.read = next.read === null ? null : Boolean(next.read);
   if ("has_countdown" in next) next.has_countdown = next.has_countdown === null ? null : Boolean(next.has_countdown);
-  ["price", "total", "amount", "quantity", "year", "month", "imported_count"].forEach((key) => {
+  ["price", "total", "amount", "quantity", "year", "month", "imported_count", "discount_value"].forEach((key) => {
     if (key in next && next[key] !== null) next[key] = Number(next[key]);
   });
   ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at"].forEach((key) => {
@@ -177,6 +182,7 @@ const seedState = () => {
     ],
     properties: [],
     product_pairings: [],
+    product_promotions: [],
     catalogues: [],
     promotional_banners: [],
     inquiries: [],
@@ -287,6 +293,23 @@ const normalizeInsertRow = (table, row) => {
       return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], ...row };
     case "product_pairings":
       return { id: uid("pair"), recommended_ids: [], ...row };
+    case "product_promotions":
+      return {
+        id: uid("promo"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        description: null,
+        promotion_type: "single_product",
+        discount_type: "percentage",
+        discount_value: null,
+        offer_label: null,
+        product_ids: [],
+        category_targets: [],
+        status: "active",
+        starts_at: null,
+        ends_at: null,
+        ...row,
+      };
     case "catalogues":
       return { id: uid("catalogue"), created_at: timestamp, updated_at: timestamp, imported_count: 0, status: "uploaded", ...row };
     case "promotional_banners":
@@ -349,6 +372,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
   const price = parseImportPrice(rawPrice);
   const currency = firstTextValue(row, ["currency"]).toUpperCase() || "USD";
   const description = firstTextValue(row, ["description", "details", "notes"]);
+  const longDescription = firstTextValue(row, ["long_description", "full_description", "rich_description"]);
   const location = firstTextValue(row, ["location", "sku", "model", "code"]);
   const city = firstTextValue(row, ["city", "warehouse"]) || "Harare";
   const imageUrl = firstTextValue(row, ["image", "image_url", "images", "photo"]);
@@ -365,6 +389,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
     product: {
       title,
       description,
+      long_description: longDescription,
       property_type: propertyType,
       price,
       currency,

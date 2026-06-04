@@ -64,12 +64,14 @@ const FeaturedProducts = () => {
                     </div>
                     <div className="flex gap-1 pt-1">
                       <button
+                        type="button"
                         onClick={() => handleAdd(product)}
-                        className="text-[10px] md:text-xs font-medium border border-foreground text-foreground px-2 py-1 hover:bg-foreground hover:text-background transition-colors"
+                        className="bg-crimson px-2 py-1 text-[10px] font-medium text-primary-foreground transition-colors hover:bg-crimson/90 md:text-xs"
                       >
                         Add to Cart
                       </button>
                       <button
+                        type="button"
                         onClick={() => setOrderProduct(product)}
                         className="text-[10px] md:text-xs font-medium border border-primary text-primary px-2 py-1 hover:bg-primary hover:text-primary-foreground transition-colors"
                       >

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import ProductPromotionsSection from "@/components/admin/ProductPromotionsSection";
 import {
   PROMO_PLACEMENTS,
   PromoPlacementKey,
@@ -290,6 +291,10 @@ const PromotionalBannersSection = () => {
 
   return (
     <div className="space-y-6">
+      <ProductPromotionsSection />
+
+      <div className="border-t border-grid/25 pt-6" />
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Conversion Tools</p>
