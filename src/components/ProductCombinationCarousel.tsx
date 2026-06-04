@@ -60,15 +60,15 @@ const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: 
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="border border-grid/30 surface-elevated p-5">
+        <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <div className="flex h-[500px] flex-col overflow-hidden border border-grid/30 surface-elevated p-4 sm:h-[520px] sm:p-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-label">Selected piece</p>
             <ProductHoverMedia
               product={product}
               relatedProducts={mediaProducts}
-              className="mt-5 aspect-[4/4.2]"
+              className="mt-4 h-52 shrink-0 sm:h-56"
             />
-            <h3 className="mt-5 font-serif text-2xl leading-tight text-foreground">{product.name}</h3>
+            <h3 className="mt-4 line-clamp-2 font-serif text-2xl leading-tight text-foreground">{product.name}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{product.category}</p>
             <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Current item</p>
             <p className="mt-1 font-serif text-3xl text-heritage">{format(product.price)}</p>
@@ -78,32 +78,32 @@ const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: 
             {insights.map((insight) => (
               <article
                 key={insight.product.id}
-                className="min-w-[290px] snap-start border border-grid/30 bg-card sm:min-w-[360px] xl:min-w-[380px]"
+                className="flex h-[500px] w-[250px] shrink-0 snap-start flex-col overflow-hidden border border-grid/30 bg-card sm:h-[520px] sm:w-[300px] xl:w-[320px]"
               >
-                <Link to={`/product/${insight.product.id}`} className="block">
+                <Link to={`/product/${insight.product.id}`} className="block shrink-0">
                   <ProductHoverMedia
                     product={insight.product}
                     relatedProducts={mediaProducts}
-                    className="aspect-[4/4.2]"
+                    className="h-52 shrink-0 sm:h-56"
                   />
                 </Link>
-                <div className="p-5">
+                <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">{insight.product.category}</p>
-                      <h3 className="mt-2 font-serif text-2xl leading-tight text-foreground">{insight.product.name}</h3>
+                      <h3 className="mt-2 line-clamp-2 font-serif text-2xl leading-tight text-foreground">{insight.product.name}</h3>
                     </div>
                     <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center border border-grid/30 text-heritage">
                       <Plus className="h-4 w-4" />
                     </div>
                   </div>
 
-                  <div className="mt-5 border-y border-grid/25 py-4">
+                  <div className="mt-4 border-y border-grid/25 py-3">
                     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">Total combination</p>
                     <p className="mt-1 font-serif text-3xl text-heritage">{format(insight.total)}</p>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex max-h-[58px] flex-wrap gap-2 overflow-hidden">
                     <span className="border border-grid/25 bg-background px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                       {insight.priceFitLabel}
                     </span>
@@ -114,13 +114,15 @@ const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: 
                     ))}
                   </div>
 
-                  <Link
-                    to={`/product/${insight.product.id}`}
-                    className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-heritage px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-heritage/90"
-                  >
-                    View companion
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <div className="mt-auto pt-4">
+                    <Link
+                      to={`/product/${insight.product.id}`}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-heritage px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-heritage/90"
+                    >
+                      View companion
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))}

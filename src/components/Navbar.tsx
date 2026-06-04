@@ -22,69 +22,120 @@ type MegaMenuItem = {
 
 const menuItems: MegaMenuItem[] = [
   {
-    label: "Seating",
-    slug: "executive-chairs",
-    description: "Executive, ergonomic, and visitor seating for workspaces that need comfort and authority.",
+    label: "Executive Suites",
+    slug: "executive-suites",
+    description: "Executive chairs and desks for leadership offices and statement workspaces.",
     spotlight: [
       {
         title: "Executive chairs with premium finishes",
-        image: "/images/products/green/BIG AND TALL HIGH BACK SWIVEL CHAIR.jpg",
-        href: "/category/executive-chairs",
+        image: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg",
+        href: "/category/executive-suites",
       },
       {
-        title: "Ergonomic seating for daily workstation use",
-        image: "/images/products/green/AQUA ERGONOMIC SWIVEL CHAIR.jpg",
-        href: "/category/ergonomic-chairs",
+        title: "Executive desks for complete private offices",
+        image: "/uploads/collections/executive-suites/afton-l-shaped-desk-d46f223fae.png",
+        href: "/category/executive-suites",
       },
     ],
   },
   {
-    label: "Desks & Tables",
-    slug: "executive-desking",
-    description: "Executive desks, meeting tables, and height-adjustable work surfaces for focused work.",
-    spotlight: [
-      {
-        title: "Height-adjustable desks for dynamic teams",
-        image: "/images/products/green/HILO 200 STANDING DESK.jpg",
-        href: "/category/adjustable-desking",
-      },
-      {
-        title: "Executive desks built for statement offices",
-        image: "/images/products/green/KARINA L SHAPED DESK.jpg",
-        href: "/category/executive-desking",
-      },
-    ],
-  },
-  {
-    label: "Workplace",
-    slug: "workstations",
-    description: "Shared workstations, planning tables, and layout-ready furniture for productive office floors.",
+    label: "Office Suites",
+    slug: "office-suites",
+    description: "Operator chairs, mesh seating, and workstation systems for productive office floors.",
     spotlight: [
       {
         title: "Workstation systems for growing teams",
-        image: "/images/products/green/DOMINION 4 SEATER WORKSTATION.jpg",
-        href: "/category/workstations",
+        image: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg",
+        href: "/category/office-suites",
       },
       {
-        title: "Boardroom-ready meeting settings",
-        image: "/images/products/green/ARCADIAN BOARDROOM TABLE.jpg",
-        href: "/category/conference-tables",
+        title: "Operator seating for daily office use",
+        image: "/uploads/collections/office-suites/aylee-operators-chair-lc210-arms-2175526f9b.jpg",
+        href: "/category/office-suites",
       },
     ],
   },
   {
-    label: "Accessories & Storage",
-    slug: "storage-filing",
-    description: "Storage, filing, reception accessories, and support furniture that complete the room.",
+    label: "Conference & Boardroom",
+    slug: "conference-boardroom",
+    description: "Conference chairs and boardroom tables for formal meeting spaces.",
+    spotlight: [
+      {
+        title: "Boardroom-ready meeting tables",
+        image: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg",
+        href: "/category/conference-boardroom",
+      },
+      {
+        title: "Conference seating for teams and guests",
+        image: "/uploads/collections/conference-boardroom/nora-conference-chair-3-7f854bca2b.png",
+        href: "/category/conference-boardroom",
+      },
+    ],
+  },
+  {
+    label: "Reception & Lobby",
+    slug: "reception-lobby",
+    description: "Visitor chairs, benches, sofas, and counters for front-of-house spaces.",
+    spotlight: [
+      {
+        title: "Lobby sofas and reception seating",
+        image: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png",
+        href: "/category/reception-lobby",
+      },
+      {
+        title: "Visitor and bench seating",
+        image: "/uploads/collections/reception-lobby/airport-bench-1-seater-padded-dcb7b04fc8.jpg",
+        href: "/category/reception-lobby",
+      },
+    ],
+  },
+  {
+    label: "Home Office",
+    slug: "home-office",
+    description: "Ergonomic chairs, mesh seating, and compact desks for hybrid work.",
+    spotlight: [
+      {
+        title: "Ergonomic seating for home work",
+        image: "/uploads/collections/home-office/aqua-ergonomic-swivel-chair-dc140d6557.jpg",
+        href: "/category/home-office",
+      },
+      {
+        title: "Height-adjustable home office desks",
+        image: "/uploads/collections/home-office/hilo-200-height-adjustable-standing-desk-86862d8368.png",
+        href: "/category/home-office",
+      },
+    ],
+  },
+  {
+    label: "Industrial & Laboratory",
+    slug: "industrial-laboratory",
+    description: "Industrial chairs, lab stools, and draughtsman chairs for technical environments.",
+    spotlight: [
+      {
+        title: "Draughtsman chairs for technical work",
+        image: "/uploads/collections/industrial-laboratory/blackpool-industrial-draughtman-chair-822ed5892c.png",
+        href: "/category/industrial-laboratory",
+      },
+      {
+        title: "Lab stools and specialist seating",
+        image: "/uploads/collections/industrial-laboratory/brixton-lab-stool-pu-8690bbf41e.png",
+        href: "/category/industrial-laboratory",
+      },
+    ],
+  },
+  {
+    label: "Accessories",
+    slug: "accessories",
+    description: "Office accessories, storage, filing, and add-ons that complete the workspace.",
     spotlight: [
       {
         title: "Storage that keeps operations tidy",
-        image: "/images/products/green/METAL 4 DRAWER FILING CABINET WTH BAR.jpg",
-        href: "/category/storage-filing",
+        image: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg",
+        href: "/category/accessories",
       },
       {
-        title: "Reception and lounge accessories",
-        image: "/images/products/green/CHESTERFIELD LEATHER COUCH 1 SEATER.jpg",
+        title: "Workspace add-ons and support furniture",
+        image: "/uploads/collections/accessories/letter-tray-3-tier-mesh-9a15663f88.png",
         href: "/category/accessories",
       },
     ],
@@ -94,7 +145,7 @@ const menuItems: MegaMenuItem[] = [
 const utilityLinks = [
   { label: "New Arrivals", href: "/categories" },
   { label: "Catalogue", href: "/catalogue" },
-  { label: "Sustainability", href: "/category/storage-filing" },
+  { label: "Sustainability", href: "/category/accessories" },
 ];
 
 const desktopUtilityLinkClass =
@@ -114,17 +165,7 @@ const Navbar = () => {
       menuItems.map((item) => ({
         ...item,
         category: categories.find((category) => category.slug === item.slug),
-        relatedCategories: categories
-          .filter((category) =>
-            category.slug === item.slug ||
-            category.slug.includes(item.slug.split("-")[0]) ||
-            (item.slug === "executive-chairs" && ["ergonomic-chairs", "visitor-chairs"].includes(category.slug)) ||
-            (item.slug === "executive-desking" &&
-              ["managerial-desking", "adjustable-desking", "l-shaped-desks"].includes(category.slug)) ||
-            (item.slug === "workstations" && ["conference-tables"].includes(category.slug)) ||
-            (item.slug === "storage-filing" && ["accessories", "sofas-lounge"].includes(category.slug))
-          )
-          .slice(0, 7),
+        relatedCategories: categories.filter((category) => category.slug === item.slug),
       })),
     [],
   );

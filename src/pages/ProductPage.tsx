@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Info, PackageCheck, ShoppingCart, ShieldCheck, Star, Truck } from "lucide-react";
+import { ArrowRight, BadgePercent, Info, PackageCheck, ShoppingCart, ShieldCheck, Star, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
 import ProductCombinationCarousel from "@/components/ProductCombinationCarousel";
@@ -17,6 +17,8 @@ import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 import { sanitizeRichTextHtml } from "@/lib/richText";
+import { getProductPromotionDisplayLabel, getProductPromotionPrice } from "@/lib/productPromotions";
+import { useProductPromotionForProduct } from "@/hooks/useProductPromotions";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 const ProductPage = () => {
@@ -38,6 +40,7 @@ const ProductPage = () => {
     () => uniqueProducts.find((item) => item.id === id),
     [id, uniqueProducts],
   );
+  const { promotion: productPromotion } = useProductPromotionForProduct(product);
 
   const galleryImages = useMemo(() => {
     if (!product) return [];
@@ -146,19 +149,22 @@ const ProductPage = () => {
     );
   }
 
+  const productPromotionLabel = productPromotion ? getProductPromotionDisplayLabel(productPromotion) : "";
+  const promotionalPrice = productPromotion ? getProductPromotionPrice(product.price, productPromotion) : null;
+  const currentPrice = promotionalPrice ?? product.price;
+  const comparisonPrice = promotionalPrice !== null ? product.price : null;
+
   const handleAdd = () => {
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: currentPrice,
       currency: product.currency,
       image: product.image,
     });
     setIsOpen(true);
     toast({ title: "Cart Updated", description: `${product.name} ready for checkout.` });
   };
-
-  const oldPrice = parseFloat((product.price * 1.22).toFixed(0));
 
   return (
     <div className="min-h-screen bg-background pb-20 pt-[96px] md:pb-0 lg:pt-[172px]">
@@ -202,11 +208,11 @@ const ProductPage = () => {
               </div>
 
               <div className="order-1">
-                <div className="product-media-panel relative flex aspect-[4/4.5] items-center justify-center overflow-hidden p-4 md:p-6">
+                <div className="product-media-panel relative flex h-[360px] items-center justify-center overflow-hidden p-0 sm:h-[460px] lg:h-[560px] xl:h-[620px]">
                   <img
                     src={selectedImage || product.image}
                     alt={product.name}
-                    className="h-full w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02]"
+                    className="h-full w-full object-cover object-center transition-transform duration-500 hover:scale-[1.02]"
                   />
                 </div>
               </div>
@@ -273,15 +279,39 @@ const ProductPage = () => {
               <div className="product-media-panel mt-8 p-6 md:p-7">
                 <div className="flex flex-wrap items-end gap-4">
                   <span className="font-serif text-5xl text-heritage">
-                    {formatCurrency(product.price, currency)}
+                    {formatCurrency(currentPrice, currency)}
                   </span>
-                  <span className="mb-1 text-xl font-medium text-muted-foreground/70 line-through">
-                    {formatCurrency(oldPrice, currency)}
-                  </span>
+                  {comparisonPrice !== null && comparisonPrice > currentPrice && (
+                    <span className="mb-1 text-xl font-medium text-muted-foreground/70 line-through">
+                      {formatCurrency(comparisonPrice, currency)}
+                    </span>
+                  )}
                   <span className="mb-2 bg-background/78 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-label">
-                    Project rate available
+                    {productPromotion ? productPromotionLabel : "Project rate available"}
                   </span>
                 </div>
+
+                {productPromotion && (
+                  <div className="mt-6 border border-interactive/35 bg-interactive/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-interactive/30 bg-background/70 text-interactive">
+                        <BadgePercent className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-label">Live promotion</p>
+                        <p className="mt-1 font-serif text-2xl leading-tight text-foreground">{productPromotionLabel}</p>
+                        {productPromotion.description && (
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{productPromotion.description}</p>
+                        )}
+                        {productPromotion.ends_at && (
+                          <p className="mt-3 text-xs font-medium text-muted-foreground">
+                            Ends {new Date(productPromotion.ends_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                   <Button

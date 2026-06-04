@@ -1,3 +1,5 @@
+import type { Product } from "@/data/products";
+
 export type ProductPromotionScope = "single_product" | "selected_products" | "categories";
 
 export type ProductPromotionCategoryTarget = {
@@ -85,4 +87,60 @@ export const isProductPromotionActive = (promotion: ProductPromotion, now = new 
   if (startsAt && startsAt > now) return false;
   if (endsAt && endsAt < now) return false;
   return true;
+};
+
+const comparable = (value: string | null | undefined) => (value || "").trim().toLowerCase();
+
+const promotionUpdatedTime = (promotion: ProductPromotion) =>
+  new Date(promotion.updated_at || promotion.created_at || 0).getTime() || 0;
+
+export const productPromotionAppliesToProduct = (promotion: ProductPromotion, product: Product) => {
+  if (promotion.product_ids.includes(product.id)) return true;
+
+  if (promotion.promotion_type === "categories") {
+    return promotion.category_targets.some((target) => comparable(target.category) === comparable(product.category));
+  }
+
+  return promotion.category_targets.some((target) => target.product_ids.includes(product.id));
+};
+
+export const getProductPromotionDisplayLabel = (promotion: ProductPromotion) => {
+  if (promotion.offer_label) return promotion.offer_label;
+  if (promotion.discount_type === "custom") return promotion.title || "Special offer";
+  if (promotion.discount_type === "percentage") return `${promotion.discount_value || 0}% off`;
+  return `${promotion.discount_value || 0} off`;
+};
+
+export const getProductPromotionPrice = (price: number, promotion: ProductPromotion) => {
+  if (promotion.discount_type === "percentage" && promotion.discount_value) {
+    return Math.max(0, Number((price * (1 - promotion.discount_value / 100)).toFixed(2)));
+  }
+
+  if (promotion.discount_type === "fixed" && promotion.discount_value) {
+    return Math.max(0, Number((price - promotion.discount_value).toFixed(2)));
+  }
+
+  return null;
+};
+
+export const getProductPromotionSavings = (price: number, promotion: ProductPromotion) => {
+  const promotionalPrice = getProductPromotionPrice(price, promotion);
+  return promotionalPrice === null ? 0 : Math.max(0, price - promotionalPrice);
+};
+
+export const getBestProductPromotionForProduct = (
+  promotions: ProductPromotion[],
+  product: Product | null | undefined,
+  now = new Date(),
+) => {
+  if (!product) return null;
+
+  return promotions
+    .filter((promotion) => isProductPromotionActive(promotion, now))
+    .filter((promotion) => productPromotionAppliesToProduct(promotion, product))
+    .sort((left, right) => {
+      const savingsDifference = getProductPromotionSavings(product.price, right) - getProductPromotionSavings(product.price, left);
+      if (savingsDifference !== 0) return savingsDifference;
+      return promotionUpdatedTime(right) - promotionUpdatedTime(left);
+    })[0] || null;
 };

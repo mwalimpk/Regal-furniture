@@ -181,7 +181,16 @@ const handleUploads = (req, res) => {
   const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   if (!requestUrl.pathname.startsWith("/uploads/")) return false;
 
-  const result = getUploadFile(requestUrl.pathname.replace("/uploads/", ""));
+  let uploadPath = requestUrl.pathname.replace("/uploads/", "");
+  try {
+    uploadPath = decodeURIComponent(uploadPath);
+  } catch {
+    res.statusCode = 400;
+    res.end("Invalid upload path");
+    return true;
+  }
+
+  const result = getUploadFile(uploadPath);
   if (!result) {
     res.statusCode = 404;
     res.end("Not found");

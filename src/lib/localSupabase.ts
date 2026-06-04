@@ -42,6 +42,10 @@ const readAsDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+const normalizeUploadPath = (value: string) => String(value || "").replace(/\\/g, "/").replace(/^\/+/, "");
+
+const normalizePublicUploadUrl = (value: string) => String(value || "").replace(/\\/g, "/");
+
 const getAccessToken = () => {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -292,13 +296,24 @@ export const supabase = {
         async upload(path: string, file: File, _options?: Record<string, unknown>) {
           try {
             const dataUrl = await readAsDataUrl(file);
-            return apiRequest<{ data: { path: string; publicUrl: string }; error: null | { message: string } }>(
+            const response = await apiRequest<{ data: { path: string; publicUrl: string }; error: null | { message: string } }>(
               "/api/storage/upload",
               {
                 method: "POST",
                 body: JSON.stringify({ path, dataUrl }),
               },
             );
+            if (!response.data) return response;
+
+            const normalizedPath = normalizeUploadPath(response.data.path);
+            return {
+              ...response,
+              data: {
+                ...response.data,
+                path: normalizedPath,
+                publicUrl: normalizePublicUploadUrl(response.data.publicUrl || `/uploads/${normalizedPath}`),
+              },
+            };
           } catch (error) {
             return {
               data: null,
@@ -308,9 +323,11 @@ export const supabase = {
         },
         getPublicUrl(path: string) {
           const origin = typeof window === "undefined" ? "" : window.location.origin;
+          const normalizedPath = normalizeUploadPath(path);
+          const publicPath = normalizedPath.startsWith("uploads/") ? normalizedPath : `uploads/${normalizedPath}`;
           return {
             data: {
-              publicUrl: path.startsWith("http") ? path : `${origin}/uploads/${path}`,
+              publicUrl: path.startsWith("http") ? normalizePublicUploadUrl(path) : `${origin}/${publicPath}`,
             },
           };
         },

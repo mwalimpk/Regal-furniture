@@ -284,6 +284,7 @@ const ProductPromotionsSection = () => {
 
   const invalidateQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-product-promotions"] });
+    queryClient.invalidateQueries({ queryKey: ["active-product-promotions"] });
   };
 
   const startEdit = (promotion: ProductPromotion) => {

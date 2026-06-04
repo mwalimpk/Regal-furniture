@@ -195,10 +195,11 @@ const AddProductSection = () => {
                   <Label>Warehouse</Label>
                   <Select value={form.city} onValueChange={(v) => update("city", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Harare">Harare</SelectItem>
-                      <SelectItem value="Bulawayo">Bulawayo</SelectItem>
-                    </SelectContent>
+                      <SelectContent>
+                        <SelectItem value="Harare">Harare</SelectItem>
+                        <SelectItem value="Bulawayo">Bulawayo</SelectItem>
+                        <SelectItem value="Both">Both</SelectItem>
+                      </SelectContent>
                   </Select>
                 </div>
               </CardContent>

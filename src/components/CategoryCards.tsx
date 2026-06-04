@@ -5,24 +5,24 @@ import { categories } from "@/data/products";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
 const featuredCategoryImages: Record<string, { image: string; position?: string }> = {
-  "executive-chairs": {
-    image: "/images/products/green/BIG AND TALL HIGH BACK SWIVEL CHAIR.jpg",
+  "executive-suites": {
+    image: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg",
     position: "center top",
   },
-  "executive-desking": {
-    image: "/images/products/green/CARINA L SHAPED DESK OAK.jpg",
+  "office-suites": {
+    image: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg",
     position: "center center",
   },
-  "conference-tables": {
-    image: "/images/products/green/ARCADIAN BOARDROOM TABLE.jpg",
+  "conference-boardroom": {
+    image: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg",
     position: "center center",
   },
-  "sofas-lounge": {
-    image: "/images/products/green/CHESTERFIELD LEATHER COUCH 3 SEATER.png",
+  "reception-lobby": {
+    image: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png",
     position: "center center",
   },
-  "storage-filing": {
-    image: "/images/products/green/METAL 4 DRAWER FILING CABINET WTH BAR.jpg",
+  "accessories": {
+    image: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg",
     position: "center center",
   },
 };
@@ -34,11 +34,11 @@ const CategoryCards = () => {
   });
 
   const featuredCategories = [
-    "executive-chairs",
-    "executive-desking",
-    "conference-tables",
-    "sofas-lounge",
-    "storage-filing",
+    "executive-suites",
+    "office-suites",
+    "conference-boardroom",
+    "reception-lobby",
+    "accessories",
   ].map((slug) => {
     const category = categories.find((item) => item.slug === slug);
     const count = liveProducts.filter((product) => product.categorySlug === slug).length;

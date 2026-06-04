@@ -2,16 +2,22 @@ import { Link } from "react-router-dom";
 import { categories } from "@/data/products";
 
 const cats = [
-  "SEATING", "DESKS & TABLES", "WORKSTATIONS", "CONFERENCE", "STORAGE", "SOFAS & LOUNGE", "ACCESSORIES"
+  "EXECUTIVE SUITES",
+  "OFFICE SUITES",
+  "CONFERENCE & BOARDROOM",
+  "RECEPTION & LOBBY",
+  "HOME OFFICE",
+  "INDUSTRIAL & LABORATORY",
+  "ACCESSORIES",
 ];
 
 const catSlugMap: Record<string, string> = {
-  "SEATING": "executive-chairs",
-  "DESKS & TABLES": "executive-desking",
-  "WORKSTATIONS": "workstations",
-  "CONFERENCE": "conference-tables",
-  "STORAGE": "storage-filing",
-  "SOFAS & LOUNGE": "sofas-lounge",
+  "EXECUTIVE SUITES": "executive-suites",
+  "OFFICE SUITES": "office-suites",
+  "CONFERENCE & BOARDROOM": "conference-boardroom",
+  "RECEPTION & LOBBY": "reception-lobby",
+  "HOME OFFICE": "home-office",
+  "INDUSTRIAL & LABORATORY": "industrial-laboratory",
   "ACCESSORIES": "accessories",
 };
 

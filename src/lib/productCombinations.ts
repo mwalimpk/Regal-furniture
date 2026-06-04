@@ -9,21 +9,28 @@ export type ProductCombinationInsight = {
 };
 
 const compatibilityTargets: Record<string, string[]> = {
-  "executive-desking": ["executive-chairs", "visitor-chairs", "storage-filing", "accessories"],
-  "managerial-desking": ["executive-chairs", "ergonomic-chairs", "storage-filing", "accessories"],
-  "adjustable-desking": ["ergonomic-chairs", "storage-filing", "accessories", "workstations"],
-  "workstations": ["ergonomic-chairs", "storage-filing", "accessories", "adjustable-desking"],
-  "l-shaped-desks": ["executive-chairs", "ergonomic-chairs", "storage-filing", "accessories"],
-  "executive-chairs": ["executive-desking", "managerial-desking", "l-shaped-desks", "conference-tables"],
-  "ergonomic-chairs": ["adjustable-desking", "workstations", "managerial-desking", "l-shaped-desks"],
-  "visitor-chairs": ["conference-tables", "executive-desking", "sofas-lounge", "accessories"],
-  "conference-tables": ["visitor-chairs", "executive-chairs", "storage-filing", "accessories"],
-  "storage-filing": ["executive-desking", "managerial-desking", "workstations", "accessories"],
-  "sofas-lounge": ["accessories", "visitor-chairs", "storage-filing", "conference-tables"],
-  "accessories": ["executive-desking", "managerial-desking", "workstations", "sofas-lounge"],
+  "executive-suites": ["office-suites", "conference-boardroom", "reception-lobby", "accessories"],
+  "office-suites": ["executive-suites", "home-office", "conference-boardroom", "accessories"],
+  "conference-boardroom": ["reception-lobby", "executive-suites", "office-suites", "accessories"],
+  "reception-lobby": ["conference-boardroom", "accessories", "executive-suites", "office-suites"],
+  "home-office": ["office-suites", "executive-suites", "accessories"],
+  "industrial-laboratory": ["accessories", "office-suites", "home-office"],
+  "accessories": [
+    "executive-suites",
+    "office-suites",
+    "conference-boardroom",
+    "reception-lobby",
+    "home-office",
+    "industrial-laboratory",
+  ],
 };
 
 const categoryFamily = (slug: string) => {
+  if (slug === "executive-suites" || slug === "office-suites" || slug === "home-office") return "workspace";
+  if (slug === "conference-boardroom") return "meeting";
+  if (slug === "reception-lobby") return "lounge";
+  if (slug === "industrial-laboratory") return "technical";
+  if (slug === "accessories") return "storage";
   if (slug.includes("chair")) return "seating";
   if (slug.includes("desk") || slug.includes("workstation")) return "desking";
   if (slug.includes("conference")) return "meeting";
@@ -84,15 +91,18 @@ export const buildCombinationInsight = (baseProduct: Product, companion: Product
 
   if (
     (baseFamily === "seating" && companionFamily === "desking") ||
-    (baseFamily === "desking" && companionFamily === "seating")
+    (baseFamily === "desking" && companionFamily === "seating") ||
+    (baseFamily === "workspace" && companionFamily === "storage")
   ) {
     score += 12;
-    reasons.push("Desk-and-chair workspace fit");
+    reasons.push("Complete workspace fit");
   }
 
   if (
     (baseFamily === "meeting" && companionFamily === "seating") ||
-    (baseFamily === "seating" && companionFamily === "meeting")
+    (baseFamily === "seating" && companionFamily === "meeting") ||
+    (baseFamily === "meeting" && companionFamily === "lounge") ||
+    (baseFamily === "lounge" && companionFamily === "meeting")
   ) {
     score += 10;
     reasons.push("Meeting-room fit");

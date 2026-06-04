@@ -5,7 +5,15 @@ import { ArrowRight } from "lucide-react";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
-const TABS = ["All", "Office Chairs", "Desks", "Conference Tables", "Lounge", "Storage", "Accessories"];
+const TABS = [
+  "All",
+  "Executive Suites",
+  "Office Suites",
+  "Conference & Boardroom",
+  "Reception & Lobby",
+  "Home Office",
+  "Accessories",
+];
 
 const BestSellingProducts = () => {
   const [activeTab, setActiveTab] = useState("All");
@@ -17,15 +25,7 @@ const BestSellingProducts = () => {
 
   const filteredProducts = activeTab === "All"
     ? allProducts.slice(0, 4)
-    : allProducts.filter((product) => {
-      if (activeTab === "Office Chairs") return product.category === "Executive Chairs" || product.category === "Managerial Chairs";
-      if (activeTab === "Desks") return product.category.includes("Desking");
-      if (activeTab === "Conference Tables") return product.category === "Conference Tables";
-      if (activeTab === "Lounge") return product.category === "Sofas & Lounge";
-      if (activeTab === "Storage") return product.category === "Storage & Filing";
-      if (activeTab === "Accessories") return product.category === "Accessories";
-      return true;
-    }).slice(0, 4);
+    : allProducts.filter((product) => product.category === activeTab).slice(0, 4);
 
   const displayProducts = filteredProducts.length > 0 ? filteredProducts : allProducts.slice(0, 4);
 

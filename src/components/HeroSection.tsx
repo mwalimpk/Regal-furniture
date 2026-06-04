@@ -33,8 +33,8 @@ const slides = [
     replacementFile: "slide-02-design-your-perfect-workspace.jpg",
     fallbackImage: "/images/products/green/CARINA L SHAPED DESK OAK.jpg",
     imageAlt: "Executive desk workspace",
-    cta: "/category/executive-desking",
-    ctaLabel: "View Desking",
+    cta: "/category/executive-suites",
+    ctaLabel: "View Executive Suites",
     tone: {
       background:
         "radial-gradient(circle at 74% 30%, rgb(var(--orange-rgb) / 0.16), transparent 24%), radial-gradient(circle at 82% 52%, rgb(var(--rifle-rgb) / 0.16), transparent 28%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.92) 100%)",
@@ -69,8 +69,8 @@ const slides = [
     replacementFile: "slide-04-comfort-that-welcomes-everyone.jpg",
     fallbackImage: "/images/products/green/CHESTERFIELD LEATHER COUCH 3 SEATER.png",
     imageAlt: "Reception lounge sofa",
-    cta: "/category/sofas-lounge",
-    ctaLabel: "Explore Lounge",
+    cta: "/category/reception-lobby",
+    ctaLabel: "Explore Reception",
     tone: {
       background:
         "radial-gradient(circle at 80% 34%, rgb(var(--taupe-rgb) / 0.16), transparent 22%), radial-gradient(circle at 73% 46%, rgb(var(--olive-rgb) / 0.16), transparent 26%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.92) 100%)",

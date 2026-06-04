@@ -430,7 +430,7 @@ const PromotionalBannersSection = () => {
                 <Input
                   value={form.cta_href}
                   onChange={(event) => updateForm("cta_href", event.target.value)}
-                  placeholder="/category/executive-desking"
+                    placeholder="/category/executive-suites"
                 />
               </div>
             </div>

@@ -837,6 +837,7 @@ export const uploadFile = async ({ path: relativePath, dataUrl }) => {
     return { data: null, error: { message: "Invalid upload path." } };
   }
 
+  const publicPath = safeRelativePath.replace(/\\/g, "/");
   const destination = path.join(uploadRoot, safeRelativePath);
   if (!destination.startsWith(uploadRoot)) {
     return { data: null, error: { message: "Invalid upload path." } };
@@ -847,8 +848,8 @@ export const uploadFile = async ({ path: relativePath, dataUrl }) => {
 
   return {
     data: {
-      path: safeRelativePath,
-      publicUrl: `/uploads/${safeRelativePath}`,
+      path: publicPath,
+      publicUrl: `/uploads/${publicPath}`,
       contentType: match[1] || mimeFromExt(path.extname(safeRelativePath)),
     },
     error: null,

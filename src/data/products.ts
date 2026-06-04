@@ -1,12 +1,3 @@
-import execDeskImg from "@/assets/product-exec-desk.jpg";
-import chairImg from "@/assets/product-exec-chair.jpg";
-import workstationImg from "@/assets/product-workstation.jpg";
-import conferenceImg from "@/assets/product-conference.jpg";
-import sofaImg from "@/assets/product-sofa.jpg";
-import standingDeskImg from "@/assets/product-standing-desk.jpg";
-import ergoChairImg from "@/assets/product-ergonomic-chair.jpg";
-import storageImg from "@/assets/product-storage.jpg";
-
 export interface Product {
   id: string;
   name: string;
@@ -28,30 +19,56 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { name: "Executive Desking", slug: "executive-desking", image: execDeskImg, description: "Premium executive desks with mahogany, oak and walnut finishes for boardroom-level workspaces." },
-  { name: "Managerial Desking", slug: "managerial-desking", image: execDeskImg, description: "Functional yet stylish desks designed for managers and team leads." },
-  { name: "Adjustable Desking", slug: "adjustable-desking", image: standingDeskImg, description: "Height-adjustable and standing desks for ergonomic modern workspaces." },
-  { name: "Workstations", slug: "workstations", image: workstationImg, description: "Shared and single workstations with cable management for open-plan offices." },
-  { name: "L-Shaped Desks", slug: "l-shaped-desks", image: execDeskImg, description: "Spacious L-shaped desks offering maximum surface area and storage." },
-  { name: "Executive Chairs", slug: "executive-chairs", image: chairImg, description: "Premium leather and PU executive swivel chairs for comfort and status." },
-  { name: "Ergonomic Chairs", slug: "ergonomic-chairs", image: ergoChairImg, description: "Full mesh and padded ergonomic chairs with lumbar support and adjustable headrests." },
-  { name: "Visitor Chairs", slug: "visitor-chairs", image: chairImg, description: "Stylish visitor and guest seating for reception and meeting areas." },
-  { name: "Conference Tables", slug: "conference-tables", image: conferenceImg, description: "Boardroom and conference tables in boat, oval and round shapes." },
-  { name: "Storage & Filing", slug: "storage-filing", image: storageImg, description: "Filing cabinets, stationery cupboards and shelving for organised offices." },
-  { name: "Sofas & Lounge", slug: "sofas-lounge", image: sofaImg, description: "Chesterfield sofas, reception couches and lounge furniture." },
-  { name: "Accessories", slug: "accessories", image: storageImg, description: "Bar stools, coffee tables, reception counters, bar fridges and desk accessories." },
+  {
+    name: "Executive Suites",
+    slug: "executive-suites",
+    image: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg",
+    description: "Executive chairs and executive desks for private offices, leadership suites, and statement workspaces.",
+  },
+  {
+    name: "Office Suites",
+    slug: "office-suites",
+    image: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg",
+    description: "Operator chairs, mesh seating, and workstation systems for productive office floors.",
+  },
+  {
+    name: "Conference & Boardroom",
+    slug: "conference-boardroom",
+    image: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg",
+    description: "Conference chairs and boardroom tables for meeting rooms, training spaces, and executive sessions.",
+  },
+  {
+    name: "Reception & Lobby",
+    slug: "reception-lobby",
+    image: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png",
+    description: "Visitor chairs, benches, sofas, and reception counters for front-of-house spaces.",
+  },
+  {
+    name: "Home Office",
+    slug: "home-office",
+    image: "/uploads/collections/home-office/aqua-ergonomic-swivel-chair-dc140d6557.jpg",
+    description: "Ergonomic chairs, mesh seating, and compact desks for home and hybrid work.",
+  },
+  {
+    name: "Industrial & Laboratory",
+    slug: "industrial-laboratory",
+    image: "/uploads/collections/industrial-laboratory/blackpool-industrial-draughtman-chair-822ed5892c.png",
+    description: "Industrial chairs, lab stools, draughtsman chairs, and task seating for technical environments.",
+  },
+  {
+    name: "Accessories",
+    slug: "accessories",
+    image: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg",
+    description: "Office accessories, storage, filing, and add-ons that complete the workspace.",
+  },
 ];
 
 export const categoryPairings: Record<string, string> = {
-  "executive-desking": "executive-chairs",
-  "managerial-desking": "executive-chairs",
-  "l-shaped-desks": "executive-chairs",
-  "adjustable-desking": "ergonomic-chairs",
-  "workstations": "ergonomic-chairs",
-  "conference-tables": "visitor-chairs",
-  "sofas-lounge": "accessories",
-  "executive-chairs": "executive-desking",
-  "ergonomic-chairs": "workstations",
-  "visitor-chairs": "conference-tables",
-  "accessories": "sofas-lounge",
+  "executive-suites": "office-suites",
+  "office-suites": "executive-suites",
+  "conference-boardroom": "reception-lobby",
+  "reception-lobby": "accessories",
+  "home-office": "office-suites",
+  "industrial-laboratory": "accessories",
+  "accessories": "reception-lobby",
 };

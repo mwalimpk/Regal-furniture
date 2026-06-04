@@ -202,7 +202,7 @@ const SettingsSection = () => {
                       <Input
                         value={(draft.collectionGroups[category.slug] || []).join(", ")}
                         onChange={(e) => updateCollectionGroup(category.slug, e.target.value)}
-                        placeholder="executive-desking, managerial-desking"
+                        placeholder="executive-suites, office-suites"
                         className="mt-1.5"
                       />
                     </div>

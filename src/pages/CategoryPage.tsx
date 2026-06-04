@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownUp, ArrowRight, Filter, Search, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, BadgePercent, Filter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { categories, type Product } from "@/data/products";
 import { QuickFilter, loadFilterSettings } from "@/lib/filterSettings";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
+import {
+  getBestProductPromotionForProduct,
+  getProductPromotionDisplayLabel,
+  getProductPromotionPrice,
+} from "@/lib/productPromotions";
+import { useActiveProductPromotions } from "@/hooks/useProductPromotions";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -48,6 +54,7 @@ const CategoryPage = () => {
     queryFn: fetchApprovedStorefrontProducts,
     enabled: !!category,
   });
+  const { data: activeProductPromotions = [] } = useActiveProductPromotions();
 
   const categoryProducts: Product[] = useMemo(() => {
     return allProducts.filter((product) => product.categorySlug === slug);
@@ -86,6 +93,15 @@ const CategoryPage = () => {
 
     return next;
   }, [categoryProducts, searchTerm, minPrice, maxPrice, sortBy]);
+
+  const productPromotionById = useMemo(() => {
+    return new Map(
+      allProducts.map((product) => [
+        product.id,
+        getBestProductPromotionForProduct(activeProductPromotions, product),
+      ]),
+    );
+  }, [activeProductPromotions, allProducts]);
 
   const enabledQuickFilters = filterSettings.quickFilters.filter((item) => item.enabled);
 
@@ -184,10 +200,13 @@ const CategoryPage = () => {
   );
 
   const handleAdd = (product: Product) => {
+    const promotion = productPromotionById.get(product.id);
+    const promotionalPrice = promotion ? getProductPromotionPrice(product.price, promotion) : null;
+
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: promotionalPrice ?? product.price,
       currency: product.currency,
       image: product.image,
     });
@@ -485,57 +504,75 @@ const CategoryPage = () => {
             </div>
           ) : (
             <div className="mt-12 grid grid-cols-1 gap-x-7 gap-y-14 sm:grid-cols-2 xl:grid-cols-4">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="group flex h-full flex-col text-foreground">
-                  <ProductHoverMedia
-                    product={product}
-                    relatedProducts={categoryProducts}
-                    label={product.category}
-                    className="aspect-[4/4.7]"
-                    onClick={() => navigate(`/product/${product.id}`)}
-                  />
+              {filteredProducts.map((product) => {
+                const promotion = productPromotionById.get(product.id);
+                const promotionLabel = promotion ? getProductPromotionDisplayLabel(promotion) : "";
+                const promotionalPrice = promotion ? getProductPromotionPrice(product.price, promotion) : null;
+                const displayPrice = promotionalPrice ?? product.price;
 
-                  <div className="mt-5 flex flex-1 flex-col">
-                    <h3
-                      className="cursor-pointer font-serif text-xl leading-tight text-foreground transition-colors hover:text-interactive md:text-[1.55rem]"
+                return (
+                  <div key={product.id} className="group flex h-full flex-col text-foreground">
+                    <ProductHoverMedia
+                      product={product}
+                      relatedProducts={categoryProducts}
+                      label={product.category}
+                      className="aspect-[4/4.7]"
                       onClick={() => navigate(`/product/${product.id}`)}
-                    >
-                      {product.name}
-                    </h3>
-                    <p className="mt-3 line-clamp-3 flex-1 text-sm leading-7 text-muted-foreground">
-                      {product.description}
-                    </p>
+                    />
 
-                    <div className="mt-5 flex items-end justify-between gap-4">
-                      <div>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">
-                          Starting at
-                        </p>
-                        <p className="mt-1 font-serif text-2xl text-heritage md:text-[2rem]">
-                          {format(product.price)}
-                        </p>
+                    <div className="mt-5 flex flex-1 flex-col">
+                      <h3
+                        className="cursor-pointer font-serif text-xl leading-tight text-foreground transition-colors hover:text-interactive md:text-[1.55rem]"
+                        onClick={() => navigate(`/product/${product.id}`)}
+                      >
+                        {product.name}
+                      </h3>
+                      {promotion && (
+                        <span className="mt-3 inline-flex w-fit items-center gap-1.5 border border-interactive/30 bg-interactive/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-heritage">
+                          <BadgePercent className="h-3.5 w-3.5" />
+                          {promotionLabel}
+                        </span>
+                      )}
+                      <p className="mt-3 line-clamp-3 flex-1 text-sm leading-7 text-muted-foreground">
+                        {product.description}
+                      </p>
+
+                      <div className="mt-5 flex items-end justify-between gap-4">
+                        <div>
+                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">
+                            {promotionalPrice !== null ? "Promo price" : "Starting at"}
+                          </p>
+                          <p className="mt-1 font-serif text-2xl text-heritage md:text-[2rem]">
+                            {format(displayPrice)}
+                          </p>
+                          {promotionalPrice !== null && (
+                            <p className="mt-1 text-sm font-medium text-muted-foreground/70 line-through">
+                              {format(product.price)}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/product/${product.id}`)}
+                          className="inline-flex items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-interactive hover:text-interactive"
+                        >
+                          View
+                          <ArrowRight size={16} />
+                        </button>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        className="inline-flex items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-interactive hover:text-interactive"
+                        onClick={() => handleAdd(product)}
+                        className="mt-5 inline-flex min-h-12 items-center justify-center bg-crimson px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-crimson/90"
                       >
-                        View
-                        <ArrowRight size={16} />
+                        Add to cart
                       </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAdd(product)}
-                      className="mt-5 inline-flex min-h-12 items-center justify-center bg-crimson px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-crimson/90"
-                    >
-                      Add to cart
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
