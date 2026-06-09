@@ -243,6 +243,7 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           city: string | null
+          color_variants: Json | null
           country: string | null
           created_at: string
           currency: string
@@ -263,6 +264,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
+          color_variants?: Json | null
           country?: string | null
           created_at?: string
           currency?: string
@@ -283,6 +285,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
+          color_variants?: Json | null
           country?: string | null
           created_at?: string
           currency?: string

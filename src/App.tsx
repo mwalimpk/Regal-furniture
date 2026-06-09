@@ -13,6 +13,8 @@ import CartDrawer from "@/components/CartDrawer";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import ClientDashboard from "./pages/ClientDashboard";
 import Categories from "./pages/Categories";
@@ -65,6 +67,8 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/catalogue" element={<Catalogue />} />
                     <Route path="/category/:slug" element={<CategoryPage />} />

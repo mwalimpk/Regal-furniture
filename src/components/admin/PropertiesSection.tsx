@@ -1,16 +1,44 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, FileText, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import {
+  PRODUCT_IMPORT_HEADERS,
+  buildProductImportTemplateCsv,
+  csvEscape,
+  validateProductCsv,
+  type ProductCsvImportResult,
+} from "@/lib/productCsvImport";
 import EditProductDialog from "./EditProductDialog";
 
+type AdminProduct = {
+  id: string;
+  title: string;
+  description: string | null;
+  long_description?: string | null;
+  property_type: string;
+  price: number | string;
+  currency: string;
+  location: string | null;
+  city: string | null;
+  country: string | null;
+  images: string[] | null;
+  color_variants?: unknown;
+  status: string;
+  featured: boolean | null;
+  created_at: string;
+};
+
 const PropertiesSection = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -20,14 +48,17 @@ const PropertiesSection = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [sortBy, setSortBy] = useState("created-desc");
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<AdminProduct | null>(null);
+  const [csvImport, setCsvImport] = useState<(ProductCsvImportResult & { fileName: string }) | null>(null);
+  const [parsingCsv, setParsingCsv] = useState(false);
+  const [importingCsv, setImportingCsv] = useState(false);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
     queryFn: async () => {
       const { data, error } = await supabase.from("properties").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data || []) as AdminProduct[];
     },
   });
 
@@ -83,27 +114,110 @@ const PropertiesSection = () => {
     setSortBy("created-desc");
   };
 
+  const invalidateProductQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    queryClient.invalidateQueries({ queryKey: ["category-products"] });
+    queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-product-count"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-active-count"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-pending-count"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-product-promotion-products"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-pairing-products"] });
+  };
+
   const remove = async (id: string) => {
     if (!confirm("Delete this product permanently?")) return;
     const { error } = await supabase.from("properties").delete().eq("id", id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {
       toast({ title: "Deleted" });
-      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      queryClient.invalidateQueries({ queryKey: ["category-products"] });
-      queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
+      invalidateProductQueries();
     }
   };
 
-  const exportCsv = () => {
-    const rows = [["Name", "Category", "Price", "Currency", "SKU", "Status", "Created"]];
-    filtered.forEach((p) => rows.push([p.title, p.property_type, String(p.price), p.currency, p.location || "", p.status, new Date(p.created_at).toISOString()]));
-    const csv = rows.map((r) => r.map((c) => `"${(c || "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+  const downloadCsv = (csv: string, filename: string) => {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `products-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    a.href = url;
+    a.download = filename;
+    a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadImportTemplate = () => {
+    downloadCsv(buildProductImportTemplateCsv(), "product-import-template.csv");
+  };
+
+  const exportCsv = () => {
+    const rows: unknown[][] = [[...PRODUCT_IMPORT_HEADERS]];
+    filtered.forEach((p) => rows.push([
+      p.title || "",
+      p.description || "",
+      p.long_description || "",
+      p.property_type || "",
+      String(p.price ?? ""),
+      p.currency || "USD",
+      p.location || "",
+      p.city || "Harare",
+      p.country || "Zimbabwe",
+      Array.isArray(p.images) ? p.images.join("|") : "",
+      p.status || "approved",
+      p.featured ? "true" : "false",
+    ]));
+    const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+    downloadCsv(csv, `products-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const handleCsvFile = async (fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".csv") && file.type !== "text/csv") {
+      toast({ title: "CSV required", description: "Upload a .csv product import file.", variant: "destructive" });
+      return;
+    }
+
+    setParsingCsv(true);
+    try {
+      const result = validateProductCsv(await file.text(), products || []);
+      setCsvImport({ ...result, fileName: file.name });
+
+      if (result.errors.length) {
+        toast({ title: "CSV has validation errors", description: "Fix the listed issues before importing.", variant: "destructive" });
+      } else {
+        toast({ title: "CSV ready", description: `${result.validRows.length} product(s) ready to import.` });
+      }
+    } catch (error) {
+      toast({
+        title: "Could not read CSV",
+        description: error instanceof Error ? error.message : "Check the file and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setParsingCsv(false);
+    }
+  };
+
+  const importCsvProducts = async () => {
+    if (!user || !csvImport || csvImport.errors.length || !csvImport.validRows.length) return;
+
+    setImportingCsv(true);
+    const payload = csvImport.validRows.map((row) => ({
+      ...row.payload,
+      user_id: user.id,
+    }));
+    const { error } = await supabase.from("properties").insert(payload);
+    setImportingCsv(false);
+
+    if (error) {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Products imported", description: `${payload.length} product(s) added to the catalog.` });
+    setCsvImport(null);
+    invalidateProductQueries();
   };
 
   const statusColor = (status: string) => {
@@ -116,6 +230,10 @@ const PropertiesSection = () => {
   };
 
   const storefrontProductUrl = (id: string) => `/product/${id}`;
+  const csvImportHasErrors = Boolean(csvImport?.errors.length);
+  const csvImportReady = Boolean(csvImport && !csvImportHasErrors && csvImport.validRows.length);
+  const visibleImportErrors = csvImport?.errors.slice(0, 10) || [];
+  const previewImportRows = csvImport?.validRows.slice(0, 5) || [];
 
   return (
     <div className="space-y-6">
@@ -127,8 +245,129 @@ const PropertiesSection = () => {
             Review live products, narrow the list quickly, and export the current catalog view when you need a working sheet.
           </p>
         </div>
-        <Button variant="outline" onClick={exportCsv} className="w-full sm:w-auto">Export CSV</Button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button variant="outline" onClick={downloadImportTemplate} className="w-full sm:w-auto">Download Template</Button>
+          <Button variant="outline" onClick={exportCsv} className="w-full sm:w-auto">Export CSV</Button>
+        </div>
       </div>
+
+      <Card className="border-grid/25 bg-card shadow-none">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Import products</CardTitle>
+          <CardDescription>CSV headers must use product database fields. Required: title, property_type, price.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 border border-grid/45 px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground hover:text-background">
+                <Upload className="h-4 w-4" />
+                {parsingCsv ? "Checking CSV..." : "Upload CSV"}
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  disabled={parsingCsv || importingCsv}
+                  onChange={(event) => {
+                    handleCsvFile(event.target.files);
+                    event.target.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+              <Button type="button" variant="outline" onClick={downloadImportTemplate}>
+                <FileText className="h-4 w-4" />
+                Template
+              </Button>
+              {csvImport && (
+                <Button type="button" variant="ghost" onClick={() => setCsvImport(null)}>
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            <div className="text-xs leading-6 text-muted-foreground lg:text-right">
+              <span className="font-mono uppercase tracking-[0.18em]">Accepted headers</span>
+              <div className="max-w-3xl break-words font-mono text-[11px]">{PRODUCT_IMPORT_HEADERS.join(", ")}</div>
+            </div>
+          </div>
+
+          {csvImport && (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="admin-panel-soft px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">File</p>
+                  <p className="mt-2 truncate text-sm font-medium text-foreground">{csvImport.fileName}</p>
+                </div>
+                <div className="admin-panel-soft px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Valid rows</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{csvImport.validRows.length}</p>
+                </div>
+                <div className="admin-panel-soft px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Errors</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">{csvImport.errors.length}</p>
+                </div>
+              </div>
+
+              {csvImportHasErrors ? (
+                <div className="border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  <div className="mb-3 flex items-center gap-2 font-medium">
+                    <AlertTriangle className="h-4 w-4" />
+                    Fix these issues before importing
+                  </div>
+                  <div className="space-y-2">
+                    {visibleImportErrors.map((error, index) => (
+                      <div key={`${error.rowNumber || "file"}-${index}`}>
+                        {error.rowNumber ? `Row ${error.rowNumber}: ` : ""}
+                        {error.message}
+                      </div>
+                    ))}
+                    {csvImport.errors.length > visibleImportErrors.length && (
+                      <div>{csvImport.errors.length - visibleImportErrors.length} more error(s) not shown.</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 border border-primary/25 bg-primary/10 p-4 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {csvImport.validRows.length} product(s) passed validation.
+                  </div>
+                  <Button type="button" onClick={importCsvProducts} disabled={!csvImportReady || importingCsv}>
+                    {importingCsv ? "Importing..." : "Import Products"}
+                  </Button>
+                </div>
+              )}
+
+              {previewImportRows.length > 0 && (
+                <div className="admin-table-panel">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Row</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewImportRows.map((row) => (
+                        <TableRow key={row.rowNumber}>
+                          <TableCell>{row.rowNumber}</TableCell>
+                          <TableCell>{row.payload.title}</TableCell>
+                          <TableCell>{row.payload.property_type}</TableCell>
+                          <TableCell>{row.payload.currency} {row.payload.price.toLocaleString()}</TableCell>
+                          <TableCell>{row.payload.status}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-grid/25 bg-card shadow-none">
         <CardContent className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-8">

@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS properties (
   city VARCHAR(128) NULL,
   country VARCHAR(128) NULL,
   images LONGTEXT NULL,
+  color_variants LONGTEXT NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'approved',
   featured TINYINT(1) NULL DEFAULT 0,
   bedrooms INT NULL DEFAULT 0,
@@ -101,6 +102,26 @@ CREATE TABLE IF NOT EXISTS catalogues (
   INDEX idx_catalogues_user_id (user_id),
   INDEX idx_catalogues_year_month (year, month),
   INDEX idx_catalogues_category (category)
+);
+
+CREATE TABLE IF NOT EXISTS hero_slides (
+  id VARCHAR(64) PRIMARY KEY,
+  eyebrow VARCHAR(255) NULL,
+  accent_title VARCHAR(255) NULL,
+  title VARCHAR(255) NOT NULL,
+  description LONGTEXT NULL,
+  image_url LONGTEXT NOT NULL,
+  image_alt VARCHAR(255) NULL,
+  cta_label VARCHAR(128) NULL,
+  cta_href VARCHAR(255) NULL,
+  display_order INT NOT NULL DEFAULT 1,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  INDEX idx_hero_slides_status (status),
+  INDEX idx_hero_slides_display_order (display_order),
+  INDEX idx_hero_slides_user_id (user_id)
 );
 
 CREATE TABLE IF NOT EXISTS promotional_banners (

@@ -30,6 +30,7 @@ const ProductPage = () => {
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
+  const [selectedColorId, setSelectedColorId] = useState("");
 
   const { data: uniqueProducts = [], isLoading } = useQuery({
     queryKey: ["storefront-products"],
@@ -42,11 +43,18 @@ const ProductPage = () => {
   );
   const { promotion: productPromotion } = useProductPromotionForProduct(product);
 
+  const colorVariants = useMemo(() => product?.colorVariants || [], [product]);
+  const selectedColorVariant = useMemo(
+    () => colorVariants.find((variant) => variant.id === selectedColorId) || colorVariants[0] || null,
+    [colorVariants, selectedColorId],
+  );
+
   const galleryImages = useMemo(() => {
     if (!product) return [];
-    const images = product.images?.length ? product.images : [product.image];
+    const variantImages = selectedColorVariant?.images || [];
+    const images = variantImages.length ? variantImages : product.images?.length ? product.images : [product.image];
     return Array.from(new Set(images.filter(Boolean)));
-  }, [product]);
+  }, [product, selectedColorVariant]);
 
   const longDescriptionHtml = useMemo(
     () => (product?.longDescription ? sanitizeRichTextHtml(product.longDescription) : ""),
@@ -58,6 +66,15 @@ const ProductPage = () => {
       setSelectedImage(galleryImages[0]);
     }
   }, [galleryImages]);
+
+  useEffect(() => {
+    if (!colorVariants.length) {
+      setSelectedColorId("");
+      return;
+    }
+
+    setSelectedColorId((current) => colorVariants.some((variant) => variant.id === current) ? current : colorVariants[0].id);
+  }, [colorVariants]);
 
   useEffect(() => {
     if (!product) return;
@@ -155,15 +172,16 @@ const ProductPage = () => {
   const comparisonPrice = promotionalPrice !== null ? product.price : null;
 
   const handleAdd = () => {
+    const variantSuffix = selectedColorVariant ? ` - ${selectedColorVariant.name}` : "";
     addItem({
-      id: product.id,
-      name: product.name,
+      id: selectedColorVariant ? `${product.id}:${selectedColorVariant.id}` : product.id,
+      name: `${product.name}${variantSuffix}`,
       price: currentPrice,
       currency: product.currency,
-      image: product.image,
+      image: selectedImage || selectedColorVariant?.images[0] || product.image,
     });
     setIsOpen(true);
-    toast({ title: "Cart Updated", description: `${product.name} ready for checkout.` });
+    toast({ title: "Cart Updated", description: `${product.name}${variantSuffix} ready for checkout.` });
   };
 
   return (
@@ -275,6 +293,40 @@ const ProductPage = () => {
                 {product.description} Built for modern offices, reception areas, and disciplined home workstations,
                 with a layout that puts finish, proportion, and buying clarity ahead of visual clutter.
               </p>
+
+              {colorVariants.length > 0 && (
+                <div className="mt-8 border border-grid/25 bg-card p-5">
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-label">Color</p>
+                    <p className="text-sm font-medium text-foreground">{selectedColorVariant?.name}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {colorVariants.map((variant) => {
+                      const selected = selectedColorVariant?.id === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          onClick={() => setSelectedColorId(variant.id)}
+                          className={`flex min-h-12 items-center gap-3 border px-3 py-2 text-left transition-colors ${
+                            selected
+                              ? "border-heritage bg-heritage/10 text-foreground"
+                              : "border-grid/30 bg-background text-muted-foreground hover:border-interactive/60 hover:text-foreground"
+                          }`}
+                          aria-pressed={selected}
+                        >
+                          <span
+                            className="h-7 w-7 shrink-0 border border-grid/35"
+                            style={{ backgroundColor: variant.hex }}
+                            aria-hidden="true"
+                          />
+                          <span className="text-sm font-medium">{variant.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="product-media-panel mt-8 p-6 md:p-7">
                 <div className="flex flex-wrap items-end gap-4">

@@ -143,9 +143,10 @@ const menuItems: MegaMenuItem[] = [
 ];
 
 const utilityLinks = [
+  { label: "About", href: "/about" },
   { label: "New Arrivals", href: "/categories" },
   { label: "Catalogue", href: "/catalogue" },
-  { label: "Sustainability", href: "/category/accessories" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const desktopUtilityLinkClass =
@@ -262,7 +263,7 @@ const Navbar = () => {
 
           <div className={`${activeMenu ? "" : "border-b border-[rgb(var(--nav-divider-rgb)/1)]"}`}>
             <div className="mx-auto max-w-7xl px-10">
-              <div className="grid grid-cols-4">
+              <div className="flex w-full items-stretch justify-between gap-3">
                 {menuLookup.map((item) => {
                   const isActive = openMenu === item.label;
 
@@ -271,7 +272,7 @@ const Navbar = () => {
                       key={item.label}
                       type="button"
                       onMouseEnter={() => setOpenMenu(item.label)}
-                      className={`group relative flex min-h-[56px] items-center justify-center gap-2 px-4 py-4 text-base transition-colors duration-150 ease-linear ${
+                      className={`group relative flex min-h-[56px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-1 py-4 text-[10px] font-bold uppercase tracking-[0.06em] transition-colors duration-150 ease-linear xl:px-2 xl:text-[11px] 2xl:text-xs ${
                         isActive ? "text-[rgb(var(--nav-ink-rgb)/1)]" : "text-[rgb(var(--nav-ink-rgb)/1)] hover:text-interactive"
                       }`}
                     >
@@ -283,7 +284,7 @@ const Navbar = () => {
                       <span>{item.label}</span>
                       <ChevronDown
                         size={16}
-                        className={`transition-colors duration-150 ease-linear ${
+                        className={`shrink-0 transition-colors duration-150 ease-linear ${
                           isActive ? "text-[rgb(var(--nav-ink-rgb)/1)]" : "text-[rgb(var(--nav-ink-rgb)/1)] group-hover:text-interactive"
                         }`}
                       />

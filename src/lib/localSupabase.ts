@@ -5,6 +5,7 @@ type TableName =
   | "product_pairings"
   | "product_promotions"
   | "catalogues"
+  | "hero_slides"
   | "promotional_banners"
   | "inquiries"
   | "leads"
