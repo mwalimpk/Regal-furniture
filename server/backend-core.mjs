@@ -91,6 +91,7 @@ const buildInitialState = () => {
     product_pairings: [],
     product_promotions: [],
     catalogues: [],
+    hero_slides: [],
     promotional_banners: [],
     inquiries: [],
     leads: [],
@@ -242,6 +243,7 @@ const normalizeInsertRow = (table, row) => {
         area_sqft: 0,
         country: "Zimbabwe",
         images: [],
+        color_variants: [],
         ...row,
       };
     case "product_pairings":
@@ -274,6 +276,21 @@ const normalizeInsertRow = (table, row) => {
         updated_at: timestamp,
         imported_count: 0,
         status: "uploaded",
+        ...row,
+      };
+    case "hero_slides":
+      return {
+        id: uid("hero"),
+        created_at: timestamp,
+        updated_at: timestamp,
+        eyebrow: null,
+        accent_title: null,
+        description: null,
+        image_alt: null,
+        cta_label: "Explore Collection",
+        cta_href: "/categories",
+        display_order: 1,
+        status: "active",
         ...row,
       };
     case "promotional_banners":

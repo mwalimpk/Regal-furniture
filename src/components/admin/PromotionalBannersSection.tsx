@@ -1,16 +1,24 @@
-import { useMemo, useState } from "react";
-import { Clock, Image, Pause, Pencil, Play, Plus, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Clock, Image, Maximize2, Move, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X, ZoomIn } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { categories as storefrontCategories } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
+import {
+  CTA_DESTINATION_OPTIONS,
+  CUSTOM_CTA_DESTINATION,
+  getCtaDestinationSelectValue,
+  sanitizeCtaHref,
+} from "@/lib/ctaDestinations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import ProductPromotionsSection from "@/components/admin/ProductPromotionsSection";
@@ -24,6 +32,13 @@ import {
 } from "@/lib/promotionalBanners";
 
 const defaultPlacements: PromoPlacementKey[] = ["home-after-hero", "category-before-grid", "product-after-summary"];
+const bannerCropAspectRatio = 16 / 7;
+const bannerCropOutputWidth = 1600;
+const bannerCropOutputHeight = Math.round(bannerCropOutputWidth / bannerCropAspectRatio);
+const bannerCropMinZoom = 1;
+const bannerCropMaxZoom = 3;
+const bannerCropMinScale = 0.45;
+const bannerCropMaxScale = 1;
 
 type BannerForm = {
   title: string;
@@ -38,6 +53,23 @@ type BannerForm = {
   ends_at: string;
   has_countdown: boolean;
   countdown_ends_at: string;
+};
+
+type CropSize = {
+  width: number;
+  height: number;
+};
+
+type CropPoint = {
+  x: number;
+  y: number;
+};
+
+type CropFrame = CropPoint & CropSize;
+
+type PendingBackgroundCrop = {
+  file: File;
+  url: string;
 };
 
 const emptyForm = (): BannerForm => ({
@@ -74,13 +106,6 @@ const cleanNullable = (value: string) => {
   return trimmed ? trimmed : null;
 };
 
-const cleanHref = (value: string) => {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^(https?:|mailto:|tel:|\/|#)/i.test(trimmed)) return trimmed;
-  return `/${trimmed.replace(/^\/+/, "")}`;
-};
-
 const formatDate = (value: string | null) => {
   if (!value) return "Until changed";
   const date = new Date(value);
@@ -97,6 +122,467 @@ const uploadBannerBackground = async (file: File) => {
   return publicData.publicUrl;
 };
 
+const clampValue = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const getCropFrame = (frameSize: CropSize, cropScale: number): CropFrame => {
+  const maxWidth = Math.min(frameSize.width, frameSize.height * bannerCropAspectRatio);
+  const maxHeight = maxWidth / bannerCropAspectRatio;
+  const width = maxWidth * cropScale;
+  const height = maxHeight * cropScale;
+
+  return {
+    x: (frameSize.width - width) / 2,
+    y: (frameSize.height - height) / 2,
+    width,
+    height,
+  };
+};
+
+const getCropMetrics = (
+  naturalSize: CropSize,
+  frameSize: CropSize,
+  cropScale: number,
+  zoom: number,
+  offset: CropPoint,
+) => {
+  const cropFrame = getCropFrame(frameSize, cropScale);
+  const baseScale = Math.max(frameSize.width / naturalSize.width, frameSize.height / naturalSize.height);
+  const renderScale = baseScale * zoom;
+  const displayWidth = naturalSize.width * renderScale;
+  const displayHeight = naturalSize.height * renderScale;
+  const imageLeft = frameSize.width / 2 + offset.x - displayWidth / 2;
+  const imageTop = frameSize.height / 2 + offset.y - displayHeight / 2;
+
+  return {
+    renderScale,
+    displayWidth,
+    displayHeight,
+    imageLeft,
+    imageTop,
+    cropFrame,
+    maxOffsetX: Math.max(0, (displayWidth - cropFrame.width) / 2),
+    maxOffsetY: Math.max(0, (displayHeight - cropFrame.height) / 2),
+  };
+};
+
+const clampCropOffset = (
+  offset: CropPoint,
+  naturalSize: CropSize | null,
+  frameSize: CropSize,
+  cropScale: number,
+  zoom: number,
+) => {
+  if (!naturalSize || frameSize.width <= 0 || frameSize.height <= 0) return { x: 0, y: 0 };
+  const metrics = getCropMetrics(naturalSize, frameSize, cropScale, zoom, offset);
+
+  return {
+    x: clampValue(offset.x, -metrics.maxOffsetX, metrics.maxOffsetX),
+    y: clampValue(offset.y, -metrics.maxOffsetY, metrics.maxOffsetY),
+  };
+};
+
+const getCroppedFileName = (fileName: string) => {
+  const baseName = fileName.replace(/\.[^/.]+$/, "") || "banner-background";
+  return `${baseName}-cropped.jpg`;
+};
+
+const loadCropImage = (url: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not read the selected image."));
+    image.src = url;
+  });
+
+const createCroppedBannerFile = async (
+  source: PendingBackgroundCrop,
+  naturalSize: CropSize,
+  frameSize: CropSize,
+  cropScale: number,
+  zoom: number,
+  offset: CropPoint,
+) => {
+  const image = await loadCropImage(source.url);
+  const metrics = getCropMetrics(naturalSize, frameSize, cropScale, zoom, offset);
+  const sourceWidth = metrics.cropFrame.width / metrics.renderScale;
+  const sourceHeight = metrics.cropFrame.height / metrics.renderScale;
+  const safeSourceWidth = Math.min(naturalSize.width, sourceWidth);
+  const safeSourceHeight = Math.min(naturalSize.height, sourceHeight);
+  const sourceX = clampValue(
+    (metrics.cropFrame.x - metrics.imageLeft) / metrics.renderScale,
+    0,
+    Math.max(0, naturalSize.width - safeSourceWidth),
+  );
+  const sourceY = clampValue(
+    (metrics.cropFrame.y - metrics.imageTop) / metrics.renderScale,
+    0,
+    Math.max(0, naturalSize.height - safeSourceHeight),
+  );
+  const canvas = document.createElement("canvas");
+  canvas.width = bannerCropOutputWidth;
+  canvas.height = bannerCropOutputHeight;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Could not prepare the cropped image.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, sourceX, sourceY, safeSourceWidth, safeSourceHeight, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => {
+        if (result) resolve(result);
+        else reject(new Error("Could not export the cropped image."));
+      },
+      "image/jpeg",
+      0.9,
+    );
+  });
+
+  return new File([blob], getCroppedFileName(source.file.name), { type: "image/jpeg" });
+};
+
+type BannerBackgroundCropDialogProps = {
+  source: PendingBackgroundCrop | null;
+  uploading: boolean;
+  onCancel: () => void;
+  onApply: (file: File) => Promise<void>;
+  onError: (message: string) => void;
+};
+
+const BannerBackgroundCropDialog = ({
+  source,
+  uploading,
+  onCancel,
+  onApply,
+  onError,
+}: BannerBackgroundCropDialogProps) => {
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startOffset: CropPoint } | null>(null);
+  const [naturalSize, setNaturalSize] = useState<CropSize | null>(null);
+  const [frameSize, setFrameSize] = useState<CropSize>({ width: 0, height: 0 });
+  const [zoom, setZoom] = useState(bannerCropMinZoom);
+  const [cropScale, setCropScale] = useState(bannerCropMaxScale);
+  const [offset, setOffset] = useState<CropPoint>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const sourceUrl = source?.url;
+  const [frameElement, setFrameElement] = useState<HTMLDivElement | null>(null);
+
+  const measureFrame = useCallback((node = frameRef.current) => {
+    if (!node) return null;
+
+    const rect = node.getBoundingClientRect();
+    const width = rect.width || node.clientWidth;
+    const height = rect.height || node.clientHeight || (width > 0 ? width / bannerCropAspectRatio : 0);
+
+    if (width <= 0 || height <= 0) return null;
+
+    const nextSize = { width, height };
+    setFrameSize((current) => (
+      Math.abs(current.width - nextSize.width) < 0.5 && Math.abs(current.height - nextSize.height) < 0.5
+        ? current
+        : nextSize
+    ));
+
+    return nextSize;
+  }, []);
+
+  const setFrameNode = useCallback((node: HTMLDivElement | null) => {
+    frameRef.current = node;
+    setFrameElement(node);
+    if (node) measureFrame(node);
+  }, [measureFrame]);
+
+  useEffect(() => {
+    setNaturalSize(null);
+    setFrameSize({ width: 0, height: 0 });
+    setFrameElement(frameRef.current);
+    setZoom(bannerCropMinZoom);
+    setCropScale(bannerCropMaxScale);
+    setOffset({ x: 0, y: 0 });
+    setIsDragging(false);
+    dragRef.current = null;
+  }, [sourceUrl]);
+
+  useEffect(() => {
+    if (!sourceUrl || !frameElement) return;
+    const updateFrameSize = () => measureFrame(frameElement);
+
+    updateFrameSize();
+    const frameId = window.requestAnimationFrame(updateFrameSize);
+    const fallbackTimer = window.setTimeout(updateFrameSize, 120);
+
+    let observer: ResizeObserver | null = null;
+    if ("ResizeObserver" in window) {
+      observer = new ResizeObserver(updateFrameSize);
+      observer.observe(frameElement);
+    }
+
+    window.addEventListener("resize", updateFrameSize);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(fallbackTimer);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateFrameSize);
+    };
+  }, [frameElement, measureFrame, sourceUrl]);
+
+  useEffect(() => {
+    setOffset((current) => clampCropOffset(current, naturalSize, frameSize, cropScale, zoom));
+  }, [cropScale, frameSize, naturalSize, zoom]);
+
+  const cropMetrics = naturalSize && frameSize.width > 0 && frameSize.height > 0
+    ? getCropMetrics(naturalSize, frameSize, cropScale, zoom, offset)
+    : null;
+
+  const handleZoomChange = (value: number[]) => {
+    const nextZoom = value[0] ?? bannerCropMinZoom;
+    const measuredFrameSize = measureFrame() || frameSize;
+    setZoom(nextZoom);
+    setOffset((current) => clampCropOffset(current, naturalSize, measuredFrameSize, cropScale, nextZoom));
+  };
+
+  const handleCropScaleChange = (value: number[]) => {
+    const nextScale = value[0] ?? bannerCropMaxScale;
+    const measuredFrameSize = measureFrame() || frameSize;
+    setCropScale(nextScale);
+    setOffset((current) => clampCropOffset(current, naturalSize, measuredFrameSize, nextScale, zoom));
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!naturalSize || event.button !== 0) return;
+    const measuredFrameSize = measureFrame() || frameSize;
+    if (measuredFrameSize.width <= 0 || measuredFrameSize.height <= 0) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startOffset: offset,
+    };
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+    const measuredFrameSize = frameSize.width > 0 && frameSize.height > 0 ? frameSize : measureFrame() || frameSize;
+    const nextOffset = {
+      x: dragRef.current.startOffset.x + event.clientX - dragRef.current.startX,
+      y: dragRef.current.startOffset.y + event.clientY - dragRef.current.startY,
+    };
+    setOffset(clampCropOffset(nextOffset, naturalSize, measuredFrameSize, cropScale, zoom));
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current = null;
+    setIsDragging(false);
+  };
+
+  const resetCrop = () => {
+    setZoom(bannerCropMinZoom);
+    setCropScale(bannerCropMaxScale);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  const applyCrop = async () => {
+    const measuredFrameSize = measureFrame() || frameSize;
+    if (!source || !naturalSize) return;
+
+    if (measuredFrameSize.width <= 0 || measuredFrameSize.height <= 0) {
+      onError("The crop frame is still preparing. Close the editor and choose the image again.");
+      return;
+    }
+
+    try {
+      const croppedFile = await createCroppedBannerFile(source, naturalSize, measuredFrameSize, cropScale, zoom, offset);
+      await onApply(croppedFile);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Could not crop the selected image.");
+    }
+  };
+
+  const cropFrameStyle = cropMetrics
+    ? {
+        left: `${cropMetrics.cropFrame.x}px`,
+        top: `${cropMetrics.cropFrame.y}px`,
+        width: `${cropMetrics.cropFrame.width}px`,
+        height: `${cropMetrics.cropFrame.height}px`,
+      }
+    : undefined;
+  const cropOverlayColor = "rgb(var(--obsidian-rgb)/0.54)";
+
+  return (
+    <Dialog
+      open={Boolean(source)}
+      onOpenChange={(open) => {
+        if (!open && !uploading) onCancel();
+      }}
+    >
+      <DialogContent className="admin-workspace max-h-[92vh] max-w-5xl overflow-y-auto border-grid bg-card">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-2xl tracking-[-0.03em]">Crop banner background</DialogTitle>
+          <DialogDescription>Create a 16:7 storefront banner image before it is uploaded.</DialogDescription>
+        </DialogHeader>
+
+        {source && (
+          <div className="space-y-5">
+            <div
+              ref={setFrameNode}
+              className={`relative aspect-[16/7] overflow-hidden border border-grid/35 bg-[rgb(var(--obsidian-rgb)/0.92)] touch-none ${
+                isDragging ? "cursor-grabbing" : "cursor-grab"
+              }`}
+              onPointerDown={handlePointerDown}
+              onPointerEnter={() => measureFrame()}
+              onPointerMove={handlePointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+            >
+              <img
+                src={source.url}
+                alt=""
+                draggable={false}
+                onLoad={(event) => {
+                  setNaturalSize({
+                    width: event.currentTarget.naturalWidth,
+                    height: event.currentTarget.naturalHeight,
+                  });
+                  measureFrame();
+                }}
+                onError={() => onError("Could not preview the selected image. Try another image file.")}
+                className={
+                  cropMetrics
+                    ? "pointer-events-none absolute max-w-none select-none"
+                    : "pointer-events-none h-full w-full select-none object-cover"
+                }
+                style={
+                  cropMetrics
+                    ? {
+                        width: `${cropMetrics.displayWidth}px`,
+                        height: `${cropMetrics.displayHeight}px`,
+                        left: `${frameSize.width / 2 + offset.x}px`,
+                        top: `${frameSize.height / 2 + offset.y}px`,
+                        transform: "translate(-50%, -50%)",
+                      }
+                    : undefined
+                }
+              />
+
+              {cropMetrics && (
+                <>
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0"
+                    style={{ height: `${cropMetrics.cropFrame.y}px`, backgroundColor: cropOverlayColor }}
+                  />
+                  <div
+                    className="pointer-events-none absolute inset-x-0 bottom-0"
+                    style={{
+                      top: `${cropMetrics.cropFrame.y + cropMetrics.cropFrame.height}px`,
+                      backgroundColor: cropOverlayColor,
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: 0,
+                      top: `${cropMetrics.cropFrame.y}px`,
+                      width: `${cropMetrics.cropFrame.x}px`,
+                      height: `${cropMetrics.cropFrame.height}px`,
+                      backgroundColor: cropOverlayColor,
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: `${cropMetrics.cropFrame.x + cropMetrics.cropFrame.width}px`,
+                      top: `${cropMetrics.cropFrame.y}px`,
+                      right: 0,
+                      height: `${cropMetrics.cropFrame.height}px`,
+                      backgroundColor: cropOverlayColor,
+                    }}
+                  />
+                  <div className="pointer-events-none absolute border-2 border-[rgb(var(--white-rgb)/0.82)]" style={cropFrameStyle}>
+                    <div className="absolute inset-y-0 left-1/3 w-px bg-[rgb(var(--white-rgb)/0.36)]" />
+                    <div className="absolute inset-y-0 left-2/3 w-px bg-[rgb(var(--white-rgb)/0.36)]" />
+                    <div className="absolute inset-x-0 top-1/3 h-px bg-[rgb(var(--white-rgb)/0.36)]" />
+                    <div className="absolute inset-x-0 top-2/3 h-px bg-[rgb(var(--white-rgb)/0.36)]" />
+                  </div>
+                </>
+              )}
+              <div className="pointer-events-none absolute left-3 top-3 inline-flex h-9 w-9 items-center justify-center border border-[rgb(var(--white-rgb)/0.32)] bg-[rgb(var(--obsidian-rgb)/0.48)] text-primary-foreground">
+                <Move className="h-4 w-4" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 border border-grid/25 bg-background p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="inline-flex items-center gap-2">
+                    <Maximize2 className="h-4 w-4" />
+                    Crop area
+                  </Label>
+                  <span className="font-mono text-[11px] text-muted-foreground">{Math.round(cropScale * 100)}%</span>
+                </div>
+                <Slider
+                  value={[cropScale]}
+                  min={bannerCropMinScale}
+                  max={bannerCropMaxScale}
+                  step={0.05}
+                  onValueChange={handleCropScaleChange}
+                  disabled={!naturalSize || uploading}
+                  aria-label="Resize crop area"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="inline-flex items-center gap-2">
+                    <ZoomIn className="h-4 w-4" />
+                    Zoom
+                  </Label>
+                  <span className="font-mono text-[11px] text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                </div>
+                <Slider
+                  value={[zoom]}
+                  min={bannerCropMinZoom}
+                  max={bannerCropMaxZoom}
+                  step={0.05}
+                  onValueChange={handleZoomChange}
+                  disabled={!naturalSize || uploading}
+                  aria-label="Zoom banner background"
+                />
+              </div>
+
+              <Button type="button" variant="outline" onClick={resetCrop} disabled={uploading}>
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={uploading}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={applyCrop} disabled={!naturalSize || uploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Check className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Use crop"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const PromotionalBannersSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -105,6 +591,7 @@ const PromotionalBannersSection = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [pendingBackgroundCrop, setPendingBackgroundCrop] = useState<PendingBackgroundCrop | null>(null);
 
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ["admin-promotional-banners"],
@@ -128,6 +615,7 @@ const PromotionalBannersSection = () => {
     () => banners.filter((banner) => banner.status === "active" && banner.starts_at && new Date(banner.starts_at) > new Date()).length,
     [banners],
   );
+  const ctaSelectValue = getCtaDestinationSelectValue(form.cta_href, CUSTOM_CTA_DESTINATION);
 
   const updateForm = <K extends keyof BannerForm>(key: K, value: BannerForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -145,6 +633,13 @@ const PromotionalBannersSection = () => {
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm());
+  };
+
+  const closeBackgroundCrop = () => {
+    setPendingBackgroundCrop((current) => {
+      if (current) URL.revokeObjectURL(current.url);
+      return null;
+    });
   };
 
   const startEdit = (banner: PromotionalBanner) => {
@@ -180,11 +675,20 @@ const PromotionalBannersSection = () => {
       return;
     }
 
+    const cropUrl = URL.createObjectURL(file);
+    setPendingBackgroundCrop((current) => {
+      if (current) URL.revokeObjectURL(current.url);
+      return { file, url: cropUrl };
+    });
+  };
+
+  const uploadCroppedBackground = async (file: File) => {
     setUploadingBackground(true);
     try {
       const publicUrl = await uploadBannerBackground(file);
       updateForm("background_image_url", publicUrl);
       toast({ title: "Background uploaded" });
+      closeBackgroundCrop();
     } catch (error) {
       toast({
         title: "Upload failed",
@@ -236,7 +740,7 @@ const PromotionalBannersSection = () => {
       category: form.category,
       background_image_url: cleanNullable(form.background_image_url),
       cta_label: cleanNullable(form.cta_label),
-      cta_href: cleanHref(form.cta_href),
+      cta_href: sanitizeCtaHref(form.cta_href, null),
       placements: form.placements,
       status: form.status,
       starts_at: startsAt,
@@ -291,6 +795,14 @@ const PromotionalBannersSection = () => {
 
   return (
     <div className="space-y-6">
+      <BannerBackgroundCropDialog
+        source={pendingBackgroundCrop}
+        uploading={uploadingBackground}
+        onCancel={closeBackgroundCrop}
+        onApply={uploadCroppedBackground}
+        onError={(message) => toast({ title: "Crop failed", description: message, variant: "destructive" })}
+      />
+
       <ProductPromotionsSection />
 
       <div className="border-t border-grid/25 pt-6" />
@@ -426,14 +938,32 @@ const PromotionalBannersSection = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>CTA link</Label>
+                <Label>CTA destination</Label>
+                <Select
+                  value={ctaSelectValue}
+                  onValueChange={(value) => updateForm("cta_href", value === CUSTOM_CTA_DESTINATION ? "" : value)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CTA_DESTINATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.href} value={option.href}>{option.label}</SelectItem>
+                    ))}
+                    <SelectItem value={CUSTOM_CTA_DESTINATION}>Custom link</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {ctaSelectValue === CUSTOM_CTA_DESTINATION && (
+              <div className="space-y-2">
+                <Label>Custom CTA link</Label>
                 <Input
                   value={form.cta_href}
                   onChange={(event) => updateForm("cta_href", event.target.value)}
-                    placeholder="/category/executive-suites"
+                  placeholder="https://example.com or /custom-page"
                 />
               </div>
-            </div>
+            )}
 
             <div className="grid gap-5 md:grid-cols-3">
               <div className="space-y-2">

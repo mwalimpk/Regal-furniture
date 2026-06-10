@@ -9,6 +9,7 @@ const menuItems = [
   { label: "Products", key: "properties" },
   { label: "Add Product", key: "add-property" },
   { label: "Catalogues", key: "catalogues" },
+  { label: "Hero Slides", key: "hero-slides" },
   { label: "Promotions", key: "promotions" },
   { label: "Product Combinations", key: "pairings" },
   { label: "Categories", key: "approvals" },

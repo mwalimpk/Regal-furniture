@@ -7,6 +7,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MessageCircle } from "lucide-react";
+
+const WHATSAPP_ORDER_BRANCHES = [
+  { city: "Harare", number: "263780472180" },
+  { city: "Bulawayo", number: "263787781470" },
+] as const;
+
+type WhatsAppOrderBranch = (typeof WHATSAPP_ORDER_BRANCHES)[number];
 
 const CartDrawer = () => {
   const { items, removeItem, updateQuantity, clearCart, total, itemCount, isOpen, setIsOpen } = useCart();
@@ -69,7 +77,7 @@ const CartDrawer = () => {
     }
   };
 
-  const handleWhatsAppOrder = async () => {
+  const handleWhatsAppOrder = async (branch: WhatsAppOrderBranch) => {
     if (!user) {
       setIsOpen(false);
       navigate("/auth");
@@ -81,14 +89,14 @@ const CartDrawer = () => {
     if (!order) return;
 
     const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
-    const itemLines = orderItems.map((i) => `• ${i.name} x${i.quantity} — ${format(i.price * i.quantity)}`).join("\n");
-    const message = `🛒 *New Order from Regal Office & Home*\n\n${itemLines}\n\n*Total: ${format(total)}*\n\nCustomer: ${user.email}`;
-    const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
+    const itemLines = orderItems.map((i) => `* ${i.name} x${i.quantity} - ${format(i.price * i.quantity)}`).join("\n");
+    const message = `*New Order from Regal Office & Home*\n\nBranch: ${branch.city}\n\n${itemLines}\n\n*Total: ${format(total)}*\n\nCustomer: ${user.email}`;
+    const whatsappUrl = `https://wa.me/${branch.number}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
 
     clearCart();
     setIsOpen(false);
-    toast({ title: "Order placed!", description: "Complete your order on WhatsApp." });
+    toast({ title: "Order placed!", description: `Complete your order with our ${branch.city} team on WhatsApp.` });
   };
 
   return (
@@ -134,9 +142,24 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{format(total)}</span>
               </div>
+<<<<<<< HEAD
               <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
                 Order via WhatsApp
               </Button>
+=======
+              {WHATSAPP_ORDER_BRANCHES.map((branch) => (
+                <Button
+                  key={branch.city}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                  onClick={() => handleWhatsAppOrder(branch)}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Order from {branch.city}
+                </Button>
+              ))}
+>>>>>>> e4f2d23d9b33a81ef11a0cddb44a8282fee032d4
               <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
                 Continue Shopping
               </Button>

@@ -1,3 +1,5 @@
+import type { ProductColorVariant } from "@/lib/productColorVariants";
+
 export interface Product {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface Product {
   images?: string[];
   description: string;
   longDescription?: string;
+  colorVariants?: ProductColorVariant[];
 }
 
 export interface Category {
