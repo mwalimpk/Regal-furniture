@@ -13,7 +13,7 @@ const slides = [
     body:
       "Exceptional office and home furniture for modern African spaces, where premium craftsmanship meets everyday ambition.",
     replacementFile: "slide-01-crafted-for-those-who-lead.jpg",
-    fallbackImage: "/images/products/green/BIG AND TALL HIGH BACK SWIVEL CHAIR.jpg",
+    fallbackImage: "/uploads/collections/executive-suites/big-and-tall-high-back-swivel-chair-1022-02da43e643.jpg",
     imageAlt: "Premium executive chair",
     cta: "/categories",
     ctaLabel: "Explore Collection",
@@ -31,7 +31,7 @@ const slides = [
     body:
       "From executive desks to open-plan workstations, furniture that transforms how your team works, meets, and creates.",
     replacementFile: "slide-02-design-your-perfect-workspace.jpg",
-    fallbackImage: "/images/products/green/CARINA L SHAPED DESK OAK.jpg",
+    fallbackImage: "/uploads/collections/office-suites/carina-l-shaped-desk-oak-1036-0fd6ef2ffb.jpg",
     imageAlt: "Executive desk workspace",
     cta: "/category/executive-suites",
     ctaLabel: "View Executive Suites",
@@ -49,7 +49,7 @@ const slides = [
     body:
       "Full office fit-outs for hotels, corporations, schools, and developers. One supplier. One vision. Every space.",
     replacementFile: "slide-03-spaces-that-inspire-greatness.jpg",
-    fallbackImage: "/images/products/green/DOMINION 4 SEATER WORKSTATION.jpg",
+    fallbackImage: "/uploads/collections/office-suites/dominion-workstation-4-seater-1066-26344f0f40.png",
     imageAlt: "Office workstation furniture",
     cta: "/catalogue",
     ctaLabel: "Open Catalogue",
@@ -67,7 +67,7 @@ const slides = [
     body:
       "Reception sofas, guest seating, and lounge pieces curated to make commercial interiors feel warm, confident, and complete.",
     replacementFile: "slide-04-comfort-that-welcomes-everyone.jpg",
-    fallbackImage: "/images/products/green/CHESTERFIELD LEATHER COUCH 3 SEATER.png",
+    fallbackImage: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-1187-933676b7ed.png",
     imageAlt: "Reception lounge sofa",
     cta: "/category/reception-lobby",
     ctaLabel: "Explore Reception",

@@ -322,9 +322,10 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                <div className="col-span-8 grid grid-cols-2 gap-6">
+                {/* UPDATED SECTION: Flex container with horizontal scroll */}
+                <div className="col-span-8 flex flex-nowrap gap-6 overflow-x-auto pb-4">
                   {activeMenu.spotlight.map((spot) => (
-                    <Link key={spot.title} to={spot.href} className="group block">
+                    <Link key={spot.title} to={spot.href} className="group block w-72 shrink-0">
                       <div className="overflow-hidden border border-[rgb(var(--nav-divider-rgb)/1)] bg-[rgb(var(--nav-elevated-rgb)/1)]">
                         <img
                           src={spot.image}

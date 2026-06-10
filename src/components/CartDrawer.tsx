@@ -134,9 +134,6 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{format(total)}</span>
               </div>
-              <Button className="w-full" size="lg" onClick={handleStripeCheckout} disabled={checkingOut}>
-                {checkingOut ? "Processing..." : "Pay with Card"}
-              </Button>
               <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
                 Order via WhatsApp
               </Button>
