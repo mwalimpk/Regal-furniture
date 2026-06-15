@@ -1,217 +1,46 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownUp, ArrowRight, BadgePercent, Filter, Search, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useCart } from "@/contexts/CartContext";
-import { useCurrency } from "@/contexts/CurrencyContext";
-import { useToast } from "@/hooks/use-toast";
-import { categories, type Product } from "@/data/products";
-import { QuickFilter, loadFilterSettings } from "@/lib/filterSettings";
+import { useProductCategories } from "@/hooks/useProductCategories";
+import { categoryFeaturedUrl } from "@/lib/productCategories";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
-import {
-  getBestProductPromotionForProduct,
-  getProductPromotionDisplayLabel,
-  getProductPromotionPrice,
-} from "@/lib/productPromotions";
-import { useActiveProductPromotions } from "@/hooks/useProductPromotions";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import BookVisitDialog from "@/components/BookVisitDialog";
-import ProductHoverMedia from "@/components/ProductHoverMedia";
 import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
+import StorefrontProductTile from "@/components/StorefrontProductTile";
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const { addItem } = useCart();
-  const { toast } = useToast();
-  const { format } = useCurrency();
-  const [visitOpen, setVisitOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [sortBy, setSortBy] = useState("featured");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [selectedQuickFilter, setSelectedQuickFilter] = useState<string | null>(null);
-
+  const { data: categories = [], isLoading: loadingCategories } = useProductCategories();
   const category = categories.find((item) => item.slug === slug);
 
-  const { data: filterSettings = loadFilterSettings() } = useQuery({
-    queryKey: ["store-filter-settings"],
-    queryFn: async () => loadFilterSettings(),
-  });
-
-  const relatedCollections = ((filterSettings.collectionGroups?.[slug || ""] || [slug || ""])
-    .map((itemSlug) => categories.find((categoryItem) => categoryItem.slug === itemSlug))
-    .filter(Boolean)) as typeof categories;
-
-  const { data: allProducts = [] } = useQuery({
+  const {
+    data: allProducts = [],
+    error: productsError,
+    isLoading: loadingProducts,
+  } = useQuery({
     queryKey: ["storefront-products"],
     queryFn: fetchApprovedStorefrontProducts,
-    enabled: !!category,
+    enabled: !loadingCategories && !!category,
   });
-  const { data: activeProductPromotions = [] } = useActiveProductPromotions();
 
-  const categoryProducts: Product[] = useMemo(() => {
-    return allProducts.filter((product) => product.categorySlug === slug);
-  }, [allProducts, slug]);
+  const categoryProducts = allProducts.filter((product) => product.categorySlug === slug);
+  const hasFeaturedSubcategories = Boolean(category?.featured.length);
 
-  const filteredProducts = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const min = minPrice ? Number(minPrice) : null;
-    const max = maxPrice ? Number(maxPrice) : null;
-
-    let next = categoryProducts.filter((product) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        product.name.toLowerCase().includes(normalizedSearch) ||
-        product.description.toLowerCase().includes(normalizedSearch);
-
-      const matchesMin = min === null || product.price >= min;
-      const matchesMax = max === null || product.price <= max;
-
-      return matchesSearch && matchesMin && matchesMax;
-    });
-
-    switch (sortBy) {
-      case "price-low":
-        next = [...next].sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        next = [...next].sort((a, b) => b.price - a.price);
-        break;
-      case "name":
-        next = [...next].sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      default:
-        break;
-    }
-
-    return next;
-  }, [categoryProducts, searchTerm, minPrice, maxPrice, sortBy]);
-
-  const productPromotionById = useMemo(() => {
-    return new Map(
-      allProducts.map((product) => [
-        product.id,
-        getBestProductPromotionForProduct(activeProductPromotions, product),
-      ]),
-    );
-  }, [activeProductPromotions, allProducts]);
-
-  const enabledQuickFilters = filterSettings.quickFilters.filter((item) => item.enabled);
-
-  const activeFilterCount = [
-    searchTerm.trim(),
-    minPrice.trim(),
-    maxPrice.trim(),
-    sortBy !== "featured" ? sortBy : "",
-  ].filter(Boolean).length;
-
-  const resetFilters = () => {
-    setSearchTerm("");
-    setMinPrice("");
-    setMaxPrice("");
-    setSortBy("featured");
-    setSelectedQuickFilter(null);
-  };
-
-  const applyQuickFilter = (filter: QuickFilter) => {
-    setSelectedQuickFilter((current) => (current === filter.id ? null : filter.id));
-
-    if (selectedQuickFilter === filter.id) {
-      resetFilters();
-      return;
-    }
-
-    if (filter.type === "max_price") {
-      setMaxPrice(filter.value);
-      setMinPrice("");
-      if (!filterSettings.showSearch) setSearchTerm("");
-    }
-
-    if (filter.type === "min_price") {
-      setMinPrice(filter.value);
-      setMaxPrice("");
-      if (!filterSettings.showSearch) setSearchTerm("");
-    }
-
-    if (filter.type === "keyword") {
-      setSearchTerm(filter.value);
-      setMinPrice("");
-      setMaxPrice("");
-    }
-  };
-
-  const FilterFields = ({ mobile = false }: { mobile?: boolean }) => (
-    <>
-      {relatedCollections.length > 1 && (
-        <select
-          value={slug || ""}
-          onChange={(event) => navigate(`/category/${event.target.value}`)}
-          className="h-12 w-full appearance-none bg-background/82 px-4 text-sm text-foreground outline-none transition-colors focus:bg-background"
-        >
-          {relatedCollections.map((collection) => (
-            <option key={collection.slug} value={collection.slug}>
-              Collection: {collection.name}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {filterSettings.showSearch && (
-        <div className={`relative ${mobile ? "" : "xl:col-span-2"}`}>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder={`Search in ${category?.name.toLowerCase()}...`}
-            className="h-12 border-0 bg-background/82 pl-10 focus-visible:ring-1 focus-visible:ring-interactive"
-          />
+  if (loadingCategories) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="py-20 pt-[112px] text-center lg:pt-[180px]">
+          <p className="text-muted-foreground">Loading category...</p>
         </div>
-      )}
-
-      {filterSettings.showMinPrice && (
-        <Input
-          type="number"
-          min="0"
-          value={minPrice}
-          onChange={(event) => setMinPrice(event.target.value)}
-          placeholder="Min price"
-          className="h-12 border-0 bg-background/82 focus-visible:ring-1 focus-visible:ring-interactive"
-        />
-      )}
-
-      {filterSettings.showMaxPrice && (
-        <Input
-          type="number"
-          min="0"
-          value={maxPrice}
-          onChange={(event) => setMaxPrice(event.target.value)}
-          placeholder="Max price"
-          className="h-12 border-0 bg-background/82 focus-visible:ring-1 focus-visible:ring-interactive"
-        />
-      )}
-    </>
-  );
-
-  const handleAdd = (product: Product) => {
-    const promotion = productPromotionById.get(product.id);
-    const promotionalPrice = promotion ? getProductPromotionPrice(product.price, promotion) : null;
-
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: promotionalPrice ?? product.price,
-      currency: product.currency,
-      image: product.image,
-    });
-    toast({ title: "Added to cart", description: `${product.name} added to your cart.` });
-  };
+        <Footer />
+        <MobileBottomNav />
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -249,48 +78,29 @@ const CategoryPage = () => {
         <PromotionalBannerSlot placement="category-top" pageCategory={category.name} />
 
         <div className="container mx-auto px-10 py-8 md:py-12">
-          <div className="grid gap-6 lg:h-[700px] lg:grid-cols-12">
-            <div className="product-media-panel flex flex-col p-7 md:p-10 lg:col-span-5 lg:h-full lg:min-h-0">
-              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">
-                Collection Overview
-              </p>
-              <h1 className="mt-4 font-serif text-4xl leading-tight text-foreground md:text-5xl">
-                {category.name}
-              </h1>
-              <p className="mt-5 max-w-xl text-sm leading-8 text-muted-foreground md:text-base">
-                {category.description}
-              </p>
+          <div className="grid gap-6 lg:h-[680px] lg:grid-cols-12">
+            <div className="product-media-panel flex flex-col justify-between p-7 md:p-10 lg:col-span-5 lg:h-full lg:min-h-0">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">
+                  Collection Overview
+                </p>
+                <h1 className="mt-4 font-serif text-4xl leading-tight text-foreground md:text-5xl">
+                  {category.name}
+                </h1>
+                <p className="mt-5 max-w-xl text-sm leading-8 text-muted-foreground md:text-base">
+                  {category.description}
+                </p>
+              </div>
 
-              <div className="mt-8 grid gap-5 border-t border-grid/30 pt-6 sm:grid-cols-3">
+              <div className="mt-8 grid gap-5 border-t border-grid/30 pt-6 sm:grid-cols-2">
+                <div>
+                  <p className="font-serif text-3xl text-foreground">{category.featured.length}</p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Featured</p>
+                </div>
                 <div>
                   <p className="font-serif text-3xl text-foreground">{categoryProducts.length}</p>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Products</p>
                 </div>
-                <div>
-                  <p className="font-serif text-3xl text-foreground">{relatedCollections.length}</p>
-                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Collections</p>
-                </div>
-                <div>
-                  <p className="font-serif text-3xl text-foreground">{enabledQuickFilters.length}</p>
-                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Quick Filters</p>
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => setVisitOpen(true)}
-                  className="inline-flex min-h-14 items-center justify-center bg-heritage px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground transition-colors hover:bg-heritage/90"
-                >
-                  Book a showroom visit
-                </button>
-                <Link
-                  to="/categories"
-                  className="inline-flex min-h-14 items-center justify-center gap-2 bg-background/72 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground transition-colors hover:bg-background"
-                >
-                  Browse all categories
-                  <ArrowRight size={16} />
-                </Link>
               </div>
             </div>
 
@@ -304,7 +114,7 @@ const CategoryPage = () => {
               <div className="absolute bottom-0 left-0 p-6 md:p-8">
                 <div className="media-chip px-4 py-3">
                   <p className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                    Curated for modern workspaces
+                    {hasFeaturedSubcategories ? "Choose a featured subcategory" : "Browse category products"}
                   </p>
                 </div>
               </div>
@@ -312,265 +122,79 @@ const CategoryPage = () => {
           </div>
         </div>
 
-        <div className="container mx-auto px-10 pb-10 md:pb-16">
-          <div className="bg-card/55 p-5 md:p-7">
-            <div className="flex flex-col gap-4 border-b border-grid/30 pb-5 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">
-                  <Filter size={15} className="text-interactive" />
-                  Refine the collection
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Search, filter by budget, and sort the catalog without losing the collection context.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                  {filteredProducts.length} of {categoryProducts.length} products
-                </span>
-
-                {filterSettings.showSort && (
-                  <div className="relative hidden w-full md:block md:w-[240px]">
-                    <ArrowDownUp className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <select
-                      value={sortBy}
-                      onChange={(event) => setSortBy(event.target.value)}
-                      className="h-12 w-full appearance-none bg-background/82 pl-10 pr-4 text-sm text-foreground outline-none transition-colors focus:bg-background"
-                    >
-                      <option value="featured">Sort: Featured</option>
-                      <option value="price-low">Price: Low to High</option>
-                      <option value="price-high">Price: High to Low</option>
-                      <option value="name">Name: A to Z</option>
-                    </select>
-                  </div>
-                )}
-
-                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="rounded-none md:hidden">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filters
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="rounded-none border-grid bg-card">
-                    <SheetHeader>
-                      <SheetTitle>Filter Products</SheetTitle>
-                    </SheetHeader>
-
-                    <div className="mt-6 space-y-4">
-                      <div className="grid gap-3">
-                        <FilterFields mobile />
-                      </div>
-
-                      {enabledQuickFilters.length > 0 && (
-                        <div>
-                          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-label">Quick Filters</p>
-                          <div className="flex flex-wrap gap-2">
-                            {enabledQuickFilters.map((filter) => (
-                              <button
-                                key={filter.id}
-                                type="button"
-                                onClick={() => applyQuickFilter(filter)}
-                                className={`px-3 py-2 text-xs transition-colors ${
-                                  selectedQuickFilter === filter.id
-                                    ? "bg-heritage text-primary-foreground"
-                                    : "bg-background text-foreground/72 hover:bg-secondary hover:text-foreground"
-                                }`}
-                              >
-                                {filter.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {filterSettings.showSort && (
-                        <div className="relative">
-                          <ArrowDownUp className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <select
-                            value={sortBy}
-                            onChange={(event) => setSortBy(event.target.value)}
-                            className="h-12 w-full appearance-none bg-background pl-10 pr-4 text-sm text-foreground outline-none transition-colors"
-                          >
-                            <option value="featured">Sort: Featured</option>
-                            <option value="price-low">Price: Low to High</option>
-                            <option value="price-high">Price: High to Low</option>
-                            <option value="name">Name: A to Z</option>
-                          </select>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          className="flex-1 rounded-none"
-                          onClick={resetFilters}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          className="flex-1 rounded-none bg-heritage text-primary-foreground hover:bg-heritage/90"
-                          onClick={() => setMobileFiltersOpen(false)}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                {activeFilterCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="inline-flex items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-interactive hover:text-interactive"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Reset filters
-                  </button>
-                )}
-              </div>
+        <div className="container mx-auto px-10 pb-12 md:pb-20">
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-label">
+                {hasFeaturedSubcategories ? "Featured" : "Products"}
+              </p>
+              <h2 className="mt-3 font-serif text-3xl text-foreground md:text-4xl">
+                {hasFeaturedSubcategories ? "Browse by furniture type" : `Shop ${category.name}`}
+              </h2>
             </div>
-
-            <div className="mt-5 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-4">
-              <FilterFields />
-            </div>
-
-            {enabledQuickFilters.length > 0 && (
-              <div className="mt-5">
-                <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-label">
-                  Quick Filters
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {enabledQuickFilters.map((filter) => (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      onClick={() => applyQuickFilter(filter)}
-                      className={`px-3 py-2 text-xs transition-colors ${
-                        selectedQuickFilter === filter.id
-                          ? "bg-heritage text-primary-foreground"
-                          : "bg-background/82 text-foreground/72 hover:bg-background hover:text-foreground"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              {activeFilterCount > 0 && (
-                <span className="bg-background/82 px-3 py-1 text-xs text-foreground/72">
-                  {activeFilterCount} active filter{activeFilterCount === 1 ? "" : "s"}
-                </span>
-              )}
-              {searchTerm.trim() && (
-                <span className="bg-background/82 px-3 py-1 text-xs text-foreground/72">
-                  Search: {searchTerm}
-                </span>
-              )}
-              {minPrice && (
-                <span className="bg-background/82 px-3 py-1 text-xs text-foreground/72">
-                  Min: {format(Number(minPrice))}
-                </span>
-              )}
-              {maxPrice && (
-                <span className="bg-background/82 px-3 py-1 text-xs text-foreground/72">
-                  Max: {format(Number(maxPrice))}
-                </span>
-              )}
-              {selectedQuickFilter && (
-                <span className="bg-background/82 px-3 py-1 text-xs text-foreground/72">
-                  Quick: {enabledQuickFilters.find((item) => item.id === selectedQuickFilter)?.label}
-                </span>
-              )}
-            </div>
+            <Link
+              to="/categories"
+              className="inline-flex items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:border-interactive hover:text-interactive"
+            >
+              All categories
+              <ArrowRight size={16} />
+            </Link>
           </div>
 
-          <PromotionalBannerSlot placement="category-before-grid" pageCategory={category.name} className="mt-8" />
+          <PromotionalBannerSlot placement="category-before-grid" pageCategory={category.name} className="mb-8" />
 
-          {filteredProducts.length === 0 ? (
-            <div className="mt-10 bg-card/60 px-6 py-16 text-center">
-              <h2 className="font-serif text-2xl text-foreground">No products match these filters</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Try a broader search or clear the price range.
-              </p>
-              <Button onClick={resetFilters} variant="outline" className="mt-5 rounded-none">
-                Clear Filters
-              </Button>
-            </div>
+          {!hasFeaturedSubcategories ? (
+            loadingProducts ? (
+              <div className="bg-card/60 px-6 py-16 text-center text-sm text-muted-foreground">
+                Loading products...
+              </div>
+            ) : productsError ? (
+              <div className="border border-destructive/30 bg-destructive/10 px-6 py-16 text-center text-sm text-destructive">
+                {productsError instanceof Error ? productsError.message : "Could not load products."}
+              </div>
+            ) : !categoryProducts.length ? (
+              <div className="bg-card/60 px-6 py-16 text-center">
+                <h2 className="font-serif text-2xl text-foreground">No products found</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Add products to this category in the admin product editor.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
+                {categoryProducts.map((product) => (
+                  <StorefrontProductTile
+                    key={product.id}
+                    product={product}
+                    relatedProducts={categoryProducts}
+                    compact
+                  />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="mt-12 grid grid-cols-1 gap-x-7 gap-y-14 sm:grid-cols-2 xl:grid-cols-4">
-              {filteredProducts.map((product) => {
-                const promotion = productPromotionById.get(product.id);
-                const promotionLabel = promotion ? getProductPromotionDisplayLabel(promotion) : "";
-                const promotionalPrice = promotion ? getProductPromotionPrice(product.price, promotion) : null;
-                const displayPrice = promotionalPrice ?? product.price;
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {category.featured.map((item) => {
+                const productCount = categoryProducts.filter((product) => product.featuredSlug === item.slug).length;
 
                 return (
-                  <div key={product.id} className="group flex h-full flex-col text-foreground">
-                    <ProductHoverMedia
-                      product={product}
-                      relatedProducts={categoryProducts}
-                      label={product.category}
-                      className="aspect-[4/4.7]"
-                      onClick={() => navigate(`/product/${product.id}`)}
-                    />
-
-                    <div className="mt-5 flex flex-1 flex-col">
-                      <h3
-                        className="cursor-pointer font-serif text-xl leading-tight text-foreground transition-colors hover:text-interactive md:text-[1.55rem]"
-                        onClick={() => navigate(`/product/${product.id}`)}
-                      >
-                        {product.name}
-                      </h3>
-                      {promotion && (
-                        <span className="mt-3 inline-flex w-fit items-center gap-1.5 border border-interactive/30 bg-interactive/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-heritage">
-                          <BadgePercent className="h-3.5 w-3.5" />
-                          {promotionLabel}
-                        </span>
-                      )}
-                      <p className="mt-3 line-clamp-3 flex-1 text-sm leading-7 text-muted-foreground">
-                        {product.description}
+                  <Link
+                    key={item.id}
+                    to={categoryFeaturedUrl(category.slug, item.slug)}
+                    className="group relative min-h-[360px] overflow-hidden surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <img src={item.image_url || category.image} alt={item.name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <div className="collection-image-scrim absolute inset-0" />
+                    <div className="absolute inset-x-0 bottom-0 z-10 p-6">
+                      <p className="media-chip mb-4 inline-flex border-0 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em]">
+                        {productCount} product{productCount === 1 ? "" : "s"}
                       </p>
-
-                      <div className="mt-5 flex items-end justify-between gap-4">
-                        <div>
-                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">
-                            {promotionalPrice !== null ? "Promo price" : "Starting at"}
-                          </p>
-                          <p className="mt-1 font-serif text-2xl text-heritage md:text-[2rem]">
-                            {format(displayPrice)}
-                          </p>
-                          {promotionalPrice !== null && (
-                            <p className="mt-1 text-sm font-medium text-muted-foreground/70 line-through">
-                              {format(product.price)}
-                            </p>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/product/${product.id}`)}
-                          className="inline-flex items-center gap-2 border-b border-grid pb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-interactive hover:text-interactive"
-                        >
-                          View
-                          <ArrowRight size={16} />
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleAdd(product)}
-                        className="mt-5 inline-flex min-h-12 items-center justify-center bg-crimson px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-crimson/90"
-                      >
-                        Add to cart
-                      </button>
+                      <h3 className="collection-image-adaptive font-serif text-3xl leading-tight">{item.name}</h3>
+                      <span className="collection-image-adaptive mt-5 inline-flex items-center gap-2 pb-2 font-mono text-[11px] uppercase tracking-[0.2em]">
+                        View catalogue
+                        <ArrowRight size={16} />
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -580,7 +204,6 @@ const CategoryPage = () => {
 
       <Footer />
       <MobileBottomNav />
-      <BookVisitDialog open={visitOpen} onOpenChange={setVisitOpen} />
     </div>
   );
 };

@@ -7,81 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeHeroSlides, type HeroSlide } from "@/lib/heroSlides";
 import { gsap } from "gsap";
 
-const slides = [
-  {
-    id: "01",
-    eyebrow: "Premium Office Furniture",
-    accent: "Crafted",
-    heading: ["for Those", "Who Lead"],
-    body:
-      "Exceptional office and home furniture for modern African spaces, where premium craftsmanship meets everyday ambition.",
-    replacementFile: "slide-01-crafted-for-those-who-lead.jpg",
-    fallbackImage: "/uploads/collections/executive-suites/big-and-tall-high-back-swivel-chair-1022-02da43e643.jpg",
-    imageAlt: "Premium executive chair",
-    cta: "/categories",
-    ctaLabel: "Explore Collection",
-    tone: {
-      background:
-        "radial-gradient(circle at 78% 34%, rgb(var(--taupe-rgb) / 0.18), transparent 26%), radial-gradient(circle at 70% 46%, rgb(var(--orange-rgb) / 0.12), transparent 20%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.94) 100%)",
-      card: "rgb(var(--card) / 0.72)",
-    },
-  },
-  {
-    id: "02",
-    eyebrow: "Executive Desking Collection",
-    accent: "Design",
-    heading: ["Your Perfect", "Workspace"],
-    body:
-      "From executive desks to open-plan workstations, furniture that transforms how your team works, meets, and creates.",
-    replacementFile: "slide-02-design-your-perfect-workspace.jpg",
-    fallbackImage: "/uploads/collections/office-suites/carina-l-shaped-desk-oak-1036-0fd6ef2ffb.jpg",
-    imageAlt: "Executive desk workspace",
-    cta: "/category/executive-suites",
-    ctaLabel: "View Executive Suites",
-    tone: {
-      background:
-        "radial-gradient(circle at 74% 30%, rgb(var(--orange-rgb) / 0.16), transparent 24%), radial-gradient(circle at 82% 52%, rgb(var(--rifle-rgb) / 0.16), transparent 28%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.92) 100%)",
-      card: "rgb(var(--card) / 0.76)",
-    },
-  },
-  {
-    id: "03",
-    eyebrow: "Workspace Solutions",
-    accent: "Spaces",
-    heading: ["That Inspire", "Greatness"],
-    body:
-      "Full office fit-outs for hotels, corporations, schools, and developers. One supplier. One vision. Every space.",
-    replacementFile: "slide-03-spaces-that-inspire-greatness.jpg",
-    fallbackImage: "/uploads/collections/office-suites/dominion-workstation-4-seater-1066-26344f0f40.png",
-    imageAlt: "Office workstation furniture",
-    cta: "/catalogue",
-    ctaLabel: "Open Catalogue",
-    tone: {
-      background:
-        "radial-gradient(circle at 72% 36%, rgb(var(--olive-rgb) / 0.18), transparent 24%), radial-gradient(circle at 84% 18%, rgb(var(--orange-rgb) / 0.12), transparent 18%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.92) 100%)",
-      card: "rgb(var(--card) / 0.78)",
-    },
-  },
-  {
-    id: "04",
-    eyebrow: "Reception & Lounge",
-    accent: "Comfort",
-    heading: ["That Welcomes", "Everyone"],
-    body:
-      "Reception sofas, guest seating, and lounge pieces curated to make commercial interiors feel warm, confident, and complete.",
-    replacementFile: "slide-04-comfort-that-welcomes-everyone.jpg",
-    fallbackImage: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-1187-933676b7ed.png",
-    imageAlt: "Reception lounge sofa",
-    cta: "/category/reception-lobby",
-    ctaLabel: "Explore Reception",
-    tone: {
-      background:
-        "radial-gradient(circle at 80% 34%, rgb(var(--taupe-rgb) / 0.16), transparent 22%), radial-gradient(circle at 73% 46%, rgb(var(--olive-rgb) / 0.16), transparent 26%), linear-gradient(90deg, rgb(var(--background) / 1) 0%, rgb(var(--card) / 0.96) 46%, rgb(var(--secondary) / 0.92) 100%)",
-      card: "rgb(var(--card) / 0.78)",
-    },
-  },
-];
-
 const HERO_AUTOPLAY_MS = 6800;
 const HERO_PROGRESS_SECONDS = HERO_AUTOPLAY_MS / 1000;
 const HERO_WIPE_COLUMNS = 9;
@@ -683,15 +608,19 @@ const HeroSection = () => {
                     <p data-hero-copy className="text-[0.88rem] leading-6 text-white/90 md:text-[0.95rem]">
                       {slide.body}
                     </p>
-                    <Button
-                      asChild
-                      className="h-12 rounded-none border-0 bg-primary px-6 font-mono text-[10px] uppercase tracking-[0.2em] text-white hover:bg-primary/90 hover:text-white focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-0 md:h-[52px] md:px-7"
-                    >
-                      <Link data-hero-cta to={slide.cta}>
-                        {slide.ctaLabel}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+                    {slide.ctaEnabled ? (
+                      <Button
+                        asChild
+                        className="h-12 rounded-none border-0 bg-primary px-6 font-mono text-[10px] uppercase tracking-[0.2em] text-white hover:bg-primary/90 hover:text-white focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-0 md:h-[52px] md:px-7"
+                      >
+                        <Link data-hero-cta to={slide.cta}>
+                          {slide.ctaLabel}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <span data-hero-cta className="hidden" aria-hidden="true" />
+                    )}
                   </div>
                 </div>
               </div>

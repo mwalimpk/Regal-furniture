@@ -5,6 +5,7 @@ import UsersSection from "@/components/admin/UsersSection";
 import PropertiesSection from "@/components/admin/PropertiesSection";
 import AddPropertySection from "@/components/admin/AddPropertySection";
 import CataloguesSection from "@/components/admin/CataloguesSection";
+import ProductCategoriesSection from "@/components/admin/ProductCategoriesSection";
 import HeroSlidesSection from "@/components/admin/HeroSlidesSection";
 import PromotionalBannersSection from "@/components/admin/PromotionalBannersSection";
 import ApprovalsSection from "@/components/admin/ApprovalsSection";
@@ -26,6 +27,7 @@ const Admin = () => {
       case "users": return <UsersSection />;
       case "properties": return <PropertiesSection />;
       case "add-property": return <AddPropertySection />;
+      case "categories": return <ProductCategoriesSection />;
       case "catalogues": return <CataloguesSection />;
       case "hero-slides": return <HeroSlidesSection />;
       case "promotions": return <PromotionalBannersSection />;

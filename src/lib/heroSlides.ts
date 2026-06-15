@@ -15,6 +15,7 @@ export type HeroSlide = {
   imageAlt: string;
   cta: string;
   ctaLabel: string;
+  ctaEnabled: boolean;
   tone: HeroSlideTone;
   displayOrder: number;
 };
@@ -29,6 +30,7 @@ export type HeroSlideRow = {
   image_alt?: string | null;
   cta_label?: string | null;
   cta_href?: string | null;
+  cta_enabled?: boolean | number | string | null;
   display_order?: string | number | null;
 };
 
@@ -74,6 +76,13 @@ const splitHeroTitle = (title: string) => {
   ].filter(Boolean);
 };
 
+const parseBoolean = (value: unknown, fallback = true) => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return String(value).toLowerCase() !== "false" && String(value) !== "0";
+};
+
 export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
   {
     id: "01",
@@ -88,12 +97,13 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     imageAlt: "Premium executive chair",
     cta: "/categories",
     ctaLabel: "Explore Collection",
+    ctaEnabled: true,
     tone: HERO_TONES[0],
     displayOrder: 1,
   },
   {
     id: "02",
-    eyebrow: "Executive Desking Collection",
+    eyebrow: "Workspace Collection",
     accent: "Design",
     title: "Your Perfect Workspace",
     heading: ["Your Perfect", "Workspace"],
@@ -102,8 +112,9 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     imageUrl: "/images/products/green/CARINA L SHAPED DESK OAK.jpg",
     fallbackImage: "/images/products/green/CARINA L SHAPED DESK OAK.jpg",
     imageAlt: "Executive desk workspace",
-    cta: "/category/executive-suites",
-    ctaLabel: "View Executive Suites",
+    cta: "/categories",
+    ctaLabel: "Explore Collection",
+    ctaEnabled: true,
     tone: HERO_TONES[1],
     displayOrder: 2,
   },
@@ -120,12 +131,13 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     imageAlt: "Office workstation furniture",
     cta: "/catalogue",
     ctaLabel: "Open Catalogue",
+    ctaEnabled: true,
     tone: HERO_TONES[2],
     displayOrder: 3,
   },
   {
     id: "04",
-    eyebrow: "Reception & Lounge",
+    eyebrow: "Hospitality Spaces",
     accent: "Comfort",
     title: "That Welcomes Everyone",
     heading: ["That Welcomes", "Everyone"],
@@ -134,8 +146,9 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     imageUrl: "/images/products/green/CHESTERFIELD LEATHER COUCH 3 SEATER.png",
     fallbackImage: "/images/products/green/CHESTERFIELD LEATHER COUCH 3 SEATER.png",
     imageAlt: "Reception lounge sofa",
-    cta: "/category/reception-lobby",
-    ctaLabel: "Explore Reception",
+    cta: "/categories",
+    ctaLabel: "Explore Collection",
+    ctaEnabled: true,
     tone: HERO_TONES[3],
     displayOrder: 4,
   },
@@ -159,6 +172,7 @@ export const normalizeHeroSlide = (row: HeroSlideRow, index = 0): HeroSlide => {
     imageAlt: String(row.image_alt || title || fallback.imageAlt),
     cta: String(row.cta_href || fallback.cta || "/categories"),
     ctaLabel: String(row.cta_label || fallback.ctaLabel || "Explore Collection"),
+    ctaEnabled: parseBoolean(row.cta_enabled, fallback.ctaEnabled),
     tone: HERO_TONES[index % HERO_TONES.length],
     displayOrder: Number(row.display_order || index + 1),
   };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,21 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import ImageUploader from "./ImageUploader";
+import ProductAIDescriptionDialog, { type AIDescriptionTarget } from "./ProductAIDescriptionDialog";
 import RichTextEditor from "./RichTextEditor";
-import { Palette, Plus, Trash2 } from "lucide-react";
+import { Palette, Plus, Sparkles, Trash2 } from "lucide-react";
 import {
   PRODUCT_COLOR_OPTIONS,
   normalizeColorVariants,
   type ProductColorVariant,
 } from "@/lib/productColorVariants";
-
-const categories = [
-  "Executive Desking", "Managerial Desking", "L-Shaped Desks", "Adjustable Desking",
-  "Workstations", "Executive Chairs", "Ergonomic Chairs", "Visitor Chairs",
-  "Conference Tables", "Conference Chairs", "Sofas & Lounge", "Storage & Filing",
-  "Accessories",
-];
 
 const createColorVariantDraft = (): ProductColorVariant => ({
   id: `color-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -34,18 +29,85 @@ const createColorVariantDraft = (): ProductColorVariant => ({
 const uniqueImages = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
 
 interface Props {
-  product: any | null;
+  product: EditableAdminProduct | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }
+
+type EditableAdminProduct = {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  long_description?: string | null;
+  property_type?: string | null;
+  featured_slug?: string | null;
+  price?: number | string | null;
+  currency?: string | null;
+  location?: string | null;
+  city?: string | null;
+  status?: string | null;
+  images?: string[] | null;
+  color_variants?: unknown;
+};
+
+type ProductForm = {
+  title: string;
+  description: string;
+  long_description: string;
+  property_type: string;
+  featured_slug: string;
+  price: string;
+  currency: string;
+  location: string;
+  city: string;
+  status: string;
+};
+
+const emptyProductForm: ProductForm = {
+  title: "",
+  description: "",
+  long_description: "",
+  property_type: "",
+  featured_slug: "",
+  price: "",
+  currency: "USD",
+  location: "",
+  city: "Harare",
+  status: "approved",
+};
 
 const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<any>({});
+  const [form, setForm] = useState<ProductForm>(emptyProductForm);
   const [images, setImages] = useState<string[]>([]);
   const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>([]);
+  const [aiTarget, setAiTarget] = useState<AIDescriptionTarget | null>(null);
+  const { data: productCategories = [] } = useProductCategories();
+  const categories = useMemo(() => productCategories.map((category) => category.name), [productCategories]);
+  const defaultCategory = categories[0] || "";
+  const selectedCategory = useMemo(
+    () => productCategories.find((category) => category.name === form.property_type) || null,
+    [form.property_type, productCategories],
+  );
+
+  const update = <K extends keyof ProductForm>(k: K, v: ProductForm[K]) => setForm((p) => ({ ...p, [k]: v }));
+  const applyAiDescription = (target: AIDescriptionTarget, value: string) => {
+    update(target, value);
+  };
+  const appendLongDescriptionMedia = (html: string) => {
+    update("long_description", html);
+  };
+
+  const updateCategory = (value: string) => {
+    const nextCategory = productCategories.find((category) => category.name === value);
+    setForm((current) => ({
+      ...current,
+      property_type: value,
+      featured_slug: nextCategory?.featured[0]?.slug || "",
+    }));
+  };
 
   useEffect(() => {
     if (product) {
@@ -53,7 +115,8 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
         title: product.title || "",
         description: product.description || "",
         long_description: product.long_description || "",
-        property_type: product.property_type || "Executive Desking",
+        property_type: product.property_type || defaultCategory,
+        featured_slug: product.featured_slug || "",
         price: String(product.price || ""),
         currency: product.currency || "USD",
         location: product.location || "",
@@ -63,9 +126,21 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
       setImages(product.images || []);
       setColorVariants(normalizeColorVariants(product.color_variants));
     }
-  }, [product]);
+  }, [defaultCategory, product]);
 
-  const update = (k: string, v: string) => setForm((p: any) => ({ ...p, [k]: v }));
+  useEffect(() => {
+    if (open && !form.property_type && defaultCategory) {
+      setForm((current) => ({ ...current, property_type: defaultCategory }));
+    }
+  }, [defaultCategory, form.property_type, open]);
+
+  useEffect(() => {
+    if (!open || !selectedCategory) return;
+    const validFeatured = selectedCategory.featured.some((item) => item.slug === form.featured_slug);
+    if (!validFeatured) {
+      setForm((current) => ({ ...current, featured_slug: selectedCategory.featured[0]?.slug || "" }));
+    }
+  }, [form.featured_slug, open, selectedCategory]);
 
   const addColorVariant = () => {
     setColorVariants((current) => [...current, createColorVariantDraft()]);
@@ -87,6 +162,16 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
 
   const save = async () => {
     if (!product) return;
+
+    if (!form.property_type || !categories.includes(form.property_type)) {
+      toast({ title: "Choose a product category", description: "Add a category first if none are available.", variant: "destructive" });
+      return;
+    }
+
+    if (selectedCategory?.featured.length && !form.featured_slug) {
+      toast({ title: "Choose a featured subcategory", description: "Products need a featured subcategory for the storefront catalogue.", variant: "destructive" });
+      return;
+    }
 
     const cleanColorVariants = colorVariants
       .map((variant) => ({
@@ -121,6 +206,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
       description: form.description,
       long_description: form.long_description,
       property_type: form.property_type,
+      featured_slug: form.featured_slug || null,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
       location: form.location,
@@ -152,15 +238,49 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
             <div><Label>Name</Label><Input value={form.title} onChange={(e) => update("title", e.target.value)} /></div>
             <div>
               <Label>Category</Label>
-              <Select value={form.property_type} onValueChange={(v) => update("property_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <Select value={form.property_type} onValueChange={updateCategory}>
+                <SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {!categories.length && <SelectItem value="none" disabled>No categories available</SelectItem>}
+                </SelectContent>
               </Select>
             </div>
           </div>
-          <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={3} /></div>
           <div>
-            <Label>Long Description</Label>
+            <Label>Featured subcategory</Label>
+            <Select
+              value={form.featured_slug || "none"}
+              onValueChange={(value) => update("featured_slug", value === "none" ? "" : value)}
+              disabled={!selectedCategory?.featured.length}
+            >
+              <SelectTrigger><SelectValue placeholder="Choose featured subcategory" /></SelectTrigger>
+              <SelectContent>
+                {selectedCategory?.featured.map((item) => (
+                  <SelectItem key={item.slug} value={item.slug}>{item.name}</SelectItem>
+                ))}
+                {!selectedCategory?.featured.length && <SelectItem value="none" disabled>No featured subcategories</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Label>Description</Label>
+              <Button type="button" size="sm" variant="outline" onClick={() => setAiTarget("description")} className="w-full sm:w-auto">
+                <Sparkles className="h-4 w-4" />
+                Add using AI
+              </Button>
+            </div>
+            <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={3} />
+          </div>
+          <div>
+            <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Label>Long Description</Label>
+              <Button type="button" size="sm" variant="outline" onClick={() => setAiTarget("long_description")} className="w-full sm:w-auto">
+                <Sparkles className="h-4 w-4" />
+                Add using AI
+              </Button>
+            </div>
             <RichTextEditor
               value={form.long_description || ""}
               onChange={(value) => update("long_description", value)}
@@ -297,6 +417,28 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
               </div>
             )}
           </div>
+          <ProductAIDescriptionDialog
+            open={aiTarget !== null}
+            target={aiTarget || "description"}
+            onOpenChange={(nextOpen) => {
+              if (!nextOpen) setAiTarget(null);
+            }}
+            onApply={applyAiDescription}
+            onLongDescriptionMediaAdd={appendLongDescriptionMedia}
+            context={{
+              title: form.title,
+              category: form.property_type,
+              featuredSubcategory: selectedCategory?.featured.find((item) => item.slug === form.featured_slug)?.name,
+              description: form.description,
+              longDescription: form.long_description,
+              price: form.price,
+              currency: form.currency,
+              sku: form.location,
+              warehouse: form.city,
+              images,
+              colorVariants,
+            }}
+          />
           <div className="flex flex-col justify-end gap-2 pt-2 sm:flex-row">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={save} disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>

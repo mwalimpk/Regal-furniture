@@ -32,12 +32,26 @@ CREATE TABLE IF NOT EXISTS user_roles (
   INDEX idx_user_roles_user_id (user_id)
 );
 
+CREATE TABLE IF NOT EXISTS product_categories (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  image_url LONGTEXT NOT NULL,
+  features LONGTEXT NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NULL,
+  INDEX idx_product_categories_name (name),
+  INDEX idx_product_categories_user_id (user_id)
+);
+
 CREATE TABLE IF NOT EXISTS properties (
   id VARCHAR(64) PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description LONGTEXT NULL,
   long_description LONGTEXT NULL,
   property_type VARCHAR(255) NOT NULL,
+  featured_slug VARCHAR(255) NULL,
   price DECIMAL(12,2) NOT NULL DEFAULT 0,
   currency VARCHAR(16) NOT NULL DEFAULT 'USD',
   location VARCHAR(255) NULL,
@@ -54,7 +68,8 @@ CREATE TABLE IF NOT EXISTS properties (
   updated_at DATETIME NOT NULL,
   user_id VARCHAR(64) NOT NULL,
   INDEX idx_properties_user_id (user_id),
-  INDEX idx_properties_type (property_type)
+  INDEX idx_properties_type (property_type),
+  INDEX idx_properties_featured_slug (featured_slug)
 );
 
 CREATE TABLE IF NOT EXISTS product_pairings (
@@ -114,6 +129,7 @@ CREATE TABLE IF NOT EXISTS hero_slides (
   image_alt VARCHAR(255) NULL,
   cta_label VARCHAR(128) NULL,
   cta_href VARCHAR(255) NULL,
+  cta_enabled TINYINT(1) NOT NULL DEFAULT 1,
   display_order INT NOT NULL DEFAULT 1,
   status VARCHAR(32) NOT NULL DEFAULT 'active',
   created_at DATETIME NOT NULL,

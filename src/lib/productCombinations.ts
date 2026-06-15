@@ -1,4 +1,4 @@
-import { categoryPairings, type Product } from "@/data/products";
+import type { Product } from "@/data/products";
 
 export type ProductCombinationInsight = {
   product: Product;
@@ -8,29 +8,8 @@ export type ProductCombinationInsight = {
   priceFitLabel: string;
 };
 
-const compatibilityTargets: Record<string, string[]> = {
-  "executive-suites": ["office-suites", "conference-boardroom", "reception-lobby", "accessories"],
-  "office-suites": ["executive-suites", "home-office", "conference-boardroom", "accessories"],
-  "conference-boardroom": ["reception-lobby", "executive-suites", "office-suites", "accessories"],
-  "reception-lobby": ["conference-boardroom", "accessories", "executive-suites", "office-suites"],
-  "home-office": ["office-suites", "executive-suites", "accessories"],
-  "industrial-laboratory": ["accessories", "office-suites", "home-office"],
-  "accessories": [
-    "executive-suites",
-    "office-suites",
-    "conference-boardroom",
-    "reception-lobby",
-    "home-office",
-    "industrial-laboratory",
-  ],
-};
-
 const categoryFamily = (slug: string) => {
-  if (slug === "executive-suites" || slug === "office-suites" || slug === "home-office") return "workspace";
-  if (slug === "conference-boardroom") return "meeting";
-  if (slug === "reception-lobby") return "lounge";
-  if (slug === "industrial-laboratory") return "technical";
-  if (slug === "accessories") return "storage";
+  if (slug.includes("office") || slug.includes("workspace")) return "workspace";
   if (slug.includes("chair")) return "seating";
   if (slug.includes("desk") || slug.includes("workstation")) return "desking";
   if (slug.includes("conference")) return "meeting";
@@ -39,10 +18,7 @@ const categoryFamily = (slug: string) => {
   return "accessory";
 };
 
-export const getCompatibleCategorySlugs = (categorySlug: string) => {
-  const paired = categoryPairings[categorySlug];
-  return Array.from(new Set([...(compatibilityTargets[categorySlug] || []), paired].filter(Boolean)));
-};
+export const getCompatibleCategorySlugs = (_categorySlug: string) => [];
 
 const getPriceFit = (basePrice: number, companionPrice: number) => {
   const total = Math.max(basePrice + companionPrice, 1);

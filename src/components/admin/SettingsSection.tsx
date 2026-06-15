@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { categories } from "@/data/products";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { defaultFilterSettings, FilterSettings, QuickFilter, QuickFilterType, loadFilterSettings, saveFilterSettings } from "@/lib/filterSettings";
 
 const emptyQuickFilter = (): QuickFilter => ({
@@ -15,17 +15,17 @@ const emptyQuickFilter = (): QuickFilter => ({
   enabled: true,
 });
 
-const categoryOptions = categories.map((category) => ({
-  slug: category.slug,
-  name: category.name,
-}));
-
 const SettingsSection = () => {
   const qc = useQueryClient();
+  const { data: productCategories = [] } = useProductCategories();
   const { data: filterSettings = defaultFilterSettings } = useQuery({
     queryKey: ["store-filter-settings"],
     queryFn: async () => loadFilterSettings(),
   });
+  const categoryOptions = useMemo(
+    () => productCategories.map((category) => ({ slug: category.slug, name: category.name })),
+    [productCategories],
+  );
 
   const [draft, setDraft] = useState<FilterSettings>(filterSettings);
 
@@ -202,7 +202,7 @@ const SettingsSection = () => {
                       <Input
                         value={(draft.collectionGroups[category.slug] || []).join(", ")}
                         onChange={(e) => updateCollectionGroup(category.slug, e.target.value)}
-                        placeholder="executive-suites, office-suites"
+                        placeholder="related-category-slug, another-category-slug"
                         className="mt-1.5"
                       />
                     </div>

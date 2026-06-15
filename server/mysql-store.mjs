@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import mysql from "mysql2/promise";
 import { fileURLToPath } from "node:url";
+import { buildGeneratedProductCopy as buildGeneratedProductCopyWithAI } from "./product-ai.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +32,7 @@ const legacyStoreFile = path.join(__dirname, "data", "store.json");
 const JSON_COLUMNS = {
   auth_users: ["user_metadata"],
   properties: ["images", "color_variants"],
+  product_categories: ["features"],
   product_pairings: ["recommended_ids"],
   product_promotions: ["product_ids", "category_targets"],
   promotional_banners: ["placements"],
@@ -42,11 +44,12 @@ const TABLE_COLUMNS = {
   sessions: ["access_token", "user_id", "expires_at"],
   profiles: ["id", "user_id", "full_name", "currency", "phone", "status", "created_at", "updated_at"],
   user_roles: ["id", "user_id", "role"],
-  properties: ["id", "title", "description", "long_description", "property_type", "price", "currency", "location", "city", "country", "images", "color_variants", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
+  product_categories: ["id", "name", "slug", "image_url", "features", "created_at", "updated_at", "user_id"],
+  properties: ["id", "title", "description", "long_description", "property_type", "featured_slug", "price", "currency", "location", "city", "country", "images", "color_variants", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
   product_pairings: ["id", "product_id", "recommended_ids"],
   product_promotions: ["id", "title", "description", "promotion_type", "discount_type", "discount_value", "offer_label", "product_ids", "category_targets", "status", "starts_at", "ends_at", "created_at", "updated_at", "user_id"],
   catalogues: ["id", "title", "category", "year", "month", "document_url", "document_name", "document_type", "cover_image_url", "imported_count", "status", "created_at", "updated_at", "user_id"],
-  hero_slides: ["id", "eyebrow", "accent_title", "title", "description", "image_url", "image_alt", "cta_label", "cta_href", "display_order", "status", "created_at", "updated_at", "user_id"],
+  hero_slides: ["id", "eyebrow", "accent_title", "title", "description", "image_url", "image_alt", "cta_label", "cta_href", "cta_enabled", "display_order", "status", "created_at", "updated_at", "user_id"],
   promotional_banners: ["id", "title", "subtitle", "category", "background_image_url", "cta_label", "cta_href", "placements", "status", "starts_at", "ends_at", "has_countdown", "countdown_ends_at", "created_at", "updated_at", "user_id"],
   inquiries: ["id", "created_at", "email", "message", "name", "phone", "property_id", "status", "user_id"],
   leads: ["id", "created_at", "email", "name", "notes", "phone", "source", "status"],
@@ -61,6 +64,126 @@ const nowIso = () => new Date().toISOString();
 const today = () => new Date().toISOString().split("T")[0];
 const uid = (prefix) => `${prefix}-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const slugify = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const DEFAULT_PRODUCT_CATEGORIES = [
+  {
+    name: "Executive Suites",
+    slug: "executive-suites",
+    image_url: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg",
+    features: [
+      { id: "featured-executive-chairs", name: "Executive chairs", image_url: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg" },
+      { id: "featured-executive-desks", name: "Executive desks", image_url: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg" },
+    ],
+  },
+  {
+    name: "Office Suites",
+    slug: "office-suites",
+    image_url: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg",
+    features: [
+      { id: "featured-workstations", name: "Workstations", image_url: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg" },
+      { id: "featured-operator-seating", name: "Operator seating", image_url: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg" },
+    ],
+  },
+  {
+    name: "Conference & Boardroom",
+    slug: "conference-boardroom",
+    image_url: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg",
+    features: [
+      { id: "featured-boardroom-tables", name: "Boardroom tables", image_url: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg" },
+      { id: "featured-conference-chairs", name: "Conference chairs", image_url: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg" },
+    ],
+  },
+  {
+    name: "Reception & Lobby",
+    slug: "reception-lobby",
+    image_url: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png",
+    features: [
+      { id: "featured-reception-sofas", name: "Reception sofas", image_url: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png" },
+      { id: "featured-visitor-seating", name: "Visitor seating", image_url: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png" },
+    ],
+  },
+  {
+    name: "Home Office",
+    slug: "home-office",
+    image_url: "/uploads/collections/home-office/aqua-ergonomic-swivel-chair-dc140d6557.jpg",
+    features: [
+      { id: "featured-home-office-chairs", name: "Home office chairs", image_url: "/uploads/collections/home-office/aqua-ergonomic-swivel-chair-dc140d6557.jpg" },
+      { id: "featured-compact-desks", name: "Compact desks", image_url: "/uploads/collections/home-office/aqua-ergonomic-swivel-chair-dc140d6557.jpg" },
+    ],
+  },
+  {
+    name: "Industrial & Laboratory",
+    slug: "industrial-laboratory",
+    image_url: "/uploads/collections/industrial-laboratory/blackpool-industrial-draughtman-chair-822ed5892c.png",
+    features: [
+      { id: "featured-lab-stools", name: "Laboratory stools", image_url: "/uploads/collections/industrial-laboratory/blackpool-industrial-draughtman-chair-822ed5892c.png" },
+      { id: "featured-technical-task-seating", name: "Technical task seating", image_url: "/uploads/collections/industrial-laboratory/blackpool-industrial-draughtman-chair-822ed5892c.png" },
+    ],
+  },
+  {
+    name: "Accessories",
+    slug: "accessories",
+    image_url: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg",
+    features: [
+      { id: "featured-filing-storage", name: "Filing storage", image_url: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg" },
+      { id: "featured-workspace-add-ons", name: "Workspace add-ons", image_url: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg" },
+    ],
+  },
+];
+
+const buildDefaultCategoryRows = (timestamp = nowIso()) =>
+  DEFAULT_PRODUCT_CATEGORIES.map((category) => ({
+    id: `category-${category.slug}`,
+    name: category.name,
+    slug: category.slug,
+    image_url: category.image_url,
+    features: category.features.map((feature, index) => ({
+      ...feature,
+      slug: feature.slug || slugify(feature.name || feature.id || index),
+    })),
+    created_at: timestamp,
+    updated_at: timestamp,
+    user_id: null,
+  }));
+
+const normalizeCategoryFeaturedItems = (features = [], fallbackImage = "") => {
+  const values = Array.isArray(features)
+    ? features
+    : String(features || "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+
+  return values
+    .map((item, index) => {
+      if (item && typeof item === "object") {
+        const name = String(item.name || item.title || "").trim();
+        const slug = slugify(item.slug || name || item.id || "");
+        const image_url = String(item.image_url || item.image || fallbackImage || "").trim();
+        if (!name && !image_url) return null;
+        return {
+          id: String(item.id || `featured-${slugify(name || image_url) || index}`),
+          name,
+          slug,
+          image_url,
+        };
+      }
+
+      const name = String(item || "").trim();
+      if (!name) return null;
+      return {
+        id: `featured-${slugify(name) || index}`,
+        name,
+        slug: slugify(name),
+        image_url: fallbackImage,
+      };
+    })
+    .filter(Boolean);
+};
 
 let pool;
 let initialized = false;
@@ -68,10 +191,14 @@ let initialized = false;
 const OPTIONAL_SCHEMA_COLUMNS = {
   properties: [
     { name: "long_description", definition: "LONGTEXT NULL AFTER `description`" },
+    { name: "featured_slug", definition: "VARCHAR(255) NULL AFTER `property_type`" },
     { name: "color_variants", definition: "LONGTEXT NULL AFTER `images`" },
   ],
   promotional_banners: [
     { name: "background_image_url", definition: "LONGTEXT NULL" },
+  ],
+  hero_slides: [
+    { name: "cta_enabled", definition: "TINYINT(1) NOT NULL DEFAULT 1 AFTER `cta_href`" },
   ],
 };
 
@@ -111,6 +238,7 @@ const serializeRow = (table, row) => {
   if ("featured" in next && typeof next.featured === "boolean") next.featured = next.featured ? 1 : 0;
   if ("read" in next && typeof next.read === "boolean") next.read = next.read ? 1 : 0;
   if ("has_countdown" in next && typeof next.has_countdown === "boolean") next.has_countdown = next.has_countdown ? 1 : 0;
+  if ("cta_enabled" in next && typeof next.cta_enabled === "boolean") next.cta_enabled = next.cta_enabled ? 1 : 0;
   return next;
 };
 
@@ -129,6 +257,7 @@ const deserializeRow = (table, row) => {
   if ("featured" in next) next.featured = next.featured === null ? null : Boolean(next.featured);
   if ("read" in next) next.read = next.read === null ? null : Boolean(next.read);
   if ("has_countdown" in next) next.has_countdown = next.has_countdown === null ? null : Boolean(next.has_countdown);
+  if ("cta_enabled" in next) next.cta_enabled = next.cta_enabled === null ? true : Boolean(next.cta_enabled);
   ["price", "total", "amount", "quantity", "year", "month", "imported_count", "discount_value", "display_order"].forEach((key) => {
     if (key in next && next[key] !== null) next[key] = Number(next[key]);
   });
@@ -182,6 +311,7 @@ const seedState = () => {
       { id: uid("role"), user_id: authUsers[1].id, role: "admin" },
       { id: uid("role"), user_id: authUsers[2].id, role: "user" },
     ],
+    product_categories: buildDefaultCategoryRows(createdAt),
     properties: [],
     product_pairings: [],
     product_promotions: [],
@@ -226,7 +356,11 @@ const importState = async (state) => {
   for (const [table, rows] of Object.entries(state)) {
     if (!TABLE_COLUMNS[table] || !Array.isArray(rows) || !rows.length) continue;
     for (const row of rows) {
-      const normalized = serializeRow(table, row);
+      const preparedRow =
+        table === "product_categories"
+          ? { ...row, features: normalizeCategoryFeaturedItems(row.features || [], row.image_url) }
+          : row;
+      const normalized = serializeRow(table, preparedRow);
       const columns = TABLE_COLUMNS[table].filter((column) => column in normalized);
       const updateColumns = columns.filter((column) => column !== "id");
       await db.query(
@@ -268,6 +402,11 @@ export const ensureMysqlReady = async () => {
     }
   }
 
+  const [[categoryCountRow]] = await db.query("SELECT COUNT(*) AS count FROM product_categories");
+  if (!Number(categoryCountRow.count)) {
+    await importState({ product_categories: buildDefaultCategoryRows() });
+  }
+
   initialized = true;
   return true;
 };
@@ -293,7 +432,24 @@ const normalizeInsertRow = (table, row) => {
     case "user_roles":
       return { id: uid("role"), role: "user", ...row };
     case "properties":
-      return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], color_variants: [], ...row };
+      return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, featured_slug: null, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], color_variants: [], ...row };
+    case "product_categories": {
+      const name = String(row.name || "").trim();
+      const slug = String(row.slug || slugify(name || "category"));
+      const imageUrl = String(row.image_url || "");
+      return {
+        id: uid("category"),
+        name,
+        slug,
+        image_url: "",
+        created_at: timestamp,
+        updated_at: timestamp,
+        user_id: null,
+        ...row,
+        slug,
+        features: normalizeCategoryFeaturedItems(row.features || [], imageUrl),
+      };
+    }
     case "product_pairings":
       return { id: uid("pair"), recommended_ids: [], ...row };
     case "product_promotions":
@@ -326,6 +482,7 @@ const normalizeInsertRow = (table, row) => {
         image_alt: null,
         cta_label: "Explore Collection",
         cta_href: "/categories",
+        cta_enabled: true,
         display_order: 1,
         status: "active",
         ...row,
@@ -386,6 +543,7 @@ const productImportKey = (product) =>
 const normalizeImportedProduct = (row, rowNumber) => {
   const title = firstTextValue(row, ["title", "name", "product_name", "product", "item", "item_name"]);
   const propertyType = firstTextValue(row, ["property_type", "category", "product_type", "type", "collection"]);
+  const featuredSlug = slugify(firstTextValue(row, ["featured_slug", "subcategory", "sub_category", "featured", "featured_category"]));
   const rawPrice = row?.price ?? row?.unit_price ?? row?.selling_price ?? row?.amount ?? row?.cost;
   const price = parseImportPrice(rawPrice);
   const currency = firstTextValue(row, ["currency"]).toUpperCase() || "USD";
@@ -409,6 +567,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
       description,
       long_description: longDescription,
       property_type: propertyType,
+      featured_slug: featuredSlug || null,
       price,
       currency,
       location,
@@ -721,15 +880,7 @@ export const setSession = async ({ access_token }) => {
 export const invokeFunction = async (name, body = {}, origin = "") => {
   await ensureMysqlReady();
   if (name === "generate-product-description") {
-    const category = body?.category ? `${body.category}` : "office furniture";
-    const features = body?.features ? `${body.features}` : "premium craftsmanship";
-    const productName = body?.name ? `${body.name}` : "This product";
-    return {
-      data: {
-        description: `${productName} is a ${category.toLowerCase()} piece designed for practical daily use, clean presentation, and long-term durability. Key highlights include ${features}, making it a strong fit for executive offices, reception areas, and home workspaces.`,
-      },
-      error: null,
-    };
+    return { data: await buildGeneratedProductCopyWithAI(body), error: null };
   }
 
   if (name === "send-rfq-notification") {

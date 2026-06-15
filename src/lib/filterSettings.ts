@@ -30,15 +30,7 @@ export const defaultFilterSettings: FilterSettings = {
     { id: "qf-premium", label: "Premium", type: "min_price", value: "1000", enabled: true },
     { id: "qf-ergonomic", label: "Ergonomic", type: "keyword", value: "ergonomic", enabled: true },
   ],
-  collectionGroups: {
-    "executive-suites": ["executive-suites"],
-    "office-suites": ["office-suites"],
-    "conference-boardroom": ["conference-boardroom"],
-    "reception-lobby": ["reception-lobby"],
-    "home-office": ["home-office"],
-    "industrial-laboratory": ["industrial-laboratory"],
-    "accessories": ["accessories"],
-  },
+  collectionGroups: {},
 };
 
 const canUseStorage = () => typeof window !== "undefined" && !!window.localStorage;

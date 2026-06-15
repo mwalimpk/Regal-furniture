@@ -142,24 +142,9 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{format(total)}</span>
               </div>
-<<<<<<< HEAD
               <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
                 Order via WhatsApp
               </Button>
-=======
-              {WHATSAPP_ORDER_BRANCHES.map((branch) => (
-                <Button
-                  key={branch.city}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                  onClick={() => handleWhatsAppOrder(branch)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Order from {branch.city}
-                </Button>
-              ))}
->>>>>>> e4f2d23d9b33a81ef11a0cddb44a8282fee032d4
               <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
                 Continue Shopping
               </Button>

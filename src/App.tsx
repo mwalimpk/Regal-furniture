@@ -20,6 +20,7 @@ import ClientDashboard from "./pages/ClientDashboard";
 import Categories from "./pages/Categories";
 import Catalogue from "./pages/Catalogue";
 import CategoryPage from "./pages/CategoryPage";
+import FeaturedCategoryPage from "./pages/FeaturedCategoryPage";
 import ProductPage from "./pages/ProductPage";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ const App = () => (
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/catalogue" element={<Catalogue />} />
+                    <Route path="/category/:slug/:featuredSlug" element={<FeaturedCategoryPage />} />
                     <Route path="/category/:slug" element={<CategoryPage />} />
                     <Route path="/product/:id" element={<ProductPage />} />
                     <Route path="/dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />

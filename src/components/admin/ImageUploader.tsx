@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Star, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 
 interface ImageUploaderProps {
   images: string[];
@@ -49,6 +49,7 @@ const ImageUploader = ({ images, onChange, max = 10 }: ImageUploaderProps) => {
   };
 
   const remove = (url: string) => onChange(images.filter((u) => u !== url));
+  const setAsThumbnail = (url: string) => onChange([url, ...images.filter((u) => u !== url)]);
 
   return (
     <div className="space-y-3">
@@ -71,17 +72,34 @@ const ImageUploader = ({ images, onChange, max = 10 }: ImageUploaderProps) => {
       {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
           {images.map((url, i) => (
-            <div key={url} className="group relative aspect-square overflow-hidden border border-grid/30">
-              <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+            <div
+              key={url}
+              className="relative aspect-square overflow-hidden border border-grid/30 bg-background"
+            >
+              <img src={url} alt={`Product ${i + 1}`} className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => remove(url)}
-                className="absolute top-1 right-1 bg-destructive text-destructive-foreground text-xs px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center bg-destructive text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+                aria-label={`Remove product image ${i + 1}`}
               >
-                Remove
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
-              {i === 0 && (
-                <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">Main</span>
+              {i === 0 ? (
+                <span className="absolute bottom-1 left-1 right-1 inline-flex min-h-7 items-center justify-center gap-1 bg-primary px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-primary-foreground shadow-sm">
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  Thumbnail
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAsThumbnail(url)}
+                  className="absolute bottom-1 left-1 right-1 inline-flex min-h-7 items-center justify-center gap-1 bg-background/95 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-foreground shadow-sm transition-colors hover:bg-foreground hover:text-background"
+                  aria-label={`Set product image ${i + 1} as thumbnail`}
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  Set thumbnail
+                </button>
               )}
             </div>
           ))}

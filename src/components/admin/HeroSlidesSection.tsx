@@ -5,20 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
-  CTA_DESTINATION_OPTIONS,
   CUSTOM_CTA_DESTINATION,
+  buildCtaDestinationOptions,
   getCtaDestinationLabel,
   getCtaDestinationSelectValue,
   sanitizeCtaHref,
 } from "@/lib/ctaDestinations";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 type HeroSlideAdminRow = {
   id: string;
@@ -30,6 +34,7 @@ type HeroSlideAdminRow = {
   image_alt: string | null;
   cta_label: string | null;
   cta_href: string | null;
+  cta_enabled: boolean;
   display_order: number;
   status: string;
   created_at: string;
@@ -46,6 +51,7 @@ type HeroSlideForm = {
   image_alt: string;
   cta_label: string;
   cta_href: string;
+  cta_enabled: boolean;
   display_order: string;
   status: string;
 };
@@ -59,6 +65,7 @@ const emptyForm = (nextOrder = 1): HeroSlideForm => ({
   image_alt: "",
   cta_label: "Explore Collection",
   cta_href: "/categories",
+  cta_enabled: true,
   display_order: String(nextOrder),
   status: "active",
 });
@@ -66,6 +73,13 @@ const emptyForm = (nextOrder = 1): HeroSlideForm => ({
 const cleanNullable = (value: string) => {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+};
+
+const parseBoolean = (value: unknown, fallback = true) => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return String(value).toLowerCase() !== "false" && String(value) !== "0";
 };
 
 const normalizeAdminHeroSlide = (row: Record<string, unknown>): HeroSlideAdminRow => ({
@@ -78,6 +92,7 @@ const normalizeAdminHeroSlide = (row: Record<string, unknown>): HeroSlideAdminRo
   image_alt: row.image_alt ? String(row.image_alt) : null,
   cta_label: row.cta_label ? String(row.cta_label) : null,
   cta_href: row.cta_href ? String(row.cta_href) : null,
+  cta_enabled: parseBoolean(row.cta_enabled, true),
   display_order: Number(row.display_order || 1),
   status: String(row.status || "paused"),
   created_at: String(row.created_at || ""),
@@ -102,6 +117,7 @@ const HeroSlidesSection = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const { data: categories = [] } = useProductCategories();
 
   const { data: slides = [], isLoading } = useQuery({
     queryKey: ["admin-hero-slides"],
@@ -121,7 +137,9 @@ const HeroSlidesSection = () => {
     [slides],
   );
   const liveSlides = useMemo(() => slides.filter((slide) => slide.status === "active").length, [slides]);
-  const ctaSelectValue = getCtaDestinationSelectValue(form.cta_href, CUSTOM_CTA_DESTINATION);
+  const slidePagination = useAdminTablePagination(slides);
+  const ctaDestinationOptions = useMemo(() => buildCtaDestinationOptions(categories), [categories]);
+  const ctaSelectValue = getCtaDestinationSelectValue(form.cta_href, CUSTOM_CTA_DESTINATION, ctaDestinationOptions);
 
   const updateForm = <K extends keyof HeroSlideForm>(key: K, value: HeroSlideForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -143,6 +161,7 @@ const HeroSlidesSection = () => {
       image_alt: slide.image_alt || "",
       cta_label: slide.cta_label || "Explore Collection",
       cta_href: slide.cta_href || "",
+      cta_enabled: slide.cta_enabled,
       display_order: String(slide.display_order || 1),
       status: slide.status || "active",
     });
@@ -213,6 +232,7 @@ const HeroSlidesSection = () => {
       image_alt: cleanNullable(form.image_alt) || form.title.trim(),
       cta_label: cleanNullable(form.cta_label) || "Explore Collection",
       cta_href: ctaHref,
+      cta_enabled: form.cta_enabled,
       display_order: Number(form.display_order) || nextOrder,
       status: form.status,
     };
@@ -336,6 +356,18 @@ const HeroSlidesSection = () => {
               />
             </div>
 
+            <div className="flex items-center justify-between gap-4 border border-grid/25 bg-background px-4 py-3">
+              <div>
+                <Label htmlFor="hero-cta-enabled">Show CTA</Label>
+                <p className="mt-1 text-xs text-muted-foreground">Toggle the hero button for this slide.</p>
+              </div>
+              <Switch
+                id="hero-cta-enabled"
+                checked={form.cta_enabled}
+                onCheckedChange={(checked) => updateForm("cta_enabled", checked)}
+              />
+            </div>
+
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>CTA label</Label>
@@ -343,6 +375,7 @@ const HeroSlidesSection = () => {
                   value={form.cta_label}
                   onChange={(event) => updateForm("cta_label", event.target.value)}
                   placeholder="Explore Collection"
+                  disabled={!form.cta_enabled}
                 />
               </div>
               <div className="space-y-2">
@@ -350,10 +383,11 @@ const HeroSlidesSection = () => {
                 <Select
                   value={ctaSelectValue}
                   onValueChange={(value) => updateForm("cta_href", value === CUSTOM_CTA_DESTINATION ? "" : value)}
+                  disabled={!form.cta_enabled}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CTA_DESTINATION_OPTIONS.map((option) => (
+                    {ctaDestinationOptions.map((option) => (
                       <SelectItem key={option.href} value={option.href}>{option.label}</SelectItem>
                     ))}
                     <SelectItem value={CUSTOM_CTA_DESTINATION}>Custom link</SelectItem>
@@ -362,7 +396,7 @@ const HeroSlidesSection = () => {
               </div>
             </div>
 
-            {ctaSelectValue === CUSTOM_CTA_DESTINATION && (
+            {form.cta_enabled && ctaSelectValue === CUSTOM_CTA_DESTINATION && (
               <div className="space-y-2">
                 <Label>Custom CTA link</Label>
                 <Input
@@ -491,7 +525,7 @@ const HeroSlidesSection = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {slides.map((slide) => (
+                  {slidePagination.paginatedItems.map((slide) => (
                     <TableRow key={slide.id}>
                       <TableCell>
                         <div className="flex items-start gap-3">
@@ -511,8 +545,14 @@ const HeroSlidesSection = () => {
                       </TableCell>
                       <TableCell>{slide.display_order}</TableCell>
                       <TableCell>
-                        <div className="text-sm text-foreground">{slide.cta_label || "Explore Collection"}</div>
-                        <div className="text-xs text-muted-foreground">{getCtaDestinationLabel(slide.cta_href)}</div>
+                        {slide.cta_enabled ? (
+                          <>
+                            <div className="text-sm text-foreground">{slide.cta_label || "Explore Collection"}</div>
+                            <div className="text-xs text-muted-foreground">{getCtaDestinationLabel(slide.cta_href, ctaDestinationOptions)}</div>
+                          </>
+                        ) : (
+                          <Badge variant="outline" className="border-grid/35 bg-background text-muted-foreground">Hidden</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge className={slide.status === "active" ? "border border-primary/20 bg-primary/10 text-foreground" : "border border-grid/25 bg-background text-muted-foreground"}>
@@ -539,6 +579,7 @@ const HeroSlidesSection = () => {
                   ))}
                 </TableBody>
               </Table>
+              <AdminTablePagination pagination={slidePagination} itemLabel="slides" />
             </div>
           )}
         </CardContent>

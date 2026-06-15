@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 const RFQ_STATUSES = ["New", "In Review", "Responded", "Closed"] as const;
 type RFQStatus = (typeof RFQ_STATUSES)[number];
@@ -28,6 +30,7 @@ const RFQSection = () => {
       return data;
     },
   });
+  const rfqPagination = useAdminTablePagination(rfqs || []);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -72,7 +75,7 @@ const RFQSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rfqs.map((r) => (
+              {rfqPagination.paginatedItems.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium whitespace-nowrap">{r.full_name}</TableCell>
                   <TableCell>{r.company_name || "—"}</TableCell>
@@ -113,6 +116,7 @@ const RFQSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={rfqPagination} itemLabel="quote requests" />
         </div>
       )}
     </div>

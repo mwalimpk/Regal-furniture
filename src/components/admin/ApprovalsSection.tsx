@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
+import type { Database } from "@/integrations/supabase/types";
+
+type PropertyStatus = Database["public"]["Enums"]["property_status"];
 
 const ApprovalsSection = () => {
   const { toast } = useToast();
@@ -16,10 +21,11 @@ const ApprovalsSection = () => {
       return data;
     },
   });
+  const pendingPagination = useAdminTablePagination(pending || []);
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("properties").update({ status: status as any }).eq("id", id);
+    mutationFn: async ({ id, status }: { id: string; status: PropertyStatus }) => {
+      const { error } = await supabase.from("properties").update({ status }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -37,19 +43,10 @@ const ApprovalsSection = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Catalog governance</p>
-          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Categories and approvals</h1>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Product approvals</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Keep category names consistent and approve pending products before they enter the storefront.
+            Approve pending products before they enter the storefront.
           </p>
-        </div>
-      </div>
-
-      <div className="admin-panel-soft p-5">
-        <h2 className="mb-3 font-serif text-lg font-semibold text-foreground">Categories</h2>
-        <div className="flex flex-wrap gap-2">
-          {["Executive Desks", "Managerial Desks", "L-Shaped Desks", "Adjustable Desks", "Workstations", "Executive Chairs", "Ergonomic Chairs", "Operator Chairs", "Visitor Chairs", "Conference Tables", "Sofas & Lounge", "Storage & Filing", "Training Furniture", "Accessories", "Home Furniture"].map(cat => (
-            <span key={cat} className="border border-grid/20 bg-background px-3 py-1 text-xs font-medium text-foreground">{cat}</span>
-          ))}
         </div>
       </div>
 
@@ -74,7 +71,7 @@ const ApprovalsSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pending.map((p) => (
+              {pendingPagination.paginatedItems.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.title}</TableCell>
                   <TableCell>{p.property_type}</TableCell>
@@ -87,6 +84,7 @@ const ApprovalsSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={pendingPagination} itemLabel="products" />
         </div>
       )}
     </div>

@@ -1,30 +1,40 @@
-import { categories } from "@/data/products";
+import type { StorefrontCategory } from "@/lib/productCategories";
 
 export const CUSTOM_CTA_DESTINATION = "__custom__";
 
-export const CTA_DESTINATION_OPTIONS = [
+export const DEFAULT_CTA_DESTINATION_OPTIONS = [
   { label: "Collections", href: "/categories" },
   { label: "Catalogue", href: "/catalogue" },
+];
+
+export const buildCtaDestinationOptions = (categories: StorefrontCategory[] = []) => [
+  ...DEFAULT_CTA_DESTINATION_OPTIONS,
   ...categories.map((category) => ({
     label: category.name,
-    href: `/category/${category.slug}`,
+    href: category.url,
   })),
 ] as const;
 
+export type CtaDestinationOption = ReturnType<typeof buildCtaDestinationOptions>[number];
+
 export const getCtaDestinationSelectValue = (
   href: string | null | undefined,
-  emptyValue = CTA_DESTINATION_OPTIONS[0].href,
+  emptyValue = DEFAULT_CTA_DESTINATION_OPTIONS[0].href,
+  options: readonly CtaDestinationOption[] = DEFAULT_CTA_DESTINATION_OPTIONS,
 ) => {
   const trimmed = String(href || "").trim();
   if (!trimmed) return emptyValue;
-  return CTA_DESTINATION_OPTIONS.some((option) => option.href === trimmed)
+  return options.some((option) => option.href === trimmed)
     ? trimmed
     : CUSTOM_CTA_DESTINATION;
 };
 
-export const getCtaDestinationLabel = (href: string | null | undefined) => {
+export const getCtaDestinationLabel = (
+  href: string | null | undefined,
+  options: readonly CtaDestinationOption[] = DEFAULT_CTA_DESTINATION_OPTIONS,
+) => {
   const trimmed = String(href || "").trim();
-  return CTA_DESTINATION_OPTIONS.find((option) => option.href === trimmed)?.label || "Custom link";
+  return options.find((option) => option.href === trimmed)?.label || "Custom link";
 };
 
 export const sanitizeCtaHref = (value: string, fallback: string | null = "/categories") => {

@@ -1,57 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { categories } from "@/data/products";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
-const featuredCategoryImages: Record<string, { image: string; position?: string }> = {
-  "executive-suites": {
-    image: "/uploads/collections/executive-suites/big-tall-500-hi-back-swivel-chair-netting-02da43e643.jpg",
-    position: "center top",
-  },
-  "office-suites": {
-    image: "/uploads/collections/office-suites/almin-workstation-4-seater-df4ddb5484.jpg",
-    position: "center center",
-  },
-  "conference-boardroom": {
-    image: "/uploads/collections/conference-boardroom/arcadian-boardroom-table-079a3a1fbd.jpg",
-    position: "center center",
-  },
-  "reception-lobby": {
-    image: "/uploads/collections/reception-lobby/chesterfield-leather-couch-3-seater-933676b7ed.png",
-    position: "center center",
-  },
-  "accessories": {
-    image: "/uploads/collections/accessories/metal-4-drawer-filing-cabinet-wth-bar-fdd5e9e2a5.jpg",
-    position: "center center",
-  },
-};
-
 const CategoryCards = () => {
+  const { data: categories = [] } = useProductCategories();
   const { data: liveProducts = [] } = useQuery({
     queryKey: ["storefront-products"],
     queryFn: fetchApprovedStorefrontProducts,
   });
 
-  const featuredCategories = [
-    "executive-suites",
-    "office-suites",
-    "conference-boardroom",
-    "reception-lobby",
-    "accessories",
-  ].map((slug) => {
-    const category = categories.find((item) => item.slug === slug);
-    const count = liveProducts.filter((product) => product.categorySlug === slug).length;
-    const curated = featuredCategoryImages[slug];
-    const fallbackImage = liveProducts.find((product) => product.categorySlug === slug)?.image || curated?.image || category?.image || "";
+  const featuredCategories = categories.slice(0, 5).map((category) => {
+    const count = liveProducts.filter((product) => product.categorySlug === category.slug).length;
+    const fallbackImage =
+      category.featured.find((item) => item.image_url)?.image_url ||
+      liveProducts.find((product) => product.categorySlug === category.slug)?.image ||
+      category.image ||
+      "";
 
     return {
-      name: category?.name || slug,
+      name: category.name,
       items: `${count || 0} products`,
-      slug,
+      slug: category.slug,
       image: fallbackImage,
-      imagePosition: curated?.position || "center center",
-      description: category?.description || "",
+      imagePosition: "center center",
+      description: category.description,
     };
   });
 

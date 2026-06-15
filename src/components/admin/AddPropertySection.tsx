@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Palette, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Palette, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import ImageUploader from "./ImageUploader";
+import ProductAIDescriptionDialog, { type AIDescriptionTarget } from "./ProductAIDescriptionDialog";
 import RichTextEditor from "./RichTextEditor";
-import { PRODUCT_IMPORT_CATEGORIES } from "@/lib/productCsvImport";
 import { PRODUCT_COLOR_OPTIONS, type ProductColorVariant } from "@/lib/productColorVariants";
 
-const categories = [...PRODUCT_IMPORT_CATEGORIES];
-
 const initialForm = {
-  title: "", description: "", long_description: "", property_type: "Executive Desking", price: "",
-  currency: "USD", location: "", city: "Harare", features: "",
+  title: "", description: "", long_description: "", property_type: "", featured_slug: "", price: "",
+  currency: "USD", location: "", city: "Harare",
 };
 
 const createColorVariantDraft = (): ProductColorVariant => ({
@@ -36,12 +35,45 @@ const AddProductSection = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTarget, setAiTarget] = useState<AIDescriptionTarget | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>([]);
   const [form, setForm] = useState(initialForm);
+  const { data: productCategories = [] } = useProductCategories();
+  const categories = useMemo(() => productCategories.map((category) => category.name), [productCategories]);
+  const selectedCategory = useMemo(
+    () => productCategories.find((category) => category.name === form.property_type) || null,
+    [form.property_type, productCategories],
+  );
 
   const update = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
+  const updateCategory = (value: string) => {
+    const nextCategory = productCategories.find((category) => category.name === value);
+    setForm((current) => ({
+      ...current,
+      property_type: value,
+      featured_slug: nextCategory?.featured[0]?.slug || "",
+    }));
+  };
+
+  useEffect(() => {
+    if (!form.property_type && categories.length) {
+      const firstCategory = productCategories.find((category) => category.name === categories[0]);
+      setForm((current) => ({
+        ...current,
+        property_type: categories[0],
+        featured_slug: firstCategory?.featured[0]?.slug || "",
+      }));
+    }
+  }, [categories, form.property_type, productCategories]);
+
+  useEffect(() => {
+    if (!selectedCategory) return;
+    const validFeatured = selectedCategory.featured.some((item) => item.slug === form.featured_slug);
+    if (!validFeatured) {
+      setForm((current) => ({ ...current, featured_slug: selectedCategory.featured[0]?.slug || "" }));
+    }
+  }, [form.featured_slug, selectedCategory]);
 
   const addColorVariant = () => {
     setColorVariants((current) => [...current, createColorVariantDraft()]);
@@ -61,27 +93,26 @@ const AddProductSection = () => {
     updateColorVariant(id, option.name === "Custom" ? { name: "", hex: option.hex } : { name: option.name, hex: option.hex });
   };
 
-  const handleGenerate = async () => {
-    if (!form.title) {
-      toast({ title: "Add a product name first", variant: "destructive" });
-      return;
-    }
-    setAiLoading(true);
-    const { data, error } = await supabase.functions.invoke("generate-product-description", {
-      body: { name: form.title, category: form.property_type, features: form.features },
-    });
-    setAiLoading(false);
-    if (error || data?.error) {
-      toast({ title: "AI error", description: data?.error || error?.message, variant: "destructive" });
-      return;
-    }
-    update("description", data.description);
-    toast({ title: "Description generated" });
+  const applyAiDescription = (target: AIDescriptionTarget, value: string) => {
+    update(target, value);
+  };
+  const appendLongDescriptionMedia = (html: string) => {
+    update("long_description", html);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!form.property_type || !categories.includes(form.property_type)) {
+      toast({ title: "Choose a product category", description: "Add a category first if none are available.", variant: "destructive" });
+      return;
+    }
+
+    if (selectedCategory?.featured.length && !form.featured_slug) {
+      toast({ title: "Choose a featured subcategory", description: "Products need a featured subcategory for the storefront catalogue.", variant: "destructive" });
+      return;
+    }
 
     const cleanColorVariants = colorVariants
       .map((variant) => ({
@@ -119,6 +150,7 @@ const AddProductSection = () => {
       description: form.description,
       long_description: form.long_description,
       property_type: form.property_type,
+      featured_slug: form.featured_slug || null,
       price: parseFloat(form.price) || 0,
       currency: form.currency,
       location: form.location,
@@ -165,7 +197,7 @@ const AddProductSection = () => {
           </div>
           <div className="admin-panel-soft px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Category</p>
-            <p className="mt-2 font-medium text-foreground">{form.property_type}</p>
+            <p className="mt-2 font-medium text-foreground">{form.property_type || "Not selected"}</p>
           </div>
         </div>
       </div>
@@ -185,32 +217,52 @@ const AddProductSection = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Select value={form.property_type} onValueChange={(v) => update("property_type", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={form.property_type} onValueChange={updateCategory}>
+                    <SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger>
                     <SelectContent>
                       {categories.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {!categories.length && <SelectItem value="none" disabled>No categories available</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Key Features (for AI)</Label>
-                <Input value={form.features} onChange={(e) => update("features", e.target.value)} placeholder="e.g. mahogany finish, 1.6m wide, lockable drawers" />
+                <Label>Featured subcategory</Label>
+                <Select
+                  value={form.featured_slug || "none"}
+                  onValueChange={(value) => update("featured_slug", value === "none" ? "" : value)}
+                  disabled={!selectedCategory?.featured.length}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choose featured subcategory" /></SelectTrigger>
+                  <SelectContent>
+                    {selectedCategory?.featured.map((item) => (
+                      <SelectItem key={item.slug} value={item.slug}>{item.name}</SelectItem>
+                    ))}
+                    {!selectedCategory?.featured.length && <SelectItem value="none" disabled>No featured subcategories</SelectItem>}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <Label>Description</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={handleGenerate} disabled={aiLoading} className="w-full sm:w-auto">
-                    {aiLoading ? "Generating..." : "Generate with AI"}
+                  <Button type="button" size="sm" variant="outline" onClick={() => setAiTarget("description")} className="w-full sm:w-auto">
+                    <Sparkles className="h-4 w-4" />
+                    Add using AI
                   </Button>
                 </div>
                 <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Product description..." rows={7} />
               </div>
 
               <div className="space-y-2">
-                <Label>Long Description</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Label>Long Description</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setAiTarget("long_description")} className="w-full sm:w-auto">
+                    <Sparkles className="h-4 w-4" />
+                    Add using AI
+                  </Button>
+                </div>
                 <RichTextEditor
                   value={form.long_description}
                   onChange={(value) => update("long_description", value)}
@@ -387,6 +439,28 @@ const AddProductSection = () => {
           </Button>
         </div>
       </form>
+      <ProductAIDescriptionDialog
+        open={aiTarget !== null}
+        target={aiTarget || "description"}
+        onOpenChange={(open) => {
+          if (!open) setAiTarget(null);
+        }}
+        onApply={applyAiDescription}
+        onLongDescriptionMediaAdd={appendLongDescriptionMedia}
+        context={{
+          title: form.title,
+          category: form.property_type,
+          featuredSubcategory: selectedCategory?.featured.find((item) => item.slug === form.featured_slug)?.name,
+          description: form.description,
+          longDescription: form.long_description,
+          price: form.price,
+          currency: form.currency,
+          sku: form.location,
+          warehouse: form.city,
+          images,
+          colorVariants,
+        }}
+      />
     </div>
   );
 };

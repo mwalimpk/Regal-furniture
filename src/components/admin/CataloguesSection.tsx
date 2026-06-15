@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { categories as storefrontCategories } from "@/data/products";
+import { useProductCategories } from "@/hooks/useProductCategories";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 type CatalogueRecord = {
   id: string;
@@ -64,8 +66,6 @@ const initialForm = {
   year: String(new Date().getFullYear()),
   month: String(new Date().getMonth() + 1),
 };
-
-const categoryOptions = ["Full Catalogue", ...storefrontCategories.map((category) => category.name)];
 
 const sanitizeFileName = (name: string) =>
   name
@@ -159,9 +159,11 @@ const canonicalHeader = (value: string) => {
   return aliases[normalized] || "skip";
 };
 
+const normalizeComparable = (value: unknown) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+
 const parsePrice = (value: unknown) => Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
 
-const parseCatalogueRows = async (file: File) => {
+const parseCatalogueRows = async (file: File, knownCategories: readonly string[]) => {
   const text = await file.text();
   const lines = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((line) => line.trim());
 
@@ -187,6 +189,7 @@ const parseCatalogueRows = async (file: File) => {
 
     const title = String(draft.title || "").trim();
     const propertyType = String(draft.property_type || "").trim();
+    const category = knownCategories.find((item) => normalizeComparable(item) === normalizeComparable(propertyType));
     const price = parsePrice(draft.price);
     const currency = String(draft.currency || "USD").trim().toUpperCase();
     const key = [title, propertyType, String(draft.location || "")].map((value) => value.toLowerCase()).join("|");
@@ -194,6 +197,7 @@ const parseCatalogueRows = async (file: File) => {
 
     if (!title) rowIssues.push("missing product name");
     if (!propertyType) rowIssues.push("missing category");
+    if (propertyType && !category) rowIssues.push(`category "${propertyType}" is not in product categories`);
     if (!Number.isFinite(price) || price < 0) rowIssues.push("invalid price");
     if (!["USD", "ZWL"].includes(currency)) rowIssues.push("unsupported currency");
     if (seen.has(key)) rowIssues.push("duplicate row");
@@ -207,7 +211,7 @@ const parseCatalogueRows = async (file: File) => {
     products.push({
       rowNumber,
       title,
-      property_type: propertyType,
+      property_type: category || propertyType,
       price,
       currency,
       description: String(draft.description || "").trim(),
@@ -243,6 +247,12 @@ const CataloguesSection = () => {
   const [monthFilter, setMonthFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("created-desc");
+  const { data: productCategories = [] } = useProductCategories();
+  const productCategoryNames = useMemo(() => productCategories.map((category) => category.name), [productCategories]);
+  const categoryOptions = useMemo(
+    () => ["Full Catalogue", ...productCategoryNames],
+    [productCategoryNames],
+  );
 
   const { data: catalogues = [], isLoading } = useQuery({
     queryKey: ["admin-catalogues"],
@@ -280,6 +290,7 @@ const CataloguesSection = () => {
       }
     });
   }, [catalogues, yearFilter, monthFilter, categoryFilter, sortBy]);
+  const cataloguePagination = useAdminTablePagination(filteredCatalogues);
 
   const updateForm = (key: keyof typeof initialForm, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -305,7 +316,7 @@ const CataloguesSection = () => {
     }
 
     try {
-      const parsed = await parseCatalogueRows(file);
+      const parsed = await parseCatalogueRows(file, productCategoryNames);
       setParsedProducts(parsed.products);
       setParseIssues(parsed.issues);
       setParseNote(`${parsed.products.length} valid product row(s) ready to import.`);
@@ -581,7 +592,7 @@ const CataloguesSection = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCatalogues.map((catalogue) => (
+                  {cataloguePagination.paginatedItems.map((catalogue) => (
                     <TableRow key={catalogue.id}>
                       <TableCell>
                         <img src={catalogue.cover_image_url} alt={catalogue.title} className="h-16 w-12 object-cover" />
@@ -603,6 +614,7 @@ const CataloguesSection = () => {
                   ))}
                 </TableBody>
               </Table>
+              <AdminTablePagination pagination={cataloguePagination} itemLabel="catalogues" />
             </div>
           )}
         </CardContent>

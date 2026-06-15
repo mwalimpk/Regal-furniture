@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { cn } from "@/lib/utils";
 import {
   ProductPromotion,
@@ -34,6 +35,8 @@ import {
   normalizeProductPromotion,
   productPromotionScopeLabel,
 } from "@/lib/productPromotions";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 type AdminProduct = {
   id: string;
@@ -145,6 +148,7 @@ const ProductPromotionsSection = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const { data: productCategories = [] } = useProductCategories();
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
     queryKey: ["admin-product-promotion-products"],
@@ -189,15 +193,18 @@ const ProductPromotionsSection = () => {
   );
 
   const categories = useMemo(
-    () => [...new Set(approvedProducts.map((product) => product.property_type).filter(Boolean))].sort(),
-    [approvedProducts],
+    () => productCategories.map((category) => category.name),
+    [productCategories],
   );
 
   const productsByCategory = useMemo(() => {
     const grouped = new Map<string, AdminProduct[]>();
     categories.forEach((category) => grouped.set(category, []));
     approvedProducts.forEach((product) => {
-      grouped.set(product.property_type, [...(grouped.get(product.property_type) || []), product]);
+      const current = grouped.get(product.property_type);
+      if (current) {
+        grouped.set(product.property_type, [...current, product]);
+      }
     });
     return grouped;
   }, [approvedProducts, categories]);
@@ -214,6 +221,7 @@ const ProductPromotionsSection = () => {
     () => promotions.filter((promotion) => isProductPromotionActive(promotion)).length,
     [promotions],
   );
+  const promotionPagination = useAdminTablePagination(promotions);
 
   const selectedProductsCount = useMemo(() => {
     if (form.promotion_type === "single_product") return form.single_product_id ? 1 : 0;
@@ -468,7 +476,7 @@ const ProductPromotionsSection = () => {
       </div>
       {!categories.length && (
         <div className="admin-panel-soft p-4 text-sm text-muted-foreground">
-          Add approved products before creating category-based promotions.
+          Add product categories before creating category-based promotions.
         </div>
       )}
     </div>
@@ -826,7 +834,7 @@ const ProductPromotionsSection = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {promotions.map((promotion) => (
+                  {promotionPagination.paginatedItems.map((promotion) => (
                     <TableRow key={promotion.id}>
                       <TableCell>
                         <div className="font-medium text-foreground">{promotion.title}</div>
@@ -878,6 +886,7 @@ const ProductPromotionsSection = () => {
                   ))}
                 </TableBody>
               </Table>
+              <AdminTablePagination pagination={promotionPagination} itemLabel="promotions" />
             </div>
           )}
         </CardContent>

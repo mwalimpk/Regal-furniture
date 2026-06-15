@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 const SubscriptionsSection = () => {
   const { data: subs, isLoading } = useQuery({
@@ -12,6 +14,7 @@ const SubscriptionsSection = () => {
       return data;
     },
   });
+  const subscriptionPagination = useAdminTablePagination(subs || []);
 
   return (
     <div className="space-y-6">
@@ -29,7 +32,7 @@ const SubscriptionsSection = () => {
           <Table>
             <TableHeader><TableRow><TableHead>Plan</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead></TableRow></TableHeader>
             <TableBody>
-              {subs.map((s) => (
+              {subscriptionPagination.paginatedItems.map((s) => (
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.plan_name}</TableCell>
                   <TableCell>{s.currency} {Number(s.amount).toLocaleString()}</TableCell>
@@ -40,6 +43,7 @@ const SubscriptionsSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={subscriptionPagination} itemLabel="subscriptions" />
         </div>
       )}
     </div>

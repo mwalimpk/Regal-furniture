@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 const UsersSection = () => {
   const { data: profiles, isLoading } = useQuery({
@@ -11,6 +13,7 @@ const UsersSection = () => {
       return data;
     },
   });
+  const userPagination = useAdminTablePagination(profiles || []);
 
   return (
     <div className="space-y-6">
@@ -37,7 +40,7 @@ const UsersSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {profiles.map((p) => (
+              {userPagination.paginatedItems.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                   <TableCell>{p.phone || "—"}</TableCell>
@@ -47,6 +50,7 @@ const UsersSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={userPagination} itemLabel="users" />
         </div>
       )}
     </div>

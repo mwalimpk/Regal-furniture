@@ -237,6 +237,39 @@ export type Database = {
         }
         Relationships: []
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          features: Json
+          id: string
+          image_url: string
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          id?: string
+          image_url?: string
+          name: string
+          slug: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          id?: string
+          image_url?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           area_sqft: number | null
@@ -249,6 +282,7 @@ export type Database = {
           currency: string
           description: string | null
           featured: boolean | null
+          featured_slug: string | null
           id: string
           images: string[] | null
           location: string | null
@@ -270,6 +304,7 @@ export type Database = {
           currency?: string
           description?: string | null
           featured?: boolean | null
+          featured_slug?: string | null
           id?: string
           images?: string[] | null
           location?: string | null
@@ -291,6 +326,7 @@ export type Database = {
           currency?: string
           description?: string | null
           featured?: boolean | null
+          featured_slug?: string | null
           id?: string
           images?: string[] | null
           location?: string | null

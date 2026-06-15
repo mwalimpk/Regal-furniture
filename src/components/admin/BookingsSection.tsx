@@ -2,6 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
+import type { Database } from "@/integrations/supabase/types";
+
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"] & {
+  properties?: { title: string | null } | null;
+};
 
 const BookingsSection = () => {
   const { data: orders, isLoading } = useQuery({
@@ -9,9 +16,10 @@ const BookingsSection = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("bookings").select("*, properties(title)").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data || []) as BookingRow[];
     },
   });
+  const orderPagination = useAdminTablePagination(orders || []);
 
   return (
     <div className="space-y-6">
@@ -29,7 +37,7 @@ const BookingsSection = () => {
           <Table>
             <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Order Date</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
             <TableBody>
-              {orders.map((b: any) => (
+              {orderPagination.paginatedItems.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.properties?.title || "—"}</TableCell>
                   <TableCell>{b.booking_date}</TableCell>
@@ -39,6 +47,7 @@ const BookingsSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={orderPagination} itemLabel="orders" />
         </div>
       )}
     </div>

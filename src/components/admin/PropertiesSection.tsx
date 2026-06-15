@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import {
   PRODUCT_IMPORT_HEADERS,
   buildProductImportTemplateCsv,
@@ -18,6 +19,10 @@ import {
   type ProductCsvImportResult,
 } from "@/lib/productCsvImport";
 import EditProductDialog from "./EditProductDialog";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
+
+const IMPORT_PREVIEW_PAGE_SIZE_OPTIONS = [5, 10, 25];
 
 type AdminProduct = {
   id: string;
@@ -25,6 +30,7 @@ type AdminProduct = {
   description: string | null;
   long_description?: string | null;
   property_type: string;
+  featured_slug?: string | null;
   price: number | string;
   currency: string;
   location: string | null;
@@ -52,6 +58,14 @@ const PropertiesSection = () => {
   const [csvImport, setCsvImport] = useState<(ProductCsvImportResult & { fileName: string }) | null>(null);
   const [parsingCsv, setParsingCsv] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
+  const { data: productCategories = [] } = useProductCategories();
+  const categoryOptions = useMemo(() => productCategories.map((item) => item.name), [productCategories]);
+  const featuredSlugOptions = useMemo(
+    () => productCategories.flatMap((categoryItem) => (
+      categoryItem.featured.map((item) => ({ category: categoryItem.name, slug: item.slug }))
+    )),
+    [productCategories],
+  );
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -61,11 +75,6 @@ const PropertiesSection = () => {
       return (data || []) as AdminProduct[];
     },
   });
-
-  const categories = useMemo(() => {
-    if (!products) return [];
-    return [...new Set(products.map((product) => product.property_type).filter(Boolean))].sort((left, right) => String(left).localeCompare(String(right)));
-  }, [products]);
 
   const filtered = useMemo(() => {
     if (!products) return [];
@@ -156,6 +165,7 @@ const PropertiesSection = () => {
       p.description || "",
       p.long_description || "",
       p.property_type || "",
+      p.featured_slug || "",
       String(p.price ?? ""),
       p.currency || "USD",
       p.location || "",
@@ -180,7 +190,7 @@ const PropertiesSection = () => {
 
     setParsingCsv(true);
     try {
-      const result = validateProductCsv(await file.text(), products || []);
+      const result = validateProductCsv(await file.text(), products || [], categoryOptions, featuredSlugOptions);
       setCsvImport({ ...result, fileName: file.name });
 
       if (result.errors.length) {
@@ -233,7 +243,12 @@ const PropertiesSection = () => {
   const csvImportHasErrors = Boolean(csvImport?.errors.length);
   const csvImportReady = Boolean(csvImport && !csvImportHasErrors && csvImport.validRows.length);
   const visibleImportErrors = csvImport?.errors.slice(0, 10) || [];
-  const previewImportRows = csvImport?.validRows.slice(0, 5) || [];
+  const previewImportRows = csvImport?.validRows || [];
+  const importPreviewPagination = useAdminTablePagination(previewImportRows, {
+    initialPageSize: 5,
+    pageSizeOptions: IMPORT_PREVIEW_PAGE_SIZE_OPTIONS,
+  });
+  const productPagination = useAdminTablePagination(filtered);
 
   return (
     <div className="space-y-6">
@@ -351,7 +366,7 @@ const PropertiesSection = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previewImportRows.map((row) => (
+                      {importPreviewPagination.paginatedItems.map((row) => (
                         <TableRow key={row.rowNumber}>
                           <TableCell>{row.rowNumber}</TableCell>
                           <TableCell>{row.payload.title}</TableCell>
@@ -362,6 +377,7 @@ const PropertiesSection = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  <AdminTablePagination pagination={importPreviewPagination} itemLabel="valid rows" />
                 </div>
               )}
             </div>
@@ -381,7 +397,7 @@ const PropertiesSection = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {categories.map((item) => (
+                {categoryOptions.map((item) => (
                   <SelectItem key={item} value={item}>{item}</SelectItem>
                 ))}
               </SelectContent>
@@ -437,6 +453,7 @@ const PropertiesSection = () => {
                 <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Featured</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added</TableHead>
@@ -444,7 +461,7 @@ const PropertiesSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p) => (
+              {productPagination.paginatedItems.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     {p.images?.[0] ? (
@@ -464,6 +481,7 @@ const PropertiesSection = () => {
                     </a>
                   </TableCell>
                   <TableCell>{p.property_type}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{p.featured_slug || "-"}</TableCell>
                   <TableCell>{p.currency} {Number(p.price).toLocaleString()}</TableCell>
                   <TableCell><Badge className={statusColor(p.status)}>{p.status}</Badge></TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(p.created_at).toLocaleDateString()}</TableCell>
@@ -475,6 +493,7 @@ const PropertiesSection = () => {
               ))}
             </TableBody>
           </Table>
+          <AdminTablePagination pagination={productPagination} itemLabel="products" />
         </div>
       )}
 

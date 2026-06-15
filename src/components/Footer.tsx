@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import regalLogo from "@/assets/regal-logo-brand.svg";
 
 const Footer = () => {
+  const { data: categories = [] } = useProductCategories();
+
   return (
     <footer className="border-t border-grid bg-card pb-8 pt-16 text-foreground">
       <div className="container mx-auto px-10">
@@ -31,13 +34,12 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <h4 className="mb-6 font-mono text-[11px] uppercase tracking-[0.24em] text-label">Categories</h4>
             <ul className="space-y-4 text-sm text-foreground/72">
-              <li><Link to="/category/executive-suites" className="transition-colors hover:text-interactive">Executive Suites</Link></li>
-              <li><Link to="/category/office-suites" className="transition-colors hover:text-interactive">Office Suites</Link></li>
-              <li><Link to="/category/conference-boardroom" className="transition-colors hover:text-interactive">Conference & Boardroom</Link></li>
-              <li><Link to="/category/reception-lobby" className="transition-colors hover:text-interactive">Reception & Lobby</Link></li>
-              <li><Link to="/category/home-office" className="transition-colors hover:text-interactive">Home Office</Link></li>
-              <li><Link to="/category/industrial-laboratory" className="transition-colors hover:text-interactive">Industrial & Laboratory</Link></li>
-              <li><Link to="/category/accessories" className="transition-colors hover:text-interactive">Accessories</Link></li>
+              {categories.slice(0, 8).map((category) => (
+                <li key={category.id}>
+                  <Link to={category.url} className="transition-colors hover:text-interactive">{category.name}</Link>
+                </li>
+              ))}
+              {!categories.length && <li><Link to="/categories" className="transition-colors hover:text-interactive">Browse Categories</Link></li>}
             </ul>
           </div>
 

@@ -105,9 +105,74 @@ const VideoEmbed = Node.create({
   },
 });
 
+const AiLayoutBlock = Node.create({
+  name: "aiLayoutBlock",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return {
+      "data-ai-layout": {
+        default: "stack",
+        parseHTML: (element) => element.getAttribute("data-ai-layout") || "stack",
+        renderHTML: (attributes) => ({ "data-ai-layout": attributes["data-ai-layout"] || "stack" }),
+      },
+      "data-ai-section": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-ai-section"),
+        renderHTML: (attributes) => attributes["data-ai-section"] ? { "data-ai-section": attributes["data-ai-section"] } : {},
+      },
+      "data-ai-tone": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-ai-tone"),
+        renderHTML: (attributes) => attributes["data-ai-tone"] ? { "data-ai-tone": attributes["data-ai-tone"] } : {},
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      { tag: "div[data-ai-layout]" },
+      { tag: "section[data-ai-layout]" },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+const AiLayoutSlot = Node.create({
+  name: "aiLayoutSlot",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return {
+      "data-ai-slot": {
+        default: "copy",
+        parseHTML: (element) => element.getAttribute("data-ai-slot") || "copy",
+        renderHTML: (attributes) => ({ "data-ai-slot": attributes["data-ai-slot"] || "copy" }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "div[data-ai-slot]" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
 const RichTextEditor = ({ value, onChange, placeholder, className }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
+      AiLayoutBlock,
+      AiLayoutSlot,
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4, 5, 6] },
         link: {

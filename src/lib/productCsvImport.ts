@@ -3,6 +3,7 @@ export const PRODUCT_IMPORT_HEADERS = [
   "description",
   "long_description",
   "property_type",
+  "featured_slug",
   "price",
   "currency",
   "location",
@@ -15,22 +16,6 @@ export const PRODUCT_IMPORT_HEADERS = [
 
 export const REQUIRED_PRODUCT_IMPORT_HEADERS = ["title", "property_type", "price"] as const;
 
-export const PRODUCT_IMPORT_CATEGORIES = [
-  "Executive Desking",
-  "Managerial Desking",
-  "L-Shaped Desks",
-  "Adjustable Desking",
-  "Workstations",
-  "Executive Chairs",
-  "Ergonomic Chairs",
-  "Visitor Chairs",
-  "Conference Tables",
-  "Conference Chairs",
-  "Sofas & Lounge",
-  "Storage & Filing",
-  "Accessories",
-] as const;
-
 const PRODUCT_IMPORT_CURRENCIES = ["USD", "ZWL"] as const;
 const PRODUCT_IMPORT_CITIES = ["Harare", "Bulawayo", "Both"] as const;
 const PRODUCT_IMPORT_COUNTRIES = ["Zimbabwe"] as const;
@@ -41,7 +26,13 @@ type ProductImportHeader = (typeof PRODUCT_IMPORT_HEADERS)[number];
 export type ExistingProductForImport = {
   title?: string | null;
   property_type?: string | null;
+  featured_slug?: string | null;
   location?: string | null;
+};
+
+export type KnownFeaturedSlugForImport = string | {
+  category: string;
+  slug: string;
 };
 
 export type ProductImportPayload = {
@@ -49,6 +40,7 @@ export type ProductImportPayload = {
   description: string | null;
   long_description: string | null;
   property_type: string;
+  featured_slug: string | null;
   price: number;
   currency: string;
   location: string | null;
@@ -88,16 +80,11 @@ const normalizeComparable = (value: unknown) =>
 const productKey = (title: unknown, category: unknown, location: unknown) =>
   [title, category, location].map(normalizeComparable).join("|");
 
-const getKnownCategoryMap = (existingProducts: ExistingProductForImport[]) => {
+const getKnownCategoryMap = (knownCategories: readonly string[] = []) => {
   const categoryMap = new Map<string, string>();
 
-  PRODUCT_IMPORT_CATEGORIES.forEach((category) => {
+  knownCategories.forEach((category) => {
     categoryMap.set(normalizeComparable(category), category);
-  });
-
-  existingProducts.forEach((product) => {
-    const category = String(product.property_type || "").trim();
-    if (category) categoryMap.set(normalizeComparable(category), category);
   });
 
   return categoryMap;
@@ -105,6 +92,28 @@ const getKnownCategoryMap = (existingProducts: ExistingProductForImport[]) => {
 
 const getKnownValue = (values: readonly string[], value: string) =>
   values.find((option) => normalizeComparable(option) === normalizeComparable(value));
+
+const getKnownFeaturedLookup = (knownFeaturedSlugs: readonly KnownFeaturedSlugForImport[]) => {
+  const globalSlugs = new Set<string>();
+  const categorySlugs = new Map<string, Set<string>>();
+
+  knownFeaturedSlugs.forEach((item) => {
+    if (typeof item === "string") {
+      globalSlugs.add(normalizeComparable(item));
+      return;
+    }
+
+    const categoryKey = normalizeComparable(item.category);
+    const slugKey = normalizeComparable(item.slug);
+    if (!categoryKey || !slugKey) return;
+
+    globalSlugs.add(slugKey);
+    categorySlugs.set(categoryKey, categorySlugs.get(categoryKey) || new Set<string>());
+    categorySlugs.get(categoryKey)?.add(slugKey);
+  });
+
+  return { categorySlugs, globalSlugs };
+};
 
 const parseBoolean = (value: string) => {
   const normalized = normalizeComparable(value);
@@ -233,6 +242,8 @@ const normalizeHeader = (header: string) => header.trim().replace(/^\uFEFF/, "")
 export const validateProductCsv = (
   text: string,
   existingProducts: ExistingProductForImport[],
+  knownCategories: readonly string[] = [],
+  knownFeaturedSlugs: readonly KnownFeaturedSlugForImport[] = [],
 ): ProductCsvImportResult => {
   const errors: ProductCsvImportError[] = [];
   const cleanText = text.replace(/^\uFEFF/, "");
@@ -287,7 +298,8 @@ export const validateProductCsv = (
     existingProducts.map((product) => productKey(product.title, product.property_type, product.location)),
   );
   const fileKeys = new Set<string>();
-  const categoryMap = getKnownCategoryMap(existingProducts);
+  const categoryMap = getKnownCategoryMap(knownCategories);
+  const featuredLookup = getKnownFeaturedLookup(knownFeaturedSlugs);
 
   rows.slice(1).forEach((cells, index) => {
     const rowNumber = index + 2;
@@ -309,6 +321,7 @@ export const validateProductCsv = (
     const title = raw.title.trim();
     const rawCategory = raw.property_type.trim();
     const category = categoryMap.get(normalizeComparable(rawCategory));
+    const rawFeaturedSlug = raw.featured_slug.trim();
     const price = parsePrice(raw.price);
     const currency = getKnownValue(PRODUCT_IMPORT_CURRENCIES, raw.currency || "USD");
     const city = getKnownValue(PRODUCT_IMPORT_CITIES, raw.city || "Harare");
@@ -322,6 +335,16 @@ export const validateProductCsv = (
     if (!title) rowErrors.push("title is required");
     if (!rawCategory) rowErrors.push("property_type is required");
     if (rawCategory && !category) rowErrors.push(`property_type "${rawCategory}" does not exist in the product category list/catalog`);
+    if (rawFeaturedSlug && knownFeaturedSlugs.length) {
+      const categoryFeaturedSlugs = featuredLookup.categorySlugs.get(normalizeComparable(category || rawCategory));
+      const featuredSlugExists = categoryFeaturedSlugs
+        ? categoryFeaturedSlugs.has(normalizeComparable(rawFeaturedSlug))
+        : featuredLookup.globalSlugs.has(normalizeComparable(rawFeaturedSlug));
+
+      if (!featuredSlugExists) {
+        rowErrors.push(`featured_slug "${rawFeaturedSlug}" does not exist under property_type "${rawCategory}"`);
+      }
+    }
     if (price.error) rowErrors.push(price.error);
     if (!currency) rowErrors.push(`currency must be one of: ${PRODUCT_IMPORT_CURRENCIES.join(", ")}`);
     if (!city) rowErrors.push(`city must be one of: ${PRODUCT_IMPORT_CITIES.join(", ")}`);
@@ -346,6 +369,7 @@ export const validateProductCsv = (
         description: raw.description.trim() || null,
         long_description: raw.long_description.trim() || null,
         property_type: category || rawCategory,
+        featured_slug: rawFeaturedSlug || null,
         price: price.value,
         currency: currency || "USD",
         location: location || null,

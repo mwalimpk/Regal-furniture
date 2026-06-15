@@ -3,11 +3,11 @@ import { Check, Clock, Image, Maximize2, Move, Pause, Pencil, Play, Plus, Rotate
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { categories as storefrontCategories } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import {
-  CTA_DESTINATION_OPTIONS,
   CUSTOM_CTA_DESTINATION,
+  buildCtaDestinationOptions,
   getCtaDestinationSelectValue,
   sanitizeCtaHref,
 } from "@/lib/ctaDestinations";
@@ -30,6 +30,8 @@ import {
   isBannerActive,
   normalizePromotionalBanner,
 } from "@/lib/promotionalBanners";
+import AdminTablePagination from "./AdminTablePagination";
+import { useAdminTablePagination } from "./useAdminTablePagination";
 
 const defaultPlacements: PromoPlacementKey[] = ["home-after-hero", "category-before-grid", "product-after-summary"];
 const bannerCropAspectRatio = 16 / 7;
@@ -592,6 +594,7 @@ const PromotionalBannersSection = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [pendingBackgroundCrop, setPendingBackgroundCrop] = useState<PendingBackgroundCrop | null>(null);
+  const { data: storefrontCategories = [] } = useProductCategories();
 
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ["admin-promotional-banners"],
@@ -607,7 +610,7 @@ const PromotionalBannersSection = () => {
 
   const categoryOptions = useMemo(
     () => [STOREWIDE_PROMO_CATEGORY, ...storefrontCategories.map((category) => category.name)],
-    [],
+    [storefrontCategories],
   );
 
   const activeNow = useMemo(() => banners.filter((banner) => isBannerActive(banner)).length, [banners]);
@@ -615,7 +618,9 @@ const PromotionalBannersSection = () => {
     () => banners.filter((banner) => banner.status === "active" && banner.starts_at && new Date(banner.starts_at) > new Date()).length,
     [banners],
   );
-  const ctaSelectValue = getCtaDestinationSelectValue(form.cta_href, CUSTOM_CTA_DESTINATION);
+  const bannerPagination = useAdminTablePagination(banners);
+  const ctaDestinationOptions = useMemo(() => buildCtaDestinationOptions(storefrontCategories), [storefrontCategories]);
+  const ctaSelectValue = getCtaDestinationSelectValue(form.cta_href, CUSTOM_CTA_DESTINATION, ctaDestinationOptions);
 
   const updateForm = <K extends keyof BannerForm>(key: K, value: BannerForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -945,7 +950,7 @@ const PromotionalBannersSection = () => {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CTA_DESTINATION_OPTIONS.map((option) => (
+                    {ctaDestinationOptions.map((option) => (
                       <SelectItem key={option.href} value={option.href}>{option.label}</SelectItem>
                     ))}
                     <SelectItem value={CUSTOM_CTA_DESTINATION}>Custom link</SelectItem>
@@ -1089,7 +1094,7 @@ const PromotionalBannersSection = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {banners.map((banner) => (
+                  {bannerPagination.paginatedItems.map((banner) => (
                     <TableRow key={banner.id}>
                       <TableCell>
                         <div className="flex items-start gap-3">
@@ -1153,6 +1158,7 @@ const PromotionalBannersSection = () => {
                   ))}
                 </TableBody>
               </Table>
+              <AdminTablePagination pagination={bannerPagination} itemLabel="banners" />
             </div>
           )}
         </CardContent>

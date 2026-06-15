@@ -1,12 +1,14 @@
 import { ArrowDownToLine, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { categories } from "@/data/products";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 
 const Categories = () => {
+  const { data: categories = [], isLoading } = useProductCategories();
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
@@ -38,8 +40,14 @@ const Categories = () => {
 
           <div className="mt-14 grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <PromotionalBannerSlot placement="categories-before-grid" className="sm:col-span-2 lg:col-span-3 xl:col-span-4" />
-            {categories.map((category) => (
-              <Link key={category.slug} to={`/category/${category.slug}`} className="group block">
+            {isLoading ? (
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 text-sm text-muted-foreground">Loading categories...</div>
+            ) : !categories.length ? (
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 bg-card/60 p-8 text-sm text-muted-foreground">
+                No product categories have been added yet.
+              </div>
+            ) : categories.map((category) => (
+              <Link key={category.slug} to={category.url} className="group block">
                 <div className="aspect-[4/4.5] overflow-hidden bg-card/60">
                   <img
                     src={category.image}

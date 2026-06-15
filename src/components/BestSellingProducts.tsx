@@ -1,27 +1,24 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
-
-const TABS = [
-  "All",
-  "Executive Suites",
-  "Office Suites",
-  "Conference & Boardroom",
-  "Reception & Lobby",
-  "Home Office",
-  "Accessories",
-];
 
 const BestSellingProducts = () => {
   const [activeTab, setActiveTab] = useState("All");
+  const { data: categories = [] } = useProductCategories();
+  const tabs = useMemo(() => ["All", ...categories.map((category) => category.name)], [categories]);
 
   const { data: allProducts = [], isLoading } = useQuery({
     queryKey: ["storefront-products"],
     queryFn: fetchApprovedStorefrontProducts,
   });
+
+  useEffect(() => {
+    if (!tabs.includes(activeTab)) setActiveTab("All");
+  }, [activeTab, tabs]);
 
   const filteredProducts = activeTab === "All"
     ? allProducts.slice(0, 4)
@@ -46,7 +43,7 @@ const BestSellingProducts = () => {
               calmer spacing, and a price line that’s easier to scan.
             </p>
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              {TABS.map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab}
                   type="button"
