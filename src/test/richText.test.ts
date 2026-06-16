@@ -65,6 +65,7 @@ describe("sanitizeRichTextHtml", () => {
       <p>Watch: youtube.com/watch?v=dQw4w9WgXcQ.</p>
     `);
 
+    expect(html).toContain('data-ai-layout="standalone-media"');
     expect(html).toContain('data-ai-section="product media"');
     expect(html).toContain('src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"');
     expect(html).toContain("<iframe");

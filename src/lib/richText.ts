@@ -77,6 +77,7 @@ const allowedAiLayouts = new Set([
   "proof-strip",
   "spec-table",
   "stack",
+  "standalone-media",
 ]);
 const allowedAiSlots = new Set(["action", "benefit", "copy", "details", "media", "proof", "specs"]);
 const allowedAiToken = /^[a-z0-9][a-z0-9 -]{0,70}$/i;
@@ -206,7 +207,7 @@ const createEmbeddedVideoElement = (documentRef: Document, source: string) => {
   const embedUrl = getYoutubeEmbedUrl(url);
 
   const wrapper = documentRef.createElement("div");
-  wrapper.setAttribute("data-ai-layout", "media-grid");
+  wrapper.setAttribute("data-ai-layout", "standalone-media");
   wrapper.setAttribute("data-ai-section", "product media");
 
   const mediaSlot = documentRef.createElement("div");

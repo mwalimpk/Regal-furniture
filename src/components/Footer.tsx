@@ -10,7 +10,7 @@ const Footer = () => {
       <div className="container mx-auto px-10">
         <div className="mb-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-12">
           <div className="space-y-6 lg:col-span-1">
-            <Link to="/" className="surface-inverse inline-block border border-grid p-3">
+            <Link to="/" className="inline-block bg-transparent">
               <img src={regalLogo} alt="Regal Office & Home" className="h-10 object-contain" />
             </Link>
             <p className="max-w-xs font-mono text-[11px] leading-relaxed uppercase tracking-[0.18em] text-label">

@@ -7,6 +7,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import regalLogo from "@/assets/regal-logo-brand.svg";
+import regalLogoLight from "@/assets/regal-logo.png";
 
 const ADMIN_EMAILS = ["paul.kiragu@gmail.com", "geshpk@gmail.com"];
 
@@ -202,7 +203,7 @@ const Auth = () => {
         <div className="surface-inverse relative hidden overflow-hidden p-10 md:flex md:flex-col md:justify-between">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgb(var(--interactive-rgb)/0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgb(var(--heritage-rgb)/0.36),transparent_45%)]" />
           <div className="relative z-10">
-            <img src={regalLogo} alt="Regal Office & Home" className="h-14 w-auto object-contain" />
+            <img src={regalLogoLight} alt="Regal Office & Home" className="h-14 w-auto object-contain" />
           </div>
           <div className="relative z-10 max-w-lg space-y-6">
             <p className="text-xs uppercase tracking-[0.35em] text-[rgb(var(--inverse-foreground-rgb)/0.6)]">Client Access</p>

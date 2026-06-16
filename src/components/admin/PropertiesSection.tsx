@@ -1,28 +1,61 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, FileText, Upload, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, CircleHelp, FileText, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import {
+  PRODUCT_IMPORT_HEADER_EXAMPLES,
+  PRODUCT_IMPORT_HEADER_LABELS,
   PRODUCT_IMPORT_HEADERS,
+  PRODUCT_IMPORT_IGNORE_HEADER,
+  analyzeProductCsvHeaders,
   buildProductImportTemplateCsv,
   csvEscape,
   validateProductCsv,
+  type ProductCsvHeaderAnalysis,
+  type ProductCsvHeaderInterpretation,
+  type ProductCsvHeaderMatchType,
   type ProductCsvImportResult,
+  type ProductImportHeader,
+  type ProductImportHeaderDecision,
 } from "@/lib/productCsvImport";
 import EditProductDialog from "./EditProductDialog";
 import AdminTablePagination from "./AdminTablePagination";
 import { useAdminTablePagination } from "./useAdminTablePagination";
 
 const IMPORT_PREVIEW_PAGE_SIZE_OPTIONS = [5, 10, 25];
+const REQUIRED_PRODUCT_IMPORT_LABELS = [
+  PRODUCT_IMPORT_HEADER_LABELS.title,
+  PRODUCT_IMPORT_HEADER_LABELS.property_type,
+  PRODUCT_IMPORT_HEADER_LABELS.price,
+].join(", ");
+const PRODUCT_IMPORT_TOOLTIP_MAPPINGS = [
+  `${PRODUCT_IMPORT_HEADER_LABELS.title} -> title`,
+  `${PRODUCT_IMPORT_HEADER_LABELS.property_type} -> property_type`,
+  `${PRODUCT_IMPORT_HEADER_LABELS.location} -> location`,
+  `${PRODUCT_IMPORT_HEADER_LABELS.city} -> city`,
+].join(", ");
+const PRODUCT_IMPORT_FIELD_OPTIONS = PRODUCT_IMPORT_HEADERS.map((header) => ({
+  header,
+  label: `${PRODUCT_IMPORT_HEADER_LABELS[header]} (${header})`,
+}));
+const PRODUCT_HEADER_MATCH_LABELS: Record<ProductCsvHeaderMatchType, string> = {
+  database: "Database field",
+  "form-label": "Form label",
+  alias: "Known alias",
+  manual: "Confirmed",
+  ignored: "Ignored",
+  unmatched: "Needs review",
+};
 
 type AdminProduct = {
   id: string;
@@ -43,6 +76,25 @@ type AdminProduct = {
   created_at: string;
 };
 
+type CsvHeaderReview = {
+  fileName: string;
+  text: string;
+  analysis: ProductCsvHeaderAnalysis;
+  decisions: Record<string, ProductImportHeaderDecision>;
+};
+
+const getHeaderTargetLabel = (header: ProductImportHeader | null) =>
+  header ? `${PRODUCT_IMPORT_HEADER_LABELS[header]} (${header})` : "Ignored";
+
+const getInitialHeaderDecisions = (analysis: ProductCsvHeaderAnalysis) =>
+  analysis.unresolvedHeaders.reduce((decisions, interpretation) => ({
+    ...decisions,
+    [interpretation.rawHeader]: interpretation.suggestedHeader || PRODUCT_IMPORT_IGNORE_HEADER,
+  }), {} as Record<string, ProductImportHeaderDecision>);
+
+const getHeaderSampleText = (interpretation: ProductCsvHeaderInterpretation) =>
+  interpretation.sampleValues.length ? interpretation.sampleValues.join(" | ") : "No sample values";
+
 const PropertiesSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -56,6 +108,7 @@ const PropertiesSection = () => {
   const [sortBy, setSortBy] = useState("created-desc");
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [csvImport, setCsvImport] = useState<(ProductCsvImportResult & { fileName: string }) | null>(null);
+  const [csvHeaderReview, setCsvHeaderReview] = useState<CsvHeaderReview | null>(null);
   const [parsingCsv, setParsingCsv] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const { data: productCategories = [] } = useProductCategories();
@@ -179,6 +232,31 @@ const PropertiesSection = () => {
     downloadCsv(csv, `products-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
+  const validateCsvText = (
+    text: string,
+    fileName: string,
+    headerMappings?: Record<string, ProductImportHeaderDecision>,
+  ) => {
+    const result = validateProductCsv(
+      text,
+      products || [],
+      categoryOptions,
+      featuredSlugOptions,
+      { headerMappings },
+    );
+
+    setCsvImport({ ...result, fileName });
+
+    if (result.errors.length) {
+      toast({ title: "CSV has validation errors", description: "Fix the listed issues before importing.", variant: "destructive" });
+    } else {
+      const ignoredText = result.ignoredHeaders.length ? ` ${result.ignoredHeaders.length} column(s) ignored.` : "";
+      toast({ title: "CSV ready", description: `${result.validRows.length} product(s) ready to import.${ignoredText}` });
+    }
+
+    return result;
+  };
+
   const handleCsvFile = async (fileList: FileList | null) => {
     const file = fileList?.[0];
     if (!file) return;
@@ -190,14 +268,32 @@ const PropertiesSection = () => {
 
     setParsingCsv(true);
     try {
-      const result = validateProductCsv(await file.text(), products || [], categoryOptions, featuredSlugOptions);
-      setCsvImport({ ...result, fileName: file.name });
+      const text = await file.text();
+      const analysis = analyzeProductCsvHeaders(text);
 
-      if (result.errors.length) {
-        toast({ title: "CSV has validation errors", description: "Fix the listed issues before importing.", variant: "destructive" });
-      } else {
-        toast({ title: "CSV ready", description: `${result.validRows.length} product(s) ready to import.` });
+      if (analysis.errors.length) {
+        setCsvHeaderReview(null);
+        validateCsvText(text, file.name);
+        return;
       }
+
+      if (analysis.unresolvedHeaders.length) {
+        setCsvImport(null);
+        setCsvHeaderReview({
+          fileName: file.name,
+          text,
+          analysis,
+          decisions: getInitialHeaderDecisions(analysis),
+        });
+        toast({
+          title: "Review CSV headers",
+          description: `${analysis.unresolvedHeaders.length} unfamiliar header(s) need confirmation before import.`,
+        });
+        return;
+      }
+
+      setCsvHeaderReview(null);
+      validateCsvText(text, file.name);
     } catch (error) {
       toast({
         title: "Could not read CSV",
@@ -207,6 +303,49 @@ const PropertiesSection = () => {
     } finally {
       setParsingCsv(false);
     }
+  };
+
+  const updateCsvHeaderDecision = (rawHeader: string, decision: ProductImportHeaderDecision) => {
+    setCsvHeaderReview((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        decisions: {
+          ...current.decisions,
+          [rawHeader]: decision,
+        },
+      };
+    });
+  };
+
+  const useSuggestedHeaderDecisions = () => {
+    setCsvHeaderReview((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        decisions: getInitialHeaderDecisions(current.analysis),
+      };
+    });
+  };
+
+  const ignoreUnresolvedHeaders = () => {
+    setCsvHeaderReview((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        decisions: current.analysis.unresolvedHeaders.reduce((decisions, interpretation) => ({
+          ...decisions,
+          [interpretation.rawHeader]: PRODUCT_IMPORT_IGNORE_HEADER,
+        }), current.decisions),
+      };
+    });
+  };
+
+  const applyCsvHeaderDecisions = () => {
+    if (!csvHeaderReview) return;
+
+    const result = validateCsvText(csvHeaderReview.text, csvHeaderReview.fileName, csvHeaderReview.decisions);
+    if (!result.errors.length) setCsvHeaderReview(null);
   };
 
   const importCsvProducts = async () => {
@@ -244,6 +383,9 @@ const PropertiesSection = () => {
   const csvImportReady = Boolean(csvImport && !csvImportHasErrors && csvImport.validRows.length);
   const visibleImportErrors = csvImport?.errors.slice(0, 10) || [];
   const previewImportRows = csvImport?.validRows || [];
+  const interpretedHeaderCount = csvImport?.interpretations.filter((item) => item.header).length || 0;
+  const ignoredHeaderCount = csvImport?.ignoredHeaders.length || 0;
+  const headerReviewHasSuggestions = Boolean(csvHeaderReview?.analysis.unresolvedHeaders.some((item) => item.suggestedHeader));
   const importPreviewPagination = useAdminTablePagination(previewImportRows, {
     initialPageSize: 5,
     pageSizeOptions: IMPORT_PREVIEW_PAGE_SIZE_OPTIONS,
@@ -269,7 +411,28 @@ const PropertiesSection = () => {
       <Card className="border-grid/25 bg-card shadow-none">
         <CardHeader className="pb-4">
           <CardTitle className="font-serif text-2xl tracking-[-0.03em]">Import products</CardTitle>
-          <CardDescription>CSV headers must use product database fields. Required: title, property_type, price.</CardDescription>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>CSV headers can use product form labels or database fields. Required: {REQUIRED_PRODUCT_IMPORT_LABELS}.</span>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Explain CSV product headers"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-grid/40 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm text-xs leading-5">
+                  <p className="font-medium text-popover-foreground">Form labels map to database fields.</p>
+                  <p className="mt-1">
+                    Examples: {PRODUCT_IMPORT_TOOLTIP_MAPPINGS}. Either style works, but include only one column for each field.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -292,8 +455,15 @@ const PropertiesSection = () => {
                 <FileText className="h-4 w-4" />
                 Template
               </Button>
-              {csvImport && (
-                <Button type="button" variant="ghost" onClick={() => setCsvImport(null)}>
+              {(csvImport || csvHeaderReview) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setCsvImport(null);
+                    setCsvHeaderReview(null);
+                  }}
+                >
                   <X className="h-4 w-4" />
                   Clear
                 </Button>
@@ -302,16 +472,101 @@ const PropertiesSection = () => {
 
             <div className="text-xs leading-6 text-muted-foreground lg:text-right">
               <span className="font-mono uppercase tracking-[0.18em]">Accepted headers</span>
-              <div className="max-w-3xl break-words font-mono text-[11px]">{PRODUCT_IMPORT_HEADERS.join(", ")}</div>
+              <div className="max-w-3xl break-words font-mono text-[11px]">{PRODUCT_IMPORT_HEADER_EXAMPLES.join(", ")}</div>
             </div>
           </div>
 
+          {csvHeaderReview && (
+            <div className="border border-accent/30 bg-accent/10 p-4 text-sm text-foreground">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <CircleHelp className="h-4 w-4" />
+                    Review header matches
+                  </div>
+                  <p className="mt-2 max-w-3xl leading-6 text-muted-foreground">
+                    The importer found {csvHeaderReview.analysis.unresolvedHeaders.length} unfamiliar header(s) in {csvHeaderReview.fileName}.
+                    Confirm what each one means, or ignore columns that should not be imported.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {headerReviewHasSuggestions && (
+                    <Button type="button" variant="outline" onClick={useSuggestedHeaderDecisions}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Use Suggestions
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" onClick={ignoreUnresolvedHeaders}>
+                    <X className="h-4 w-4" />
+                    Ignore All
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {csvHeaderReview.analysis.unresolvedHeaders.map((interpretation, index) => (
+                  <div
+                    key={`${interpretation.rawHeader}-${index}`}
+                    className="grid gap-3 border border-grid/25 bg-background/80 p-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(220px,320px)] md:items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="break-words font-mono text-xs text-foreground">{interpretation.rawHeader}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        Samples: {getHeaderSampleText(interpretation)}
+                      </p>
+                      {interpretation.suggestedHeader && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Suggested: {getHeaderTargetLabel(interpretation.suggestedHeader)}
+                        </p>
+                      )}
+                    </div>
+                    <ArrowRight className="hidden h-4 w-4 text-muted-foreground md:block" />
+                    <Select
+                      value={csvHeaderReview.decisions[interpretation.rawHeader] || PRODUCT_IMPORT_IGNORE_HEADER}
+                      onValueChange={(value) => updateCsvHeaderDecision(
+                        interpretation.rawHeader,
+                        value as ProductImportHeaderDecision,
+                      )}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={PRODUCT_IMPORT_IGNORE_HEADER}>Ignore this column</SelectItem>
+                        {PRODUCT_IMPORT_FIELD_OPTIONS.map((option) => (
+                          <SelectItem key={option.header} value={option.header}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Confirmed mappings are validated for duplicates and required fields before import.
+                </p>
+                <Button type="button" onClick={applyCsvHeaderDecisions}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Apply Interpretation
+                </Button>
+              </div>
+            </div>
+          )}
+
           {csvImport && (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-4">
                 <div className="admin-panel-soft px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">File</p>
                   <p className="mt-2 truncate text-sm font-medium text-foreground">{csvImport.fileName}</p>
+                </div>
+                <div className="admin-panel-soft px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Headers mapped</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    {interpretedHeaderCount}
+                    {ignoredHeaderCount ? ` / ${ignoredHeaderCount} ignored` : ""}
+                  </p>
                 </div>
                 <div className="admin-panel-soft px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Valid rows</p>
@@ -322,6 +577,40 @@ const PropertiesSection = () => {
                   <p className="mt-2 text-sm font-medium text-foreground">{csvImport.errors.length}</p>
                 </div>
               </div>
+
+              {csvImport.interpretations.length > 0 && (
+                <div className="border border-grid/25 p-4 text-sm text-foreground">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 font-medium">
+                      <CircleHelp className="h-4 w-4" />
+                      Header interpretation
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {csvImport.rowCount} row(s), {interpretedHeaderCount} mapped column(s), {ignoredHeaderCount} ignored.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {csvImport.interpretations.map((interpretation, index) => (
+                      <div
+                        key={`${interpretation.rawHeader}-${interpretation.header || "ignored"}-${index}`}
+                        className="flex min-w-0 flex-col gap-2 border border-grid/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="break-words font-mono text-xs text-foreground">{interpretation.rawHeader}</p>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{getHeaderTargetLabel(interpretation.header)}</span>
+                          </div>
+                        </div>
+                        <Badge className="w-fit border border-grid/25 bg-transparent text-foreground">
+                          {PRODUCT_HEADER_MATCH_LABELS[interpretation.matchType]}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {csvImportHasErrors ? (
                 <div className="border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">

@@ -53,8 +53,8 @@ export const normalizeFeaturedList = (value: unknown, fallbackImage = ""): Categ
           const row = item as Record<string, unknown>;
           const name = String(row.name || row.title || "").trim();
           const slug = slugifyCategory(String(row.slug || name || row.id || ""));
+          if (!name) return null;
           const imageUrl = String(row.image_url || row.image || fallbackImage || "").trim();
-          if (!name && !imageUrl) return null;
           return {
             id: String(row.id || stableFeaturedId(name || imageUrl, index)),
             name,

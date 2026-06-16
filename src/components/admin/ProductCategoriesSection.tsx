@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useProductCategories, PRODUCT_CATEGORIES_QUERY_KEY } from "@/hooks/useProductCategories";
 import {
   categoryUrl,
-  normalizeFeaturedList,
   slugifyCategory,
   type CategoryFeaturedItem,
   type StorefrontCategory,
@@ -53,7 +52,7 @@ const formFromCategory = (category: StorefrontCategory): CategoryForm => ({
   name: category.name,
   slug: category.slug,
   image_url: category.image_url,
-  featured: category.featured.length ? category.featured : normalizeFeaturedList(category.features, category.image_url),
+  featured: category.featured,
 });
 
 const ProductCategoriesSection = () => {
@@ -199,11 +198,6 @@ const ProductCategoriesSection = () => {
       return;
     }
 
-    if (!featured.length) {
-      toast({ title: "Add at least one featured furniture item", variant: "destructive" });
-      return;
-    }
-
     if (featured.some((item) => !item.name || !item.slug || !item.image_url)) {
       toast({ title: "Complete featured item details", description: "Each featured item needs a name, slug, and image.", variant: "destructive" });
       return;
@@ -338,7 +332,7 @@ const ProductCategoriesSection = () => {
           <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Catalog structure</p>
           <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-foreground">Product categories</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Add and edit storefront categories, their collection images, featured furniture, and URL slugs.
+            Add and edit storefront categories, their collection images, optional featured furniture, and URL slugs.
           </p>
         </div>
         <div className="admin-panel-soft px-4 py-3 text-sm text-muted-foreground">
@@ -350,7 +344,7 @@ const ProductCategoriesSection = () => {
         <Card className="border-grid/25 bg-card shadow-none">
           <CardHeader className="pb-4">
             <CardTitle className="font-serif text-2xl tracking-[-0.03em]">{isEditing ? "Edit category" : "Add category"}</CardTitle>
-            <CardDescription>Each category owns one URL, one primary image, and many featured furniture items.</CardDescription>
+            <CardDescription>Each category owns one URL, one primary image, and optional featured furniture items.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
@@ -395,7 +389,7 @@ const ProductCategoriesSection = () => {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <Label>Featured</Label>
-                  <p className="mt-1 text-xs text-muted-foreground">Add the furniture types and images featured inside this category.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Optional. Leave empty to send shoppers straight to the full product list.</p>
                 </div>
                 <Button type="button" variant="outline" onClick={addFeaturedItem}>
                   <Plus className="h-4 w-4" />
@@ -405,7 +399,7 @@ const ProductCategoriesSection = () => {
 
               {!form.featured.length ? (
                 <div className="border border-dashed border-grid/35 bg-background p-5 text-sm text-muted-foreground">
-                  No featured furniture added yet.
+                  No featured furniture added. This category page will show the product list directly.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -514,7 +508,7 @@ const ProductCategoriesSection = () => {
               <div className="p-5">
                 <p className="font-serif text-2xl text-foreground">{form.name || "Category name"}</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {form.featured.map((item) => item.name.trim()).filter(Boolean).join(", ") || "Add featured furniture for this category."}
+                  {form.featured.map((item) => item.name.trim()).filter(Boolean).join(", ") || "No featured items. Product list opens directly."}
                 </p>
                 {!!form.featured.length && (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -570,19 +564,23 @@ const ProductCategoriesSection = () => {
                     </Link>
                   </TableCell>
                   <TableCell className="max-w-sm">
-                    <div className="flex flex-wrap gap-2">
-                      {category.featured.slice(0, 3).map((item) => (
-                        <span key={item.id} className="inline-flex items-center gap-2 border border-grid/20 bg-background px-2 py-1 text-xs text-muted-foreground">
-                          {item.image_url && <img src={item.image_url} alt="" className="h-6 w-8 object-cover" />}
-                          {item.name}
-                        </span>
-                      ))}
-                      {category.featured.length > 3 && (
-                        <span className="inline-flex items-center border border-grid/20 bg-background px-2 py-1 text-xs text-muted-foreground">
-                          +{category.featured.length - 3}
-                        </span>
-                      )}
-                    </div>
+                    {category.featured.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {category.featured.slice(0, 3).map((item) => (
+                          <span key={item.id} className="inline-flex items-center gap-2 border border-grid/20 bg-background px-2 py-1 text-xs text-muted-foreground">
+                            {item.image_url && <img src={item.image_url} alt="" className="h-6 w-8 object-cover" />}
+                            {item.name}
+                          </span>
+                        ))}
+                        {category.featured.length > 3 && (
+                          <span className="inline-flex items-center border border-grid/20 bg-background px-2 py-1 text-xs text-muted-foreground">
+                            +{category.featured.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">None. Product list opens directly.</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{new Date(category.updated_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">

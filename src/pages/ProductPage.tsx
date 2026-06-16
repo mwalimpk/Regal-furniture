@@ -17,6 +17,7 @@ import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 import { sanitizeRichTextHtml } from "@/lib/richText";
+import { extractProductSpecificationsFromHtml, mergeProductSpecifications } from "@/lib/productSpecifications";
 import { getProductPromotionDisplayLabel, getProductPromotionPrice } from "@/lib/productPromotions";
 import { useProductPromotionForProduct } from "@/hooks/useProductPromotions";
 import { formatCurrency } from "@/utils/formatCurrency";
@@ -60,6 +61,23 @@ const ProductPage = () => {
     () => (product?.longDescription ? sanitizeRichTextHtml(product.longDescription) : ""),
     [product],
   );
+
+  const productSpecifications = useMemo(() => {
+    if (!product) return [];
+
+    const databaseSpecifications = [
+      { label: "Category", value: product.category },
+      { label: "SKU / Model", value: product.sku || "" },
+      { label: "Warehouse", value: product.warehouse || "" },
+      { label: "Price", value: formatCurrency(product.price, currency) },
+      { label: "Color options", value: colorVariants.map((variant) => variant.name).filter(Boolean).join(", ") },
+    ];
+
+    return mergeProductSpecifications([
+      ...extractProductSpecificationsFromHtml(longDescriptionHtml),
+      ...databaseSpecifications,
+    ]);
+  }, [colorVariants, currency, longDescriptionHtml, product]);
 
   useEffect(() => {
     if (galleryImages.length) {
@@ -386,27 +404,22 @@ const ProductPage = () => {
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="font-serif text-2xl text-foreground">Specifications</h2>
                   <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-label">
-                    Practical summary
+                    Product data
                   </span>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
-                    <span className="text-muted-foreground">Dimensions</span>
-                    <span className="text-right font-medium text-foreground">160cm × 160cm</span>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
-                    <span className="text-muted-foreground">Material</span>
-                    <span className="text-right font-medium text-foreground">Premium grade finish</span>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-grid/20 pb-4 text-sm">
-                    <span className="text-muted-foreground">Availability</span>
-                    <span className="text-right font-medium text-foreground">In stock, ships in 3-5 days</span>
-                  </div>
-                  <div className="flex justify-between gap-4 pb-1 text-sm">
-                    <span className="text-muted-foreground">Warranty</span>
-                    <span className="text-right font-medium text-foreground">5 years</span>
-                  </div>
+                  {productSpecifications.map((specification, index) => (
+                    <div
+                      key={`${specification.label}-${index}`}
+                      className={`flex justify-between gap-4 text-sm ${
+                        index < productSpecifications.length - 1 ? "border-b border-grid/20 pb-4" : "pb-1"
+                      }`}
+                    >
+                      <span className="text-muted-foreground">{specification.label}</span>
+                      <span className="max-w-[62%] text-right font-medium text-foreground">{specification.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -433,27 +446,16 @@ const ProductPage = () => {
         </div>
 
         <div className="mt-16 border-t border-grid/40 pt-12">
-          <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr]">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-label">Product details</p>
-              <h2 className="mt-4 font-serif text-3xl leading-tight text-foreground md:text-5xl">
-                Full product description
-              </h2>
+          {longDescriptionHtml ? (
+            <div
+              className="rich-text-content"
+              dangerouslySetInnerHTML={{ __html: longDescriptionHtml }}
+            />
+          ) : (
+            <div className="rich-text-content">
+              <p>{product.description}</p>
             </div>
-
-            <div className="border border-grid/25 bg-card p-6 md:p-8">
-              {longDescriptionHtml ? (
-                <div
-                  className="rich-text-content"
-                  dangerouslySetInnerHTML={{ __html: longDescriptionHtml }}
-                />
-              ) : (
-                <div className="rich-text-content">
-                  <p>{product.description}</p>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         <PromotionalBannerSlot placement="product-after-summary" pageCategory={product.category} className="mt-14" />

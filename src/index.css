@@ -418,6 +418,12 @@
     gap: 1rem;
   }
 
+  .rich-text-content [data-ai-layout="standalone-media"],
+  .rich-text-content [data-ai-layout="media-grid"]:has(> [data-ai-slot="media"]:only-child :is(iframe, video, [data-youtube-video])) {
+    display: block;
+    width: 100%;
+  }
+
   .rich-text-content [data-ai-layout="callout"] {
     border-left: 3px solid rgb(var(--crimson-rgb) / 0.82);
     background: rgb(var(--surface-soft-rgb) / 0.64);
@@ -668,6 +674,23 @@
 
   .rich-text-content div[data-youtube-video] iframe {
     max-width: 100%;
+  }
+
+  .rich-text-content [data-ai-layout="standalone-media"] [data-ai-slot="media"],
+  .rich-text-content [data-ai-layout="standalone-media"] div[data-youtube-video],
+  .rich-text-content [data-ai-layout="media-grid"]:has(> [data-ai-slot="media"]:only-child :is(iframe, video, [data-youtube-video])) > [data-ai-slot="media"],
+  .rich-text-content [data-ai-layout="media-grid"]:has(> [data-ai-slot="media"]:only-child :is(iframe, video, [data-youtube-video])) div[data-youtube-video] {
+    width: 100%;
+    max-width: none;
+  }
+
+  .rich-text-content [data-ai-layout="standalone-media"] :is(video, iframe),
+  .rich-text-content [data-ai-layout="media-grid"]:has(> [data-ai-slot="media"]:only-child :is(iframe, video, [data-youtube-video])) :is(video, iframe),
+  .rich-text-content > :is(video, iframe),
+  .rich-text-content > div[data-youtube-video],
+  .rich-text-content > div[data-youtube-video] iframe {
+    width: 100%;
+    max-width: none;
   }
 
   .rich-text-content .tableWrapper {

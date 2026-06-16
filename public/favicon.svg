@@ -1,5 +1,4 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="28" fill="#F8F3EA"/>
   <text x="18" y="74" fill="#4A523E" font-family="'Times New Roman', Georgia, serif" font-size="64">R</text>
   <path d="M66 82V102" stroke="#4A523E" stroke-width="7" stroke-linecap="round"/>
   <path d="M66 90L50 99" stroke="#4A523E" stroke-width="5" stroke-linecap="round"/>
