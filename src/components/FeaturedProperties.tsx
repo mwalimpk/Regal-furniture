@@ -23,7 +23,14 @@ const FeaturedProducts = () => {
   });
 
   const handleAdd = (product: Product) => {
-    addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency, image: product.image });
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      currency: product.currency,
+      image: product.image,
+      warehouse: product.warehouse,
+    });
     toast({ title: "Added to cart", description: `${product.name} added to your cart.` });
   };
 

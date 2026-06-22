@@ -177,6 +177,7 @@ const ProductPage = () => {
       price: currentPrice,
       currency: product.currency,
       image: selectedImage || selectedColorVariant?.images[0] || product.image,
+      warehouse: product.warehouse,
     });
     setIsOpen(true);
     toast({ title: "Cart Updated", description: `${product.name}${variantSuffix} ready for checkout.` });

@@ -37,6 +37,13 @@ const sendJson = (res, statusCode, payload) => {
 const streamFile = (res, filePath, contentType) => {
   res.statusCode = 200;
   res.setHeader("Content-Type", contentType);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+
+  if (contentType.startsWith("image/")) {
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+  }
+
   fs.createReadStream(filePath).pipe(res);
 };
 
@@ -70,7 +77,10 @@ const tryStaticFile = (requestPath) => {
     : ext === ".svg" ? "image/svg+xml"
     : ext === ".json" ? "application/json; charset=utf-8"
     : ext === ".png" ? "image/png"
+    : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg"
     : ext === ".webp" ? "image/webp"
+    : ext === ".gif" ? "image/gif"
+    : ext === ".avif" ? "image/avif"
     : ext === ".ico" ? "image/x-icon"
     : "text/html; charset=utf-8";
 

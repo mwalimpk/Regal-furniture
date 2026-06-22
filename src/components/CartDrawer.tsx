@@ -8,7 +8,20 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, MessageCircle } from "lucide-react";
-import { buildEmailLink, buildWhatsAppLink } from "@/lib/contact";
+import {
+  buildEmailLink,
+  buildWhatsAppLink,
+  getOrderBranchOptions,
+  SALES_WHATSAPP_NUMBERS,
+  type SalesBranch,
+} from "@/lib/contact";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type SavedOrder = {
   id?: string;
@@ -21,19 +34,23 @@ const CartDrawer = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [checkingOut, setCheckingOut] = useState(false);
+  const [choosingBranch, setChoosingBranch] = useState(false);
+  const [preparingWhatsApp, setPreparingWhatsApp] = useState(false);
   const convertedUnitPrice = (price: number, sourceCurrency: string) => convert(price, sourceCurrency);
   const displayTotal = items.reduce(
     (sum, item) => sum + convertedUnitPrice(item.price, item.currency) * item.quantity,
     0,
   );
 
-  const saveOrder = async (status: string) => {
+  const saveOrder = async (status: string, destination?: SalesBranch) => {
     if (!user) return null;
     const orderItems = items.map((item) => ({
       id: item.id,
       name: item.name,
       price: convertedUnitPrice(item.price, item.currency),
       quantity: item.quantity,
+      warehouse: item.warehouse || "Harare",
+      destination: destination || null,
     }));
     const { data, error } = await supabase.from("orders").insert({
       user_id: user.id,
@@ -98,41 +115,65 @@ const CartDrawer = () => {
     return true;
   };
 
-  const buildOrderDetails = (plainText = false) => {
+  const buildOrderDetails = (plainText = false, destination?: SalesBranch) => {
     const itemLines = items
       .map((item) => {
         const lineTotal = convertedUnitPrice(item.price, item.currency) * item.quantity;
-        const line = `${item.name} x${item.quantity} - ${formatConverted(lineTotal)}`;
+        const warehouse = item.warehouse || "Harare";
+        const line = `${item.name} x${item.quantity} - ${formatConverted(lineTotal)} (${warehouse} warehouse)`;
         return plainText ? `- ${line}` : `* ${line}`;
       })
       .join("\n");
 
-    return `${itemLines}\n\n${plainText ? "Total" : "*Total"}: ${formatConverted(displayTotal)}${plainText ? "" : "*"}\n\nCustomer: ${user?.email || ""}`;
+    const branchLine = destination
+      ? `\n${plainText ? "Order branch" : "*Order branch*"}: ${destination}`
+      : "";
+
+    return `${itemLines}\n\n${plainText ? "Total" : "*Total"}: ${formatConverted(displayTotal)}${plainText ? "" : "*"}${branchLine}\n\nCustomer: ${user?.email || ""}`;
   };
 
-  const handleWhatsAppOrder = async () => {
-    if (!requireSignedInUser()) return;
-
+  const sendWhatsAppOrder = async (branch: SalesBranch) => {
+    setChoosingBranch(false);
+    setPreparingWhatsApp(true);
     const whatsappWindow = window.open("about:blank", "_blank");
     if (whatsappWindow) whatsappWindow.opener = null;
 
-    const order = await saveOrder("pending");
-    if (!order) {
-      whatsappWindow?.close();
+    try {
+      const order = await saveOrder("pending", branch);
+      if (!order) {
+        whatsappWindow?.close();
+        return;
+      }
+
+      const message = `*New Order from Regal Office & Home*\n\n${buildOrderDetails(false, branch)}`;
+      const whatsappLink = buildWhatsAppLink(message, SALES_WHATSAPP_NUMBERS[branch]);
+      if (whatsappWindow) {
+        whatsappWindow.location.replace(whatsappLink);
+      } else {
+        window.location.href = whatsappLink;
+      }
+
+      clearCart();
+      setIsOpen(false);
+      toast({
+        title: "Order prepared!",
+        description: `Complete your order with our ${branch} sales team on WhatsApp.`,
+      });
+    } finally {
+      setPreparingWhatsApp(false);
+    }
+  };
+
+  const handleWhatsAppOrder = () => {
+    if (!requireSignedInUser()) return;
+
+    const branchOptions = getOrderBranchOptions(items.map((item) => item.warehouse));
+    if (branchOptions.length === 1) {
+      void sendWhatsAppOrder(branchOptions[0]);
       return;
     }
 
-    const message = `*New Order from Regal Office & Home*\n\n${buildOrderDetails()}`;
-    const whatsappLink = buildWhatsAppLink(message);
-    if (whatsappWindow) {
-      whatsappWindow.location.replace(whatsappLink);
-    } else {
-      window.location.href = whatsappLink;
-    }
-
-    clearCart();
-    setIsOpen(false);
-    toast({ title: "Order prepared!", description: "Complete your order with our sales team on WhatsApp." });
+    setChoosingBranch(true);
   };
 
   const handleEmailOrder = async () => {
@@ -172,6 +213,9 @@ const CartDrawer = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
                     <p className="text-sm text-muted-foreground">{format(item.price, item.currency)}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {item.warehouse || "Harare"} warehouse
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted text-xs font-bold">
                         −
@@ -196,9 +240,15 @@ const CartDrawer = () => {
                 <span>Total</span>
                 <span>{formatConverted(displayTotal)}</span>
               </div>
-              <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
+              <Button
+                variant="outline"
+                className="w-full"
+                size="lg"
+                onClick={handleWhatsAppOrder}
+                disabled={preparingWhatsApp}
+              >
                 <MessageCircle className="h-4 w-4" />
-                Order via WhatsApp
+                {preparingWhatsApp ? "Preparing WhatsApp order..." : "Order via WhatsApp"}
               </Button>
               <Button variant="outline" className="w-full" size="lg" onClick={handleEmailOrder}>
                 <Mail className="h-4 w-4" />
@@ -211,6 +261,38 @@ const CartDrawer = () => {
           </>
         )}
       </SheetContent>
+
+      <Dialog open={choosingBranch} onOpenChange={setChoosingBranch}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Choose an order warehouse</DialogTitle>
+            <DialogDescription>
+              Your cart includes products assigned to multiple warehouses or available at both. Choose which sales team
+              should receive the WhatsApp order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 pt-2 sm:grid-cols-2">
+            {(["Harare", "Bulawayo"] as SalesBranch[]).map((branch) => (
+              <Button
+                key={branch}
+                type="button"
+                variant="outline"
+                className="h-auto justify-start gap-3 px-4 py-4 text-left"
+                disabled={preparingWhatsApp}
+                onClick={() => void sendWhatsAppOrder(branch)}
+              >
+                <MessageCircle className="h-5 w-5 shrink-0" />
+                <span>
+                  <span className="block font-semibold">{branch}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    +{SALES_WHATSAPP_NUMBERS[branch]}
+                  </span>
+                </span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 };
