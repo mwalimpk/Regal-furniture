@@ -22,6 +22,47 @@ const desktopUtilityLinkClass =
 const mobileListLinkClass =
   "flex items-center justify-between px-4 py-4 text-sm text-[rgb(var(--nav-ink-rgb)/0.92)] transition-colors duration-150 ease-linear hover:text-interactive";
 
+const XBrandLogo = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+  </svg>
+);
+
+const FacebookBrandLogo = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.435H7.078v-3.492h3.047V9.414c0-3.027 1.792-4.7 4.533-4.7 1.312 0 2.686.236 2.686.236v2.974h-1.513c-1.49 0-1.956.932-1.956 1.888v2.261h3.328l-.532 3.492h-2.796V24C19.612 23.094 24 18.1 24 12.073Z" />
+  </svg>
+);
+
+const SocialLinks = ({ mobile = false }: { mobile?: boolean }) => (
+  <div className={mobile ? "flex items-center gap-2" : "flex shrink-0 items-center gap-1"}>
+    <a
+      href="https://x.com/RegalOfficeHome"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Regal Office & Home on X"
+      className={`inline-flex items-center justify-center border border-[rgb(var(--nav-divider-rgb)/1)] text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 hover:border-interactive hover:text-interactive ${
+        mobile ? "h-12 flex-1 gap-3 px-4" : "h-9 w-9"
+      }`}
+    >
+      <XBrandLogo className="h-4 w-4" />
+      {mobile && <span className="font-mono text-[11px] uppercase tracking-[0.18em]">X</span>}
+    </a>
+    <a
+      href="https://web.facebook.com/RegalOfficeHome"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Regal Office & Home on Facebook"
+      className={`inline-flex items-center justify-center border border-[rgb(var(--nav-divider-rgb)/1)] text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 hover:border-interactive hover:text-interactive ${
+        mobile ? "h-12 flex-1 gap-3 px-4" : "h-9 w-9"
+      }`}
+    >
+      <FacebookBrandLogo className="h-4 w-4" />
+      {mobile && <span className="font-mono text-[11px] uppercase tracking-[0.18em]">Facebook</span>}
+    </a>
+  </div>
+);
+
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -57,10 +98,11 @@ const Navbar = () => {
         <div className="hidden lg:block" onMouseLeave={() => setOpenMenu(null)}>
           <div className="border-b border-[rgb(var(--nav-divider-rgb)/1)]">
             <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-5 px-[40px] py-3">
-              <div className="col-span-4">
+              <div className="col-span-4 flex items-center gap-4">
+                <SocialLinks />
                 <button
                   type="button"
-                  className="group flex w-full max-w-[240px] items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-1.5 text-left text-sm text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
+                  className="group flex min-w-0 flex-1 max-w-[240px] items-center justify-between border-b border-[rgb(var(--nav-line-rgb)/0.55)] pb-1.5 text-left text-sm text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
                 >
                   <span>Search</span>
                   <Search size={18} className="text-[rgb(var(--nav-ink-rgb)/1)] transition-colors duration-150 ease-linear group-hover:text-interactive" />
@@ -277,9 +319,10 @@ const Navbar = () => {
 
               <div className="mt-4">
                 <CurrencySwitcher className="mb-4 flex w-full justify-between border border-[rgb(var(--nav-divider-rgb)/1)] px-4 py-3" />
+                <SocialLinks mobile />
 
                 {!user ? (
-                  <Link to="/auth" onClick={() => setMobileOpen(false)} className="block">
+                  <Link to="/auth" onClick={() => setMobileOpen(false)} className="mt-4 block">
                     <Button className="h-12 w-full rounded-none border border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive">
                       Sign In
                     </Button>
@@ -291,7 +334,7 @@ const Navbar = () => {
                       setMobileOpen(false);
                     }}
                     variant="outline"
-                    className="h-12 w-full rounded-none border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive"
+                    className="mt-4 h-12 w-full rounded-none border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive"
                   >
                     Sign Out
                   </Button>
