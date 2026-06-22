@@ -3,6 +3,7 @@ import type { Product } from "@/data/products";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProductCategories, slugifyCategory, type StorefrontCategory } from "@/lib/productCategories";
 import { getProductImagesWithColorVariants, normalizeColorVariants } from "@/lib/productColorVariants";
+import { normalizeInstitutionSlugs } from "@/lib/productInstitutions";
 
 type PropertyRow = {
   id: string;
@@ -17,6 +18,7 @@ type PropertyRow = {
   description: string | null;
   long_description?: string | null;
   color_variants?: unknown;
+  institution_slugs?: unknown;
 };
 
 export const categoryNameToSlug = (
@@ -50,6 +52,7 @@ export const propertyToProduct = (property: PropertyRow, categories: StorefrontC
     description: property.description || "",
     longDescription: property.long_description || "",
     colorVariants: colorVariants.length ? colorVariants : undefined,
+    institutionSlugs: normalizeInstitutionSlugs(property.institution_slugs),
   };
 };
 

@@ -123,6 +123,58 @@ const buildDefaultCategoryRows = (timestamp = nowIso()) =>
     user_id: null,
   }));
 
+const DEFAULT_PRODUCT_INSTITUTIONS = [
+  {
+    name: "Government",
+    slug: "government",
+    description: "Durable boardroom, office, storage, and reception furniture for departments, agencies, and public service environments.",
+    image_url: "/images/institutions/government.jpg",
+  },
+  {
+    name: "Hospitals",
+    slug: "hospitals",
+    description: "Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.",
+    image_url: "/images/institutions/hospitals.jpg",
+  },
+  {
+    name: "Hotels",
+    slug: "hotels",
+    description: "Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.",
+    image_url: "/images/institutions/hotels.jpg",
+  },
+  {
+    name: "Schools",
+    slug: "schools",
+    description: "Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.",
+    image_url: "/images/institutions/schools.jpg",
+  },
+];
+
+const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
+  DEFAULT_PRODUCT_INSTITUTIONS.map((institution, index) => ({
+    id: `institution-${institution.slug}`,
+    ...institution,
+    display_order: index + 1,
+    status: "active",
+    created_at: timestamp,
+    updated_at: timestamp,
+    user_id: null,
+  }));
+
+const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
+  id: "storefront",
+  auto_update: true,
+  manual_rate: 27,
+  fallback_rate: 27,
+  profit_margin_usd: 7,
+  cache_hours: 24,
+  rate_source_url: "https://open.er-api.com/v6/latest/USD",
+  last_live_rate: null,
+  last_rate_updated_at: null,
+  updated_at: timestamp,
+  user_id: null,
+});
+
 const normalizeCategoryFeaturedItems = (features = [], fallbackImage = "") => {
   const values = Array.isArray(features)
     ? features
@@ -209,6 +261,8 @@ const buildInitialState = () => {
     profiles,
     user_roles,
     product_categories: buildDefaultCategoryRows(createdAt),
+    product_institutions: buildDefaultInstitutionRows(createdAt),
+    currency_settings: [buildDefaultCurrencySettings(createdAt)],
     properties: [],
     product_pairings: [],
     product_promotions: [],
@@ -263,6 +317,24 @@ const loadState = () => {
   if (!Array.isArray(state.product_categories)) {
     state.product_categories = buildDefaultCategoryRows();
     changed = true;
+  }
+
+  if (!Array.isArray(state.product_institutions) || !state.product_institutions.length) {
+    state.product_institutions = buildDefaultInstitutionRows();
+    changed = true;
+  }
+
+  if (!Array.isArray(state.currency_settings) || !state.currency_settings.length) {
+    state.currency_settings = [buildDefaultCurrencySettings()];
+    changed = true;
+  }
+
+  if (Array.isArray(state.properties)) {
+    state.properties = state.properties.map((property) => {
+      if (Array.isArray(property.institution_slugs)) return property;
+      changed = true;
+      return { ...property, institution_slugs: [] };
+    });
   }
 
   if (Array.isArray(state.product_categories)) {
@@ -396,6 +468,7 @@ const normalizeInsertRow = (table, row) => {
         country: "Zimbabwe",
         images: [],
         color_variants: [],
+        institution_slugs: [],
         ...row,
       };
     case "product_categories": {
@@ -415,6 +488,24 @@ const normalizeInsertRow = (table, row) => {
         features: normalizeCategoryFeaturedItems(row.features || [], imageUrl),
       };
     }
+    case "product_institutions":
+      return {
+        id: uid("institution"),
+        description: "",
+        image_url: "",
+        display_order: 0,
+        status: "active",
+        created_at: timestamp,
+        updated_at: timestamp,
+        user_id: null,
+        ...row,
+      };
+    case "currency_settings":
+      return {
+        ...buildDefaultCurrencySettings(timestamp),
+        ...row,
+        updated_at: timestamp,
+      };
     case "product_pairings":
       return {
         id: uid("pair"),
@@ -597,7 +688,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
   if (!title) errors.push("Missing product name.");
   if (!propertyType) errors.push("Missing category.");
   if (!Number.isFinite(price) || price < 0) errors.push("Invalid price.");
-  if (!["USD", "ZWL"].includes(currency)) errors.push("Unsupported currency.");
+  if (!["USD", "ZWG"].includes(currency)) errors.push("Unsupported currency.");
 
   return {
     rowNumber,
@@ -965,6 +1056,75 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       },
       error: null,
     };
+  }
+
+  if (name === "currency-rate") {
+    const settings = state.currency_settings?.find((item) => item.id === "storefront") || buildDefaultCurrencySettings();
+    const cacheHours = Math.max(1, Number(settings.cache_hours || 24));
+    const cachedAt = settings.last_rate_updated_at ? new Date(settings.last_rate_updated_at).getTime() : 0;
+    const cacheIsFresh = Number.isFinite(cachedAt) && Date.now() - cachedAt < cacheHours * 60 * 60 * 1000;
+
+    if (!settings.auto_update) {
+      return {
+        data: {
+          rate: Number(settings.manual_rate || settings.fallback_rate || 27),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "manual",
+          updatedAt: settings.updated_at,
+          autoUpdate: false,
+        },
+        error: null,
+      };
+    }
+
+    if (cacheIsFresh && Number(settings.last_live_rate) > 0) {
+      return {
+        data: {
+          rate: Number(settings.last_live_rate),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "live-cache",
+          updatedAt: settings.last_rate_updated_at,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    }
+
+    try {
+      const response = await fetch(settings.rate_source_url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error(`Rate service returned ${response.status}.`);
+      const payload = await response.json();
+      const liveRate = Number(payload?.rates?.ZWG);
+      if (!Number.isFinite(liveRate) || liveRate <= 0) throw new Error("ZWG rate was missing.");
+
+      settings.last_live_rate = liveRate;
+      settings.last_rate_updated_at = nowIso();
+      settings.updated_at = nowIso();
+      if (!state.currency_settings?.length) state.currency_settings = [settings];
+      saveState(state);
+
+      return {
+        data: {
+          rate: liveRate,
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "live",
+          updatedAt: settings.last_rate_updated_at,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: {
+          rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: settings.last_live_rate ? "stale-cache" : "fallback",
+          updatedAt: settings.last_rate_updated_at || settings.updated_at,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    }
   }
 
   return { data: null, error: { message: `Function "${name}" is not available in project mode.` } };

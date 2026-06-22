@@ -13,9 +13,10 @@ interface OrderFormDialogProps {
   onOpenChange: (open: boolean) => void;
   productName?: string;
   productPrice?: number;
+  productCurrency?: string;
 }
 
-const OrderFormDialog = ({ open, onOpenChange, productName, productPrice }: OrderFormDialogProps) => {
+const OrderFormDialog = ({ open, onOpenChange, productName, productPrice, productCurrency = "USD" }: OrderFormDialogProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -38,12 +39,12 @@ const OrderFormDialog = ({ open, onOpenChange, productName, productPrice }: Orde
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim(),
-        message: productName ? `Order inquiry for: ${productName}${productPrice ? ` (${format(productPrice)})` : ""}` : "General order inquiry",
+        message: productName ? `Order inquiry for: ${productName}${productPrice ? ` (${format(productPrice, productCurrency)})` : ""}` : "General order inquiry",
         user_id: user?.id || null,
-      } as any);
+      });
 
       // Send to WhatsApp
-      const productLine = productName ? `\n*Product:* ${productName}${productPrice ? ` — ${format(productPrice)}` : ""}` : "";
+      const productLine = productName ? `\n*Product:* ${productName}${productPrice ? ` — ${format(productPrice, productCurrency)}` : ""}` : "";
       const message = `📋 *New Order Inquiry — Regal Office & Home*\n\n*Name:* ${name}\n*Phone:* ${phone}\n*Email:* ${email}${productLine}`;
       const whatsappUrl = `https://wa.me/2638644281361?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
@@ -69,7 +70,7 @@ const OrderFormDialog = ({ open, onOpenChange, productName, productPrice }: Orde
         {productName && (
           <div className="border border-border p-3 bg-muted/50 text-sm">
             <p className="font-semibold text-foreground">{productName}</p>
-            {productPrice && <p className="text-muted-foreground">{format(productPrice)}</p>}
+            {productPrice && <p className="text-muted-foreground">{format(productPrice, productCurrency)}</p>}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">

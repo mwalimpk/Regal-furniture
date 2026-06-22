@@ -31,7 +31,7 @@ const legacyStoreFile = path.join(__dirname, "data", "store.json");
 
 const JSON_COLUMNS = {
   auth_users: ["user_metadata"],
-  properties: ["images", "color_variants"],
+  properties: ["images", "color_variants", "institution_slugs"],
   product_categories: ["features"],
   product_pairings: ["recommended_ids"],
   product_promotions: ["product_ids", "category_targets"],
@@ -45,7 +45,9 @@ const TABLE_COLUMNS = {
   profiles: ["id", "user_id", "full_name", "currency", "phone", "status", "created_at", "updated_at"],
   user_roles: ["id", "user_id", "role"],
   product_categories: ["id", "name", "slug", "image_url", "features", "created_at", "updated_at", "user_id"],
-  properties: ["id", "title", "description", "long_description", "property_type", "featured_slug", "price", "currency", "location", "city", "country", "images", "color_variants", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
+  product_institutions: ["id", "name", "slug", "description", "image_url", "display_order", "status", "created_at", "updated_at", "user_id"],
+  currency_settings: ["id", "auto_update", "manual_rate", "fallback_rate", "profit_margin_usd", "cache_hours", "rate_source_url", "last_live_rate", "last_rate_updated_at", "updated_at", "user_id"],
+  properties: ["id", "title", "description", "long_description", "property_type", "featured_slug", "price", "currency", "location", "city", "country", "images", "color_variants", "institution_slugs", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
   product_pairings: ["id", "product_id", "recommended_ids"],
   product_promotions: ["id", "title", "description", "promotion_type", "discount_type", "discount_value", "offer_label", "product_ids", "category_targets", "status", "starts_at", "ends_at", "created_at", "updated_at", "user_id"],
   catalogues: ["id", "title", "category", "year", "month", "document_url", "document_name", "document_type", "cover_image_url", "imported_count", "status", "created_at", "updated_at", "user_id"],
@@ -153,6 +155,58 @@ const buildDefaultCategoryRows = (timestamp = nowIso()) =>
     user_id: null,
   }));
 
+const DEFAULT_PRODUCT_INSTITUTIONS = [
+  {
+    name: "Government",
+    slug: "government",
+    description: "Durable boardroom, office, storage, and reception furniture for departments, agencies, and public service environments.",
+    image_url: "/images/institutions/government.jpg",
+  },
+  {
+    name: "Hospitals",
+    slug: "hospitals",
+    description: "Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.",
+    image_url: "/images/institutions/hospitals.jpg",
+  },
+  {
+    name: "Hotels",
+    slug: "hotels",
+    description: "Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.",
+    image_url: "/images/institutions/hotels.jpg",
+  },
+  {
+    name: "Schools",
+    slug: "schools",
+    description: "Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.",
+    image_url: "/images/institutions/schools.jpg",
+  },
+];
+
+const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
+  DEFAULT_PRODUCT_INSTITUTIONS.map((institution, index) => ({
+    id: `institution-${institution.slug}`,
+    ...institution,
+    display_order: index + 1,
+    status: "active",
+    created_at: timestamp,
+    updated_at: timestamp,
+    user_id: null,
+  }));
+
+const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
+  id: "storefront",
+  auto_update: true,
+  manual_rate: 27,
+  fallback_rate: 27,
+  profit_margin_usd: 7,
+  cache_hours: 24,
+  rate_source_url: "https://open.er-api.com/v6/latest/USD",
+  last_live_rate: null,
+  last_rate_updated_at: null,
+  updated_at: timestamp,
+  user_id: null,
+});
+
 const normalizeCategoryFeaturedItems = (features = [], fallbackImage = "") => {
   const values = Array.isArray(features)
     ? features
@@ -193,6 +247,7 @@ const OPTIONAL_SCHEMA_COLUMNS = {
     { name: "long_description", definition: "LONGTEXT NULL AFTER `description`" },
     { name: "featured_slug", definition: "VARCHAR(255) NULL AFTER `property_type`" },
     { name: "color_variants", definition: "LONGTEXT NULL AFTER `images`" },
+    { name: "institution_slugs", definition: "LONGTEXT NULL AFTER `color_variants`" },
   ],
   promotional_banners: [
     { name: "background_image_url", definition: "LONGTEXT NULL" },
@@ -232,13 +287,14 @@ const serializeRow = (table, row) => {
   jsonColumns.forEach((column) => {
     if (column in next) next[column] = JSON.stringify(next[column] ?? null);
   });
-  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at"].forEach((key) => {
+  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at", "last_rate_updated_at"].forEach((key) => {
     if (key in next && next[key]) next[key] = asDbDateTime(next[key]);
   });
   if ("featured" in next && typeof next.featured === "boolean") next.featured = next.featured ? 1 : 0;
   if ("read" in next && typeof next.read === "boolean") next.read = next.read ? 1 : 0;
   if ("has_countdown" in next && typeof next.has_countdown === "boolean") next.has_countdown = next.has_countdown ? 1 : 0;
   if ("cta_enabled" in next && typeof next.cta_enabled === "boolean") next.cta_enabled = next.cta_enabled ? 1 : 0;
+  if ("auto_update" in next && typeof next.auto_update === "boolean") next.auto_update = next.auto_update ? 1 : 0;
   return next;
 };
 
@@ -258,10 +314,11 @@ const deserializeRow = (table, row) => {
   if ("read" in next) next.read = next.read === null ? null : Boolean(next.read);
   if ("has_countdown" in next) next.has_countdown = next.has_countdown === null ? null : Boolean(next.has_countdown);
   if ("cta_enabled" in next) next.cta_enabled = next.cta_enabled === null ? true : Boolean(next.cta_enabled);
-  ["price", "total", "amount", "quantity", "year", "month", "imported_count", "discount_value", "display_order"].forEach((key) => {
+  if ("auto_update" in next) next.auto_update = next.auto_update === null ? true : Boolean(next.auto_update);
+  ["price", "total", "amount", "quantity", "year", "month", "imported_count", "discount_value", "display_order", "manual_rate", "fallback_rate", "profit_margin_usd", "cache_hours", "last_live_rate"].forEach((key) => {
     if (key in next && next[key] !== null) next[key] = Number(next[key]);
   });
-  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at"].forEach((key) => {
+  ["created_at", "updated_at", "start_date", "end_date", "booking_date", "starts_at", "ends_at", "countdown_ends_at", "last_rate_updated_at"].forEach((key) => {
     if (next[key] instanceof Date) next[key] = next[key].toISOString();
   });
   return next;
@@ -312,6 +369,8 @@ const seedState = () => {
       { id: uid("role"), user_id: authUsers[2].id, role: "user" },
     ],
     product_categories: buildDefaultCategoryRows(createdAt),
+    product_institutions: buildDefaultInstitutionRows(createdAt),
+    currency_settings: [buildDefaultCurrencySettings(createdAt)],
     properties: [],
     product_pairings: [],
     product_promotions: [],
@@ -407,6 +466,16 @@ export const ensureMysqlReady = async () => {
     await importState({ product_categories: buildDefaultCategoryRows() });
   }
 
+  const [[institutionCountRow]] = await db.query("SELECT COUNT(*) AS count FROM product_institutions");
+  if (!Number(institutionCountRow.count)) {
+    await importState({ product_institutions: buildDefaultInstitutionRows() });
+  }
+
+  const [[currencySettingsCountRow]] = await db.query("SELECT COUNT(*) AS count FROM currency_settings");
+  if (!Number(currencySettingsCountRow.count)) {
+    await importState({ currency_settings: [buildDefaultCurrencySettings()] });
+  }
+
   initialized = true;
   return true;
 };
@@ -432,7 +501,7 @@ const normalizeInsertRow = (table, row) => {
     case "user_roles":
       return { id: uid("role"), role: "user", ...row };
     case "properties":
-      return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, featured_slug: null, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], color_variants: [], ...row };
+      return { id: uid("property"), created_at: timestamp, updated_at: timestamp, status: "approved", featured: false, featured_slug: null, bedrooms: 0, bathrooms: 0, area_sqft: 0, country: "Zimbabwe", images: [], color_variants: [], institution_slugs: [], ...row };
     case "product_categories": {
       const name = String(row.name || "").trim();
       const slug = String(row.slug || slugify(name || "category"));
@@ -450,6 +519,20 @@ const normalizeInsertRow = (table, row) => {
         features: normalizeCategoryFeaturedItems(row.features || [], imageUrl),
       };
     }
+    case "product_institutions":
+      return {
+        id: uid("institution"),
+        description: "",
+        image_url: "",
+        display_order: 0,
+        status: "active",
+        created_at: timestamp,
+        updated_at: timestamp,
+        user_id: null,
+        ...row,
+      };
+    case "currency_settings":
+      return { ...buildDefaultCurrencySettings(timestamp), ...row, updated_at: timestamp };
     case "product_pairings":
       return { id: uid("pair"), recommended_ids: [], ...row };
     case "product_promotions":
@@ -557,7 +640,7 @@ const normalizeImportedProduct = (row, rowNumber) => {
   if (!title) errors.push("Missing product name.");
   if (!propertyType) errors.push("Missing category.");
   if (!Number.isFinite(price) || price < 0) errors.push("Invalid price.");
-  if (!["USD", "ZWL"].includes(currency)) errors.push("Unsupported currency.");
+  if (!["USD", "ZWG"].includes(currency)) errors.push("Unsupported currency.");
 
   return {
     rowNumber,
@@ -903,6 +986,75 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
 
   if (name === "create-checkout") {
     return { data: { url: `${origin || ""}/dashboard?payment=mock-success` }, error: null };
+  }
+
+  if (name === "currency-rate") {
+    const db = getPool();
+    const [rows] = await db.query("SELECT * FROM currency_settings WHERE id = 'storefront' LIMIT 1");
+    const settings = rows[0] ? deserializeRow("currency_settings", rows[0]) : buildDefaultCurrencySettings();
+    const cacheHours = Math.max(1, Number(settings.cache_hours || 24));
+    const cachedAt = settings.last_rate_updated_at ? new Date(settings.last_rate_updated_at).getTime() : 0;
+    const cacheIsFresh = Number.isFinite(cachedAt) && Date.now() - cachedAt < cacheHours * 60 * 60 * 1000;
+
+    if (!settings.auto_update) {
+      return {
+        data: {
+          rate: Number(settings.manual_rate || settings.fallback_rate || 27),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "manual",
+          updatedAt: settings.updated_at,
+          autoUpdate: false,
+        },
+        error: null,
+      };
+    }
+
+    if (cacheIsFresh && Number(settings.last_live_rate) > 0) {
+      return {
+        data: {
+          rate: Number(settings.last_live_rate),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "live-cache",
+          updatedAt: settings.last_rate_updated_at,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    }
+
+    try {
+      const response = await fetch(settings.rate_source_url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error(`Rate service returned ${response.status}.`);
+      const payload = await response.json();
+      const liveRate = Number(payload?.rates?.ZWG);
+      if (!Number.isFinite(liveRate) || liveRate <= 0) throw new Error("ZWG rate was missing.");
+      const updatedAt = nowIso();
+      await db.query(
+        "UPDATE currency_settings SET last_live_rate = ?, last_rate_updated_at = ?, updated_at = ? WHERE id = 'storefront'",
+        [liveRate, asDbDateTime(updatedAt), asDbDateTime(updatedAt)],
+      );
+      return {
+        data: {
+          rate: liveRate,
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: "live",
+          updatedAt,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    } catch {
+      return {
+        data: {
+          rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
+          marginUsd: Number(settings.profit_margin_usd || 0),
+          source: settings.last_live_rate ? "stale-cache" : "fallback",
+          updatedAt: settings.last_rate_updated_at || settings.updated_at,
+          autoUpdate: true,
+        },
+        error: null,
+      };
+    }
   }
 
   return { data: null, error: { message: `Function "${name}" is not available in MySQL mode.` } };

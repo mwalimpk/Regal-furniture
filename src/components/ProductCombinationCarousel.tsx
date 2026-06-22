@@ -13,7 +13,7 @@ type ProductCombinationCarouselProps = {
 };
 
 const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: ProductCombinationCarouselProps) => {
-  const { format } = useCurrency();
+  const { convert, format, formatConverted } = useCurrency();
   const trackRef = useRef<HTMLDivElement>(null);
   const mediaProducts = relatedProducts?.length ? relatedProducts : [product, ...combinations];
   const insights = useMemo(
@@ -71,7 +71,7 @@ const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: 
             <h3 className="mt-4 line-clamp-2 font-serif text-2xl leading-tight text-foreground">{product.name}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{product.category}</p>
             <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.18em] text-label">Current item</p>
-            <p className="mt-1 font-serif text-3xl text-heritage">{format(product.price)}</p>
+            <p className="mt-1 font-serif text-3xl text-heritage">{format(product.price, product.currency)}</p>
           </div>
 
           <div ref={trackRef} className="flex snap-x gap-5 overflow-x-auto pb-4">
@@ -100,7 +100,12 @@ const ProductCombinationCarousel = ({ product, combinations, relatedProducts }: 
 
                   <div className="mt-4 border-y border-grid/25 py-3">
                     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-label">Total combination</p>
-                    <p className="mt-1 font-serif text-3xl text-heritage">{format(insight.total)}</p>
+                    <p className="mt-1 font-serif text-3xl text-heritage">
+                      {formatConverted(
+                        convert(product.price, product.currency) +
+                        convert(insight.product.price, insight.product.currency),
+                      )}
+                    </p>
                   </div>
 
                   <div className="mt-3 flex max-h-[58px] flex-wrap gap-2 overflow-hidden">

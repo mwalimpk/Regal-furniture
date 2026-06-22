@@ -8,6 +8,7 @@ import { useProductCategories } from "@/hooks/useProductCategories";
 import regalLogo from "@/assets/regal-logo-homepage.png";
 import OrderFormDialog from "@/components/OrderFormDialog";
 import ThemeToggle from "@/components/ThemeToggle";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
 
 const utilityLinks = [
   { label: "About", href: "/about" },
@@ -73,6 +74,8 @@ const Navbar = () => {
               </div>
 
               <div className="col-span-4 flex items-center justify-end gap-2 xl:gap-3">
+                <CurrencySwitcher />
+
                 {isAdmin && (
                   <Link
                     to="/admin"
@@ -273,6 +276,8 @@ const Navbar = () => {
               </div>
 
               <div className="mt-4">
+                <CurrencySwitcher className="mb-4 flex w-full justify-between border border-[rgb(var(--nav-divider-rgb)/1)] px-4 py-3" />
+
                 {!user ? (
                   <Link to="/auth" onClick={() => setMobileOpen(false)} className="block">
                     <Button className="h-12 w-full rounded-none border border-[rgb(var(--nav-ink-rgb)/1)] bg-transparent font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--nav-ink-rgb)/1)] hover:border-interactive hover:bg-transparent hover:text-interactive">

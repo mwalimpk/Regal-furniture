@@ -15,6 +15,7 @@ import ImageUploader from "./ImageUploader";
 import ProductAIDescriptionDialog, { type AIDescriptionTarget } from "./ProductAIDescriptionDialog";
 import RichTextEditor from "./RichTextEditor";
 import { PRODUCT_COLOR_OPTIONS, type ProductColorVariant } from "@/lib/productColorVariants";
+import { useProductInstitutions } from "@/hooks/useProductInstitutions";
 
 const initialForm = {
   title: "", description: "", long_description: "", property_type: "", featured_slug: "", price: "",
@@ -38,8 +39,10 @@ const AddProductSection = () => {
   const [aiTarget, setAiTarget] = useState<AIDescriptionTarget | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>([]);
+  const [institutionSlugs, setInstitutionSlugs] = useState<string[]>([]);
   const [form, setForm] = useState(initialForm);
   const { data: productCategories = [] } = useProductCategories();
+  const { data: institutions = [] } = useProductInstitutions();
   const categories = useMemo(() => productCategories.map((category) => category.name), [productCategories]);
   const selectedCategory = useMemo(
     () => productCategories.find((category) => category.name === form.property_type) || null,
@@ -100,6 +103,12 @@ const AddProductSection = () => {
     update("long_description", html);
   };
 
+  const toggleInstitution = (slug: string) => {
+    setInstitutionSlugs((current) => (
+      current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug]
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -158,6 +167,7 @@ const AddProductSection = () => {
       country: "Zimbabwe",
       images: productImages,
       color_variants: cleanColorVariants,
+      institution_slugs: institutionSlugs,
       status: "approved",
       bedrooms: 0, bathrooms: 0, area_sqft: 0,
     });
@@ -170,6 +180,7 @@ const AddProductSection = () => {
       setForm(initialForm);
       setImages([]);
       setColorVariants([]);
+      setInstitutionSlugs([]);
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
       queryClient.invalidateQueries({ queryKey: ["storefront-products"] });
@@ -244,6 +255,37 @@ const AddProductSection = () => {
                 </Select>
               </div>
 
+              <div className="space-y-3">
+                <div>
+                  <Label>Institutions served</Label>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Select every institution this product is suitable for. This controls the homepage institution collections.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {institutions.map((institution) => {
+                    const selected = institutionSlugs.includes(institution.slug);
+                    return (
+                      <button
+                        key={institution.id}
+                        type="button"
+                        onClick={() => toggleInstitution(institution.slug)}
+                        className={`border p-4 text-left transition-colors ${
+                          selected ? "border-heritage bg-heritage/10" : "border-grid/30 bg-background hover:border-interactive"
+                        }`}
+                        aria-pressed={selected}
+                      >
+                        <span className="font-medium text-foreground">{institution.name}</span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{institution.description}</span>
+                      </button>
+                    );
+                  })}
+                  {!institutions.length && (
+                    <p className="text-sm text-muted-foreground">No active institutions are configured in the database.</p>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <Label>Description</Label>
@@ -289,7 +331,7 @@ const AddProductSection = () => {
                     <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["USD", "ZWL"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {["USD", "ZWG"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -457,6 +499,9 @@ const AddProductSection = () => {
           currency: form.currency,
           sku: form.location,
           warehouse: form.city,
+          institutions: institutions
+            .filter((institution) => institutionSlugs.includes(institution.slug))
+            .map((institution) => institution.name),
           images,
           colorVariants,
         }}

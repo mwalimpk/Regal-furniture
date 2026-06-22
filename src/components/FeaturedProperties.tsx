@@ -60,7 +60,7 @@ const FeaturedProducts = () => {
                     <h3 className="font-serif text-sm md:text-base font-semibold text-foreground leading-snug">{product.name}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-2 hidden md:block">{product.description}</p>
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-sm md:text-lg font-semibold text-foreground">{format(product.price)}</span>
+                      <span className="text-sm md:text-lg font-semibold text-foreground">{format(product.price, product.currency)}</span>
                     </div>
                     <div className="flex gap-1 pt-1">
                       <button
@@ -96,6 +96,7 @@ const FeaturedProducts = () => {
         onOpenChange={(open) => { if (!open) setOrderProduct(null); }}
         productName={orderProduct?.name}
         productPrice={orderProduct?.price}
+        productCurrency={orderProduct?.currency}
       />
     </>
   );

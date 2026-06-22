@@ -1,46 +1,114 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DEFAULT_CURRENCY_RATE,
+  convertCurrencyAmount,
+  formatConvertedCurrency,
+  normalizeStoreCurrency,
+  type CurrencyRateSnapshot,
+  type StoreCurrency,
+} from "@/lib/currency";
 
-type Currency = "USD" | "ZWG";
-
-const ZWG_RATE = 27; // approximate ZWG per USD
+const CURRENCY_STORAGE_KEY = "regal-storefront-currency";
 
 interface CurrencyContextType {
-  currency: Currency;
-  setCurrency: (c: Currency) => void;
-  convert: (usdPrice: number) => number;
-  format: (usdPrice: number) => string;
-  symbol: string;
+  currency: StoreCurrency;
+  setCurrency: (currency: StoreCurrency) => void;
+  convert: (amount: number, sourceCurrency?: string) => number;
+  format: (amount: number, sourceCurrency?: string) => string;
+  formatConverted: (amount: number) => string;
+  rate: number;
+  marginUsd: number;
+  rateSource: CurrencyRateSnapshot["source"];
+  rateUpdatedAt: string | null;
+  isLoadingRate: boolean;
+  refreshRate: () => void;
 }
 
 const CurrencyContext = createContext<CurrencyContextType>({
   currency: "USD",
   setCurrency: () => {},
-  convert: (p) => p,
-  format: (p) => `$${p}`,
-  symbol: "$",
+  convert: (amount) => amount,
+  format: (amount) => formatConvertedCurrency(amount, "USD"),
+  formatConverted: (amount) => formatConvertedCurrency(amount, "USD"),
+  rate: DEFAULT_CURRENCY_RATE.rate,
+  marginUsd: DEFAULT_CURRENCY_RATE.marginUsd,
+  rateSource: DEFAULT_CURRENCY_RATE.source,
+  rateUpdatedAt: null,
+  isLoadingRate: false,
+  refreshRate: () => {},
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCurrency = () => useContext(CurrencyContext);
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const [currency, setCurrencyState] = useState<StoreCurrency>(() => {
+    if (typeof window === "undefined") return "USD";
+    return normalizeStoreCurrency(window.localStorage.getItem(CURRENCY_STORAGE_KEY));
+  });
 
-  const convert = (usdPrice: number) =>
-    currency === "USD" ? usdPrice : Math.round(usdPrice * ZWG_RATE);
+  const {
+    data: rateSnapshot = DEFAULT_CURRENCY_RATE,
+    isLoading: isLoadingRate,
+    refetch,
+  } = useQuery({
+    queryKey: ["currency-rate"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("currency-rate", { body: {} });
+      if (error) throw new Error(error.message);
+      const row = (data || {}) as Partial<CurrencyRateSnapshot>;
+      const rate = Number(row.rate);
+      return {
+        rate: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_CURRENCY_RATE.rate,
+        marginUsd: Math.max(0, Number(row.marginUsd ?? DEFAULT_CURRENCY_RATE.marginUsd)),
+        source: row.source || DEFAULT_CURRENCY_RATE.source,
+        updatedAt: row.updatedAt || null,
+        autoUpdate: row.autoUpdate !== false,
+      } satisfies CurrencyRateSnapshot;
+    },
+    staleTime: 30 * 60 * 1000,
+    refetchInterval: 60 * 60 * 1000,
+  });
 
-  const symbol = currency === "USD" ? "$" : "ZWG ";
+  useEffect(() => {
+    window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+    void refetch();
+  }, [currency, refetch]);
 
-  const format = (usdPrice: number) => {
-    const value = convert(usdPrice);
-    if (currency === "USD") {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
-    }
-    return `ZWG ${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)}`;
-  };
+  const value = useMemo<CurrencyContextType>(() => {
+    const setCurrency = (nextCurrency: StoreCurrency) => setCurrencyState(nextCurrency);
 
-  return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, convert, format, symbol }}>
-      {children}
-    </CurrencyContext.Provider>
-  );
+    const convert = (amount: number, sourceCurrency = "USD") => {
+      return convertCurrencyAmount({
+        amount,
+        sourceCurrency,
+        targetCurrency: currency,
+        rate: rateSnapshot.rate,
+        marginUsd: rateSnapshot.marginUsd,
+      });
+    };
+
+    const format = (amount: number, sourceCurrency = "USD") =>
+      formatConvertedCurrency(convert(amount, sourceCurrency), currency);
+
+    return {
+      currency,
+      setCurrency,
+      convert,
+      format,
+      formatConverted: (amount) => formatConvertedCurrency(amount, currency),
+      rate: rateSnapshot.rate,
+      marginUsd: rateSnapshot.marginUsd,
+      rateSource: rateSnapshot.source,
+      rateUpdatedAt: rateSnapshot.updatedAt,
+      isLoadingRate,
+      refreshRate: () => {
+        void refetch();
+      },
+    };
+  }, [currency, isLoadingRate, rateSnapshot, refetch]);
+
+  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 };

@@ -52,8 +52,8 @@ const InvoiceReceipt = ({ open, onOpenChange, orderId, items, total, currency, c
   };
 
   const handleWhatsApp = () => {
-    const itemLines = items.map(i => `• ${i.name} x${i.quantity} — ${format(i.price * i.quantity)}`).join("\n");
-    const message = `📄 *Invoice #${orderId.slice(0, 8)}*\n\nDate: ${new Date(date).toLocaleDateString()}\nCustomer: ${customerName || customerEmail}\n\n${itemLines}\n\n*Total: ${format(total)}*\n\nRegal Office & Home\n+263 8644 281 361`;
+    const itemLines = items.map(i => `• ${i.name} x${i.quantity} — ${format(i.price * i.quantity, currency)}`).join("\n");
+    const message = `📄 *Invoice #${orderId.slice(0, 8)}*\n\nDate: ${new Date(date).toLocaleDateString()}\nCustomer: ${customerName || customerEmail}\n\n${itemLines}\n\n*Total: ${format(total, currency)}*\n\nRegal Office & Home\n+263 8644 281 361`;
     window.open(`https://wa.me/2638644281361?text=${encodeURIComponent(message)}`, "_blank");
   };
 
@@ -96,13 +96,13 @@ const InvoiceReceipt = ({ open, onOpenChange, orderId, items, total, currency, c
                 <tr key={i}>
                   <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13 }}>{item.name}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13, textAlign: "center" }}>{item.quantity}</td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13, textAlign: "right" }}>{format(item.price)}</td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13, textAlign: "right" }}>{format(item.price * item.quantity)}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13, textAlign: "right" }}>{format(item.price, currency)}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eee", fontSize: 13, textAlign: "right" }}>{format(item.price * item.quantity, currency)}</td>
                 </tr>
               ))}
               <tr>
                 <td colSpan={3} style={{ padding: 10, fontWeight: "bold", fontSize: 15, borderTop: "2px solid #333", textAlign: "right" }}>Total</td>
-                <td style={{ padding: 10, fontWeight: "bold", fontSize: 15, borderTop: "2px solid #333", textAlign: "right" }}>{format(total)}</td>
+                <td style={{ padding: 10, fontWeight: "bold", fontSize: 15, borderTop: "2px solid #333", textAlign: "right" }}>{format(total, currency)}</td>
               </tr>
             </tbody>
           </table>

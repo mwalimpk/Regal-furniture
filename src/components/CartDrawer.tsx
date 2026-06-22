@@ -7,38 +7,46 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
+import { buildEmailLink, buildWhatsAppLink } from "@/lib/contact";
 
-const WHATSAPP_ORDER_BRANCHES = [
-  { city: "Harare", number: "263780472180" },
-  { city: "Bulawayo", number: "263787781470" },
-] as const;
-
-type WhatsAppOrderBranch = (typeof WHATSAPP_ORDER_BRANCHES)[number];
+type SavedOrder = {
+  id?: string;
+};
 
 const CartDrawer = () => {
-  const { items, removeItem, updateQuantity, clearCart, total, itemCount, isOpen, setIsOpen } = useCart();
-  const { format } = useCurrency();
+  const { items, removeItem, updateQuantity, clearCart, itemCount, isOpen, setIsOpen } = useCart();
+  const { currency, convert, format, formatConverted } = useCurrency();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [checkingOut, setCheckingOut] = useState(false);
+  const convertedUnitPrice = (price: number, sourceCurrency: string) => convert(price, sourceCurrency);
+  const displayTotal = items.reduce(
+    (sum, item) => sum + convertedUnitPrice(item.price, item.currency) * item.quantity,
+    0,
+  );
 
   const saveOrder = async (status: string) => {
     if (!user) return null;
-    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
+    const orderItems = items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: convertedUnitPrice(item.price, item.currency),
+      quantity: item.quantity,
+    }));
     const { data, error } = await supabase.from("orders").insert({
       user_id: user.id,
-      total,
-      currency: "USD",
+      total: displayTotal,
+      currency,
       items: orderItems,
       status,
-    } as any).select().single();
+    }).select().single();
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return null;
     }
-    return data;
+    return data as SavedOrder | null;
   };
 
   const handleStripeCheckout = async () => {
@@ -62,41 +70,85 @@ const CartDrawer = () => {
       });
 
       if (error) throw error;
-      if (data?.url) {
+      const checkoutData = data as { url?: string } | null;
+      if (checkoutData?.url) {
         await saveOrder("pending");
         clearCart();
         setIsOpen(false);
-        window.location.href = data.url;
+        window.location.href = checkoutData.url;
       } else {
         throw new Error("No checkout URL returned");
       }
-    } catch (err: any) {
-      toast({ title: "Payment error", description: err.message || "Could not start checkout.", variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not start checkout.";
+      toast({ title: "Payment error", description: message, variant: "destructive" });
     } finally {
       setCheckingOut(false);
     }
   };
 
-  const handleWhatsAppOrder = async (branch: WhatsAppOrderBranch) => {
+  const requireSignedInUser = () => {
     if (!user) {
       setIsOpen(false);
       navigate("/auth");
       toast({ title: "Please sign in", description: "You need to be signed in to checkout." });
+      return false;
+    }
+
+    return true;
+  };
+
+  const buildOrderDetails = (plainText = false) => {
+    const itemLines = items
+      .map((item) => {
+        const lineTotal = convertedUnitPrice(item.price, item.currency) * item.quantity;
+        const line = `${item.name} x${item.quantity} - ${formatConverted(lineTotal)}`;
+        return plainText ? `- ${line}` : `* ${line}`;
+      })
+      .join("\n");
+
+    return `${itemLines}\n\n${plainText ? "Total" : "*Total"}: ${formatConverted(displayTotal)}${plainText ? "" : "*"}\n\nCustomer: ${user?.email || ""}`;
+  };
+
+  const handleWhatsAppOrder = async () => {
+    if (!requireSignedInUser()) return;
+
+    const whatsappWindow = window.open("about:blank", "_blank");
+    if (whatsappWindow) whatsappWindow.opener = null;
+
+    const order = await saveOrder("pending");
+    if (!order) {
+      whatsappWindow?.close();
       return;
     }
+
+    const message = `*New Order from Regal Office & Home*\n\n${buildOrderDetails()}`;
+    const whatsappLink = buildWhatsAppLink(message);
+    if (whatsappWindow) {
+      whatsappWindow.location.replace(whatsappLink);
+    } else {
+      window.location.href = whatsappLink;
+    }
+
+    clearCart();
+    setIsOpen(false);
+    toast({ title: "Order prepared!", description: "Complete your order with our sales team on WhatsApp." });
+  };
+
+  const handleEmailOrder = async () => {
+    if (!requireSignedInUser()) return;
 
     const order = await saveOrder("pending");
     if (!order) return;
 
-    const orderItems = items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity }));
-    const itemLines = orderItems.map((i) => `* ${i.name} x${i.quantity} - ${format(i.price * i.quantity)}`).join("\n");
-    const message = `*New Order from Regal Office & Home*\n\nBranch: ${branch.city}\n\n${itemLines}\n\n*Total: ${format(total)}*\n\nCustomer: ${user.email}`;
-    const whatsappUrl = `https://wa.me/${branch.number}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+    const orderReference = order.id ? `Order reference: ${order.id}\n\n` : "";
+    const subject = `New website order from ${user?.email || "customer"}`;
+    const body = `Hello Regal Office & Home,\n\nI would like to place the following order:\n\n${orderReference}${buildOrderDetails(true)}`;
+    window.location.href = buildEmailLink(subject, body);
 
     clearCart();
     setIsOpen(false);
-    toast({ title: "Order placed!", description: `Complete your order with our ${branch.city} team on WhatsApp.` });
+    toast({ title: "Email prepared!", description: "Review and send the order from your email app." });
   };
 
   return (
@@ -119,7 +171,7 @@ const CartDrawer = () => {
                   <img src={item.image} alt={item.name} className="w-20 h-20 object-cover" />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground truncate">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{format(item.price)}</p>
+                    <p className="text-sm text-muted-foreground">{format(item.price, item.currency)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 border border-border flex items-center justify-center hover:bg-muted text-xs font-bold">
                         −
@@ -133,17 +185,24 @@ const CartDrawer = () => {
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground whitespace-nowrap">{format(item.price * item.quantity)}</p>
+                  <p className="text-sm font-semibold text-foreground whitespace-nowrap">
+                    {formatConverted(convertedUnitPrice(item.price, item.currency) * item.quantity)}
+                  </p>
                 </div>
               ))}
             </div>
             <div className="border-t border-border pt-4 space-y-3">
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>{format(total)}</span>
+                <span>{formatConverted(displayTotal)}</span>
               </div>
               <Button variant="outline" className="w-full" size="lg" onClick={handleWhatsAppOrder}>
+                <MessageCircle className="h-4 w-4" />
                 Order via WhatsApp
+              </Button>
+              <Button variant="outline" className="w-full" size="lg" onClick={handleEmailOrder}>
+                <Mail className="h-4 w-4" />
+                Send via Email
               </Button>
               <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
                 Continue Shopping

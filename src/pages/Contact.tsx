@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import businessOffice from "@/assets/business-office.jpg";
+import contactAfricanConsultation from "@/assets/contact-african-consultation.png";
 import heroOffice from "@/assets/hero-office.jpg";
 import productConference from "@/assets/product-conference.jpg";
 import productWorkstation from "@/assets/product-workstation.jpg";
@@ -18,34 +18,19 @@ const branches = [
     city: "Harare",
     address: "DDK Centre, 68 Enterprise Rd, Newlands",
     phones: ["+263 8644 281 361", "+263 780 472 180", "+263 712 012 913"],
+    salesPhone: "+263780472180",
+    whatsapp: "+263780472180",
+    email: "info@regalfurn.co.zw",
     note: "Showroom, projects, bulk buying, and customer support.",
   },
   {
     city: "Bulawayo",
     address: "Norvaal House, 68 Fife Street, Corner Sixth Avenue",
     phones: ["+263 8644 041 571", "+263 787 781 470", "+263 718 907 161"],
+    salesPhone: "+263787781470",
+    whatsapp: "+263787781470",
+    email: "info@regalfurn.co.zw",
     note: "Regional support for office, home, institutional, and project orders.",
-  },
-];
-
-const contactRoutes = [
-  {
-    label: "Sales desk",
-    value: "info@regalfurn.co.zw",
-    href: "mailto:info@regalfurn.co.zw",
-    icon: Mail,
-  },
-  {
-    label: "WhatsApp",
-    value: "+263 780 472 180",
-    href: "https://wa.me/263780472180?text=Hello%20Regal%20Office%20%26%20Home%2C%20I%20would%20like%20help%20with%20a%20furniture%20enquiry.",
-    icon: MessageSquare,
-  },
-  {
-    label: "Showrooms",
-    value: "Harare & Bulawayo",
-    href: "#branches",
-    icon: Building2,
   },
 ];
 
@@ -100,8 +85,8 @@ const Contact = () => {
       <main className="pt-[96px] lg:pt-[172px]">
         <section className="relative min-h-[calc(100svh-96px)] overflow-hidden border-b border-grid/40 lg:min-h-[calc(100svh-172px)]">
           <img
-            src={businessOffice}
-            alt="Regal office consultation space"
+            src={contactAfricanConsultation}
+            alt="African Regal consultant helping a client plan an office furniture layout"
             className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgb(12_14_10/0.88)_0%,rgb(12_14_10/0.56)_48%,rgb(12_14_10/0.22)_100%)]" />
@@ -116,45 +101,76 @@ const Contact = () => {
               <p className="max-w-2xl text-sm leading-7 text-white/76 md:text-base md:leading-8">
                 Talk to Regal about individual pieces, office rollouts, showroom visits, institutional supply, or after-sales support across Harare and Bulawayo.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row lg:justify-self-end">
+              <div className="grid gap-3 sm:grid-cols-2 lg:justify-self-end">
                 <a
                   href="#enquiry"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 bg-interactive px-5 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-accent-foreground transition-colors hover:bg-interactive/90"
+                  className="sm:col-span-2 inline-flex min-h-12 items-center justify-center gap-2 bg-interactive px-5 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-accent-foreground transition-colors hover:bg-interactive/90"
                 >
                   Send enquiry
                   <ArrowRight size={15} />
                 </a>
-                <a
-                  href="tel:+263780472180"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/32 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:border-interactive hover:text-interactive"
-                >
-                  Call sales
-                </a>
+                {branches.map((branch) => (
+                  <a
+                    key={branch.city}
+                    href={`tel:${branch.salesPhone}`}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 border border-white/32 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:border-interactive hover:text-interactive"
+                  >
+                    Call {branch.city}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
         </section>
 
         <section className="border-b border-grid/40 bg-background">
-          <div className="container mx-auto grid gap-0 px-10 lg:grid-cols-3">
-            {contactRoutes.map((route) => {
-              const Icon = route.icon;
-              return (
-                <a
-                  key={route.label}
-                  href={route.href}
-                  className="group border-grid/35 py-8 transition-colors hover:bg-card lg:border-l lg:px-7 first:lg:border-l-0"
-                >
-                  <div className="flex items-start justify-between gap-5">
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-label">{route.label}</p>
-                      <p className="mt-3 font-serif text-2xl leading-tight text-foreground">{route.value}</p>
-                    </div>
-                    <Icon className="mt-1 h-5 w-5 text-heritage transition-colors group-hover:text-interactive" />
+          <div className="container mx-auto grid gap-6 px-10 py-8 lg:grid-cols-2">
+            {branches.map((branch) => (
+              <article key={branch.city} className="border border-grid/30 bg-card/60 p-6">
+                <div className="flex items-start justify-between gap-5">
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-label">Sales and showroom</p>
+                    <h2 className="mt-3 font-serif text-3xl text-foreground">{branch.city}</h2>
                   </div>
-                </a>
-              );
-            })}
+                  <Building2 className="mt-1 h-5 w-5 text-heritage" />
+                </div>
+                <div className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                  <a href={`tel:${branch.salesPhone}`} className="group flex items-center gap-3 border-t border-grid/30 pt-3 hover:text-interactive">
+                    <Phone className="h-4 w-4 text-heritage" />
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em]">Call {branch.city}</p>
+                      <p className="mt-1 text-foreground">{branch.phones[1]}</p>
+                    </div>
+                  </a>
+                  <a
+                    href={`https://wa.me/${branch.whatsapp}?text=${encodeURIComponent(`Hello Regal Office & Home ${branch.city}, I would like help with a furniture enquiry.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center gap-3 border-t border-grid/30 pt-3 hover:text-interactive"
+                  >
+                    <MessageSquare className="h-4 w-4 text-heritage" />
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em]">WhatsApp {branch.city}</p>
+                      <p className="mt-1 text-foreground">{branch.phones[1]}</p>
+                    </div>
+                  </a>
+                  <a href={`mailto:${branch.email}?subject=${encodeURIComponent(`${branch.city} furniture enquiry`)}`} className="group flex items-center gap-3 border-t border-grid/30 pt-3 hover:text-interactive">
+                    <Mail className="h-4 w-4 text-heritage" />
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em]">Email {branch.city}</p>
+                      <p className="mt-1 text-foreground">{branch.email}</p>
+                    </div>
+                  </a>
+                  <a href="#branches" className="group flex items-center gap-3 border-t border-grid/30 pt-3 hover:text-interactive">
+                    <MapPin className="h-4 w-4 text-heritage" />
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em]">{branch.city} address</p>
+                      <p className="mt-1 text-foreground">{branch.address}</p>
+                    </div>
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -198,7 +214,6 @@ const Contact = () => {
                     <SelectContent>
                       <SelectItem value="Harare">Harare</SelectItem>
                       <SelectItem value="Bulawayo">Bulawayo</SelectItem>
-                      <SelectItem value="Both">Both</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -273,7 +288,7 @@ const Contact = () => {
 
               <div className="mt-10 grid gap-5">
                 {branches.map((branch) => (
-                  <div key={branch.city} className="grid gap-5 border-t border-grid/35 pt-6 md:grid-cols-[0.26fr_0.74fr]">
+                  <div key={branch.city} className="grid gap-5 border border-grid/30 bg-card/50 p-6 md:grid-cols-[0.26fr_0.74fr]">
                     <div>
                       <p className="font-serif text-3xl text-foreground">{branch.city}</p>
                       <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-label">{branch.note}</p>
@@ -285,7 +300,23 @@ const Contact = () => {
                       </p>
                       <p className="flex gap-3">
                         <Phone className="mt-1 h-4 w-4 shrink-0 text-heritage" />
-                        <span>{branch.phones.join(" / ")}</span>
+                        <span className="grid gap-1">
+                          {branch.phones.map((phone) => (
+                            <a key={phone} href={`tel:${phone.replace(/\s/g, "")}`} className="hover:text-interactive">{phone}</a>
+                          ))}
+                        </span>
+                      </p>
+                      <p className="flex gap-3">
+                        <MessageSquare className="mt-1 h-4 w-4 shrink-0 text-heritage" />
+                        <a href={`https://wa.me/${branch.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-interactive">
+                          WhatsApp {branch.city}: {branch.phones[1]}
+                        </a>
+                      </p>
+                      <p className="flex gap-3">
+                        <Mail className="mt-1 h-4 w-4 shrink-0 text-heritage" />
+                        <a href={`mailto:${branch.email}?subject=${encodeURIComponent(`${branch.city} furniture enquiry`)}`} className="hover:text-interactive">
+                          {branch.email}
+                        </a>
                       </p>
                     </div>
                   </div>

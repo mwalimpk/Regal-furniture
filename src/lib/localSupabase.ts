@@ -2,6 +2,8 @@ type TableName =
   | "profiles"
   | "user_roles"
   | "product_categories"
+  | "product_institutions"
+  | "currency_settings"
   | "properties"
   | "product_pairings"
   | "product_promotions"

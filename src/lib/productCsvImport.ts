@@ -12,11 +12,12 @@ export const PRODUCT_IMPORT_HEADERS = [
   "images",
   "status",
   "featured",
+  "institution_slugs",
 ] as const;
 
 export const REQUIRED_PRODUCT_IMPORT_HEADERS = ["title", "property_type", "price"] as const;
 
-const PRODUCT_IMPORT_CURRENCIES = ["USD", "ZWL"] as const;
+const PRODUCT_IMPORT_CURRENCIES = ["USD", "ZWG"] as const;
 const PRODUCT_IMPORT_CITIES = ["Harare", "Bulawayo", "Both"] as const;
 const PRODUCT_IMPORT_COUNTRIES = ["Zimbabwe"] as const;
 const PRODUCT_IMPORT_STATUSES = ["approved", "pending", "rejected"] as const;
@@ -49,6 +50,7 @@ export type ProductImportPayload = {
   images: string[];
   status: string;
   featured: boolean;
+  institution_slugs: string[];
   bedrooms: number;
   bathrooms: number;
   area_sqft: number;
@@ -244,6 +246,7 @@ export const validateProductCsv = (
   existingProducts: ExistingProductForImport[],
   knownCategories: readonly string[] = [],
   knownFeaturedSlugs: readonly KnownFeaturedSlugForImport[] = [],
+  knownInstitutionSlugs: readonly string[] = [],
 ): ProductCsvImportResult => {
   const errors: ProductCsvImportError[] = [];
   const cleanText = text.replace(/^\uFEFF/, "");
@@ -329,6 +332,7 @@ export const validateProductCsv = (
     const status = getKnownValue(PRODUCT_IMPORT_STATUSES, raw.status || "approved");
     const featured = parseBoolean(raw.featured);
     const images = parseImages(raw.images);
+    const institutionSlugs = raw.institution_slugs.split("|").map((item) => item.trim()).filter(Boolean);
     const location = raw.location.trim();
     const key = productKey(title, category || rawCategory, location);
 
@@ -352,6 +356,12 @@ export const validateProductCsv = (
     if (!status) rowErrors.push(`status must be one of: ${PRODUCT_IMPORT_STATUSES.join(", ")}`);
     if (featured.error) rowErrors.push(featured.error);
     rowErrors.push(...images.errors);
+    const unknownInstitutionSlugs = institutionSlugs.filter((slug) => (
+      !knownInstitutionSlugs.some((knownSlug) => normalizeComparable(knownSlug) === normalizeComparable(slug))
+    ));
+    if (unknownInstitutionSlugs.length) {
+      rowErrors.push(`institution_slugs contains unknown values: ${unknownInstitutionSlugs.join(", ")}`);
+    }
     if (existingKeys.has(key)) rowErrors.push("product already exists in the catalog");
     if (fileKeys.has(key)) rowErrors.push("duplicate product inside this CSV");
 
@@ -378,6 +388,7 @@ export const validateProductCsv = (
         images: images.value,
         status: status || "approved",
         featured: featured.value,
+        institution_slugs: institutionSlugs,
         bedrooms: 0,
         bathrooms: 0,
         area_sqft: 0,

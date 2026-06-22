@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS properties (
   country VARCHAR(128) NULL,
   images LONGTEXT NULL,
   color_variants LONGTEXT NULL,
+  institution_slugs LONGTEXT NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'approved',
   featured TINYINT(1) NULL DEFAULT 0,
   bedrooms INT NULL DEFAULT 0,
@@ -70,6 +71,34 @@ CREATE TABLE IF NOT EXISTS properties (
   INDEX idx_properties_user_id (user_id),
   INDEX idx_properties_type (property_type),
   INDEX idx_properties_featured_slug (featured_slug)
+);
+
+CREATE TABLE IF NOT EXISTS product_institutions (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  description LONGTEXT NOT NULL,
+  image_url LONGTEXT NOT NULL,
+  display_order INT NOT NULL DEFAULT 0,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NULL,
+  INDEX idx_product_institutions_status_order (status, display_order)
+);
+
+CREATE TABLE IF NOT EXISTS currency_settings (
+  id VARCHAR(64) PRIMARY KEY,
+  auto_update TINYINT(1) NOT NULL DEFAULT 1,
+  manual_rate DECIMAL(16,6) NOT NULL DEFAULT 27,
+  fallback_rate DECIMAL(16,6) NOT NULL DEFAULT 27,
+  profit_margin_usd DECIMAL(12,2) NOT NULL DEFAULT 7,
+  cache_hours INT NOT NULL DEFAULT 24,
+  rate_source_url LONGTEXT NOT NULL,
+  last_live_rate DECIMAL(16,6) NULL,
+  last_rate_updated_at DATETIME NULL,
+  updated_at DATETIME NOT NULL,
+  user_id VARCHAR(64) NULL
 );
 
 CREATE TABLE IF NOT EXISTS product_pairings (
