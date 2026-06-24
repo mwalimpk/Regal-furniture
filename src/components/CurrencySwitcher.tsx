@@ -4,7 +4,7 @@ import type { StoreCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 const CurrencySwitcher = ({ className }: { className?: string }) => {
-  const { currency, setCurrency, rate, isLoadingRate } = useCurrency();
+  const { currency, setCurrency } = useCurrency();
 
   return (
     <label className={cn("inline-flex items-center gap-2 text-[rgb(var(--nav-ink-rgb)/1)]", className)}>
@@ -19,9 +19,6 @@ const CurrencySwitcher = ({ className }: { className?: string }) => {
         <option value="USD">USD</option>
         <option value="ZWG">ZWG</option>
       </select>
-      <span className="hidden font-mono text-[9px] uppercase tracking-[0.1em] text-[rgb(var(--nav-muted-rgb)/1)] xl:inline">
-        {isLoadingRate ? "Rate…" : `1 USD = ${rate.toFixed(2)} ZWG`}
-      </span>
     </label>
   );
 };

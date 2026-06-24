@@ -9,14 +9,15 @@ import { useProductCategories } from "@/hooks/useProductCategories";
 import { defaultFilterSettings, FilterSettings, QuickFilter, QuickFilterType, loadFilterSettings, saveFilterSettings } from "@/lib/filterSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import type { CurrencyRateSnapshot, CurrencySettings } from "@/lib/currency";
+import { CURRENCY_SETTINGS_REFRESH_KEY, type CurrencyRateSnapshot, type CurrencySettings } from "@/lib/currency";
 
 const defaultCurrencySettings: CurrencySettings = {
   id: "storefront",
   auto_update: true,
   manual_rate: 27,
   fallback_rate: 27,
-  profit_margin_usd: 7,
+  profit_margin_enabled: false,
+  profit_margin_usd: 0,
   cache_hours: 24,
   rate_source_url: "https://open.er-api.com/v6/latest/USD",
   last_live_rate: null,
@@ -50,6 +51,7 @@ const SettingsSection = () => {
       return {
         ...defaultCurrencySettings,
         ...row,
+        profit_margin_enabled: row.profit_margin_enabled === true,
         manual_rate: Number(row.manual_rate ?? defaultCurrencySettings.manual_rate),
         fallback_rate: Number(row.fallback_rate ?? defaultCurrencySettings.fallback_rate),
         profit_margin_usd: Number(row.profit_margin_usd ?? defaultCurrencySettings.profit_margin_usd),
@@ -124,7 +126,9 @@ const SettingsSection = () => {
   const saveCurrencySettings = async () => {
     setSavingCurrency(true);
     const payload = {
+      id: "storefront",
       auto_update: currencyDraft.auto_update,
+      profit_margin_enabled: currencyDraft.profit_margin_enabled,
       manual_rate: Math.max(0.000001, Number(currencyDraft.manual_rate || 0)),
       fallback_rate: Math.max(0.000001, Number(currencyDraft.fallback_rate || 0)),
       profit_margin_usd: Math.max(0, Number(currencyDraft.profit_margin_usd || 0)),
@@ -132,7 +136,7 @@ const SettingsSection = () => {
       rate_source_url: currencyDraft.rate_source_url.trim(),
       updated_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("currency_settings").update(payload).eq("id", "storefront");
+    const { error } = await supabase.from("currency_settings").upsert(payload, { onConflict: "id" });
     setSavingCurrency(false);
 
     if (error) {
@@ -142,7 +146,16 @@ const SettingsSection = () => {
 
     await qc.invalidateQueries({ queryKey: ["admin-currency-settings"] });
     await qc.invalidateQueries({ queryKey: ["currency-rate"] });
-    toast({ title: "Currency settings saved", description: "Storefront conversions now use the updated rule." });
+    if (typeof window !== "undefined") {
+      const updatedAt = String(Date.now());
+      window.localStorage.setItem(CURRENCY_SETTINGS_REFRESH_KEY, updatedAt);
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel(CURRENCY_SETTINGS_REFRESH_KEY);
+        channel.postMessage({ updatedAt });
+        channel.close();
+      }
+    }
+    toast({ title: "Currency settings saved", description: "Storefront pricing and conversions now use the updated rule." });
   };
 
   const testCurrencyRate = async () => {
@@ -310,9 +323,22 @@ const SettingsSection = () => {
             <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Pricing Rule</p>
             <h2 className="mt-2 font-serif text-2xl text-foreground">USD ↔ ZWG currency conversion</h2>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-              When a shopper changes away from a product's stored currency, the system converts at the selected rate and adds the USD profit margin.
+              Control exchange-rate conversion and the optional USD inflation adjustment. When active, the adjustment is added to the USD base price first, then ZWG prices are converted from that adjusted USD amount.
             </p>
           </div>
+
+          <label className="flex items-center justify-between gap-4 border border-grid/25 bg-background p-4">
+            <div>
+              <p className="font-medium text-foreground">Activate inflation price adjustment</p>
+              <p className="mt-1 text-xs text-muted-foreground">Keep this off until pricing needs to absorb a dollar-based inflation change.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={currencyDraft.profit_margin_enabled}
+              onChange={(event) => setCurrencyDraft((current) => ({ ...current, profit_margin_enabled: event.target.checked }))}
+              className="h-4 w-4"
+            />
+          </label>
 
           <label className="flex items-center justify-between border border-grid/25 bg-background p-4">
             <div>
@@ -329,13 +355,14 @@ const SettingsSection = () => {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <Label>Profit margin (USD)</Label>
+              <Label>Inflation adjustment (USD)</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.01"
                 value={currencyDraft.profit_margin_usd}
                 onChange={(event) => setCurrencyDraft((current) => ({ ...current, profit_margin_usd: Number(event.target.value) }))}
+                disabled={!currencyDraft.profit_margin_enabled}
                 className="mt-1.5"
               />
             </div>

@@ -2,11 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  CURRENCY_SETTINGS_REFRESH_KEY,
   DEFAULT_CURRENCY_RATE,
   convertCurrencyAmount,
   formatConvertedCurrency,
   normalizeStoreCurrency,
+  resolveCurrencyRateSnapshot,
   type CurrencyRateSnapshot,
+  type CurrencySettings,
   type StoreCurrency,
 } from "@/lib/currency";
 
@@ -20,6 +23,7 @@ interface CurrencyContextType {
   formatConverted: (amount: number) => string;
   rate: number;
   marginUsd: number;
+  marginEnabled: boolean;
   rateSource: CurrencyRateSnapshot["source"];
   rateUpdatedAt: string | null;
   isLoadingRate: boolean;
@@ -34,6 +38,7 @@ const CurrencyContext = createContext<CurrencyContextType>({
   formatConverted: (amount) => formatConvertedCurrency(amount, "USD"),
   rate: DEFAULT_CURRENCY_RATE.rate,
   marginUsd: DEFAULT_CURRENCY_RATE.marginUsd,
+  marginEnabled: DEFAULT_CURRENCY_RATE.marginEnabled,
   rateSource: DEFAULT_CURRENCY_RATE.source,
   rateUpdatedAt: null,
   isLoadingRate: false,
@@ -56,19 +61,22 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   } = useQuery({
     queryKey: ["currency-rate"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("currency-rate", { body: {} });
-      if (error) throw new Error(error.message);
-      const row = (data || {}) as Partial<CurrencyRateSnapshot>;
-      const rate = Number(row.rate);
-      return {
-        rate: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_CURRENCY_RATE.rate,
-        marginUsd: Math.max(0, Number(row.marginUsd ?? DEFAULT_CURRENCY_RATE.marginUsd)),
-        source: row.source || DEFAULT_CURRENCY_RATE.source,
-        updatedAt: row.updatedAt || null,
-        autoUpdate: row.autoUpdate !== false,
-      } satisfies CurrencyRateSnapshot;
+      const [rateResponse, settingsResponse] = await Promise.all([
+        supabase.functions.invoke("currency-rate", { body: {} }),
+        supabase.from("currency_settings").select("*").eq("id", "storefront").maybeSingle(),
+      ]);
+
+      if (rateResponse.error) throw new Error(rateResponse.error.message);
+      if (settingsResponse.error) throw new Error(settingsResponse.error.message);
+
+      return resolveCurrencyRateSnapshot(
+        (rateResponse.data || {}) as Partial<CurrencyRateSnapshot>,
+        (settingsResponse.data || null) as Partial<CurrencySettings> | null,
+      );
     },
-    staleTime: 30 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     refetchInterval: 60 * 60 * 1000,
   });
 
@@ -76,6 +84,27 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
     void refetch();
   }, [currency, refetch]);
+
+  useEffect(() => {
+    const refreshPricing = () => {
+      void refetch();
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === CURRENCY_SETTINGS_REFRESH_KEY) refreshPricing();
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(CURRENCY_SETTINGS_REFRESH_KEY) : null;
+    channel?.addEventListener("message", refreshPricing);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      channel?.removeEventListener("message", refreshPricing);
+      channel?.close();
+    };
+  }, [refetch]);
 
   const value = useMemo<CurrencyContextType>(() => {
     const setCurrency = (nextCurrency: StoreCurrency) => setCurrencyState(nextCurrency);
@@ -101,6 +130,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       formatConverted: (amount) => formatConvertedCurrency(amount, currency),
       rate: rateSnapshot.rate,
       marginUsd: rateSnapshot.marginUsd,
+      marginEnabled: rateSnapshot.marginEnabled,
       rateSource: rateSnapshot.source,
       rateUpdatedAt: rateSnapshot.updatedAt,
       isLoadingRate,

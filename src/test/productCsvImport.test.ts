@@ -117,7 +117,7 @@ describe("productCsvImport", () => {
 
   it("downloads the import template with form labels", () => {
     expect(buildProductImportTemplateCsv()).toBe(
-      "Product Name,Description,Long Description,Category,Featured subcategory,Price,Currency,SKU / Model,Warehouse,Country,Images,Status,Featured\n",
+      "Product Name,Description,Long Description,Category,Featured subcategory,Price,Currency,SKU / Model,Warehouse,Country,Images,Status,Featured,Institutions\n",
     );
   });
 });

@@ -67,7 +67,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [orderOpen, setOrderOpen] = useState(false);
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { itemCount, setIsOpen } = useCart();
   const { data: categories = [] } = useProductCategories();
 
@@ -89,7 +89,7 @@ const Navbar = () => {
   );
 
   const activeMenu = menuLookup.find((item) => item.name === openMenu) || null;
-  const accountHref = user ? (isAdmin ? "/admin" : "/dashboard") : "/auth";
+  const accountHref = user ? "/dashboard" : "/auth";
   const accountLabel = user ? `${profile?.full_name?.split(" ")[0] || "Account"} account` : "Account";
 
   return (
@@ -117,15 +117,6 @@ const Navbar = () => {
 
               <div className="col-span-4 flex items-center justify-end gap-2 xl:gap-3">
                 <CurrencySwitcher />
-
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--nav-muted-rgb)/1)] transition-colors duration-150 ease-linear hover:text-interactive"
-                  >
-                    // Admin
-                  </Link>
-                )}
 
                 <ThemeToggle className="h-9 w-9 rounded-none border-0 bg-transparent text-[rgb(var(--nav-ink-rgb)/1)] hover:border-0 hover:bg-transparent hover:text-interactive" />
 

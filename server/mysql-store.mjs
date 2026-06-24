@@ -46,7 +46,7 @@ const TABLE_COLUMNS = {
   user_roles: ["id", "user_id", "role"],
   product_categories: ["id", "name", "slug", "image_url", "features", "created_at", "updated_at", "user_id"],
   product_institutions: ["id", "name", "slug", "description", "image_url", "display_order", "status", "created_at", "updated_at", "user_id"],
-  currency_settings: ["id", "auto_update", "manual_rate", "fallback_rate", "profit_margin_usd", "cache_hours", "rate_source_url", "last_live_rate", "last_rate_updated_at", "updated_at", "user_id"],
+  currency_settings: ["id", "auto_update", "manual_rate", "fallback_rate", "profit_margin_enabled", "profit_margin_usd", "cache_hours", "rate_source_url", "last_live_rate", "last_rate_updated_at", "updated_at", "user_id"],
   properties: ["id", "title", "description", "long_description", "property_type", "featured_slug", "price", "currency", "location", "city", "country", "images", "color_variants", "institution_slugs", "status", "featured", "bedrooms", "bathrooms", "area_sqft", "created_at", "updated_at", "user_id"],
   product_pairings: ["id", "product_id", "recommended_ids"],
   product_promotions: ["id", "title", "description", "promotion_type", "discount_type", "discount_value", "offer_label", "product_ids", "category_targets", "status", "starts_at", "ends_at", "created_at", "updated_at", "user_id"],
@@ -198,7 +198,8 @@ const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   auto_update: true,
   manual_rate: 27,
   fallback_rate: 27,
-  profit_margin_usd: 7,
+  profit_margin_enabled: false,
+  profit_margin_usd: 0,
   cache_hours: 24,
   rate_source_url: "https://open.er-api.com/v6/latest/USD",
   last_live_rate: null,
@@ -255,6 +256,9 @@ const OPTIONAL_SCHEMA_COLUMNS = {
   hero_slides: [
     { name: "cta_enabled", definition: "TINYINT(1) NOT NULL DEFAULT 1 AFTER `cta_href`" },
   ],
+  currency_settings: [
+    { name: "profit_margin_enabled", definition: "TINYINT(1) NOT NULL DEFAULT 0 AFTER `fallback_rate`" },
+  ],
 };
 
 export const isMysqlConfigured = () =>
@@ -295,6 +299,7 @@ const serializeRow = (table, row) => {
   if ("has_countdown" in next && typeof next.has_countdown === "boolean") next.has_countdown = next.has_countdown ? 1 : 0;
   if ("cta_enabled" in next && typeof next.cta_enabled === "boolean") next.cta_enabled = next.cta_enabled ? 1 : 0;
   if ("auto_update" in next && typeof next.auto_update === "boolean") next.auto_update = next.auto_update ? 1 : 0;
+  if ("profit_margin_enabled" in next && typeof next.profit_margin_enabled === "boolean") next.profit_margin_enabled = next.profit_margin_enabled ? 1 : 0;
   return next;
 };
 
@@ -315,6 +320,7 @@ const deserializeRow = (table, row) => {
   if ("has_countdown" in next) next.has_countdown = next.has_countdown === null ? null : Boolean(next.has_countdown);
   if ("cta_enabled" in next) next.cta_enabled = next.cta_enabled === null ? true : Boolean(next.cta_enabled);
   if ("auto_update" in next) next.auto_update = next.auto_update === null ? true : Boolean(next.auto_update);
+  if ("profit_margin_enabled" in next) next.profit_margin_enabled = next.profit_margin_enabled === null ? false : Boolean(next.profit_margin_enabled);
   ["price", "total", "amount", "quantity", "year", "month", "imported_count", "discount_value", "display_order", "manual_rate", "fallback_rate", "profit_margin_usd", "cache_hours", "last_live_rate"].forEach((key) => {
     if (key in next && next[key] !== null) next[key] = Number(next[key]);
   });
@@ -992,6 +998,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
     const db = getPool();
     const [rows] = await db.query("SELECT * FROM currency_settings WHERE id = 'storefront' LIMIT 1");
     const settings = rows[0] ? deserializeRow("currency_settings", rows[0]) : buildDefaultCurrencySettings();
+    const marginEnabled = settings.profit_margin_enabled === true;
+    const marginUsd = marginEnabled ? Number(settings.profit_margin_usd || 0) : 0;
     const cacheHours = Math.max(1, Number(settings.cache_hours || 24));
     const cachedAt = settings.last_rate_updated_at ? new Date(settings.last_rate_updated_at).getTime() : 0;
     const cacheIsFresh = Number.isFinite(cachedAt) && Date.now() - cachedAt < cacheHours * 60 * 60 * 1000;
@@ -1000,7 +1008,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.manual_rate || settings.fallback_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "manual",
           updatedAt: settings.updated_at,
           autoUpdate: false,
@@ -1013,7 +1022,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.last_live_rate),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "live-cache",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
@@ -1036,7 +1046,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: liveRate,
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "live",
           updatedAt,
           autoUpdate: true,
@@ -1047,7 +1058,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: settings.last_live_rate ? "stale-cache" : "fallback",
           updatedAt: settings.last_rate_updated_at || settings.updated_at,
           autoUpdate: true,

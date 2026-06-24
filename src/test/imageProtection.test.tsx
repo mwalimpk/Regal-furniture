@@ -52,7 +52,7 @@ describe("ImageProtection", () => {
     expect(addedImage.draggable).toBe(false);
   });
 
-  it("blocks context menus, dragging, and selection on images", () => {
+  it("blocks context menus, copying, cutting, dragging, and selection on images", () => {
     act(() => {
       root.render(
         <>
@@ -64,7 +64,7 @@ describe("ImageProtection", () => {
     const image = container.querySelector("img");
     expect(image).not.toBeNull();
 
-    ["contextmenu", "dragstart", "selectstart"].forEach((eventName) => {
+    ["contextmenu", "copy", "cut", "dragstart", "selectstart"].forEach((eventName) => {
       const event = new Event(eventName, { bubbles: true, cancelable: true });
       image?.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(true);

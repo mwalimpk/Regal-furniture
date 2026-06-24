@@ -9,6 +9,7 @@ export const SALES_WHATSAPP_NUMBER = SALES_WHATSAPP_NUMBERS.Harare;
 export const SALES_EMAIL = "info@regalfurn.co.zw";
 
 const BRANCHES: SalesBranch[] = ["Harare", "Bulawayo"];
+const sanitizeWhatsAppNumber = (phoneNumber: string) => phoneNumber.replace(/\D/g, "");
 
 const warehouseBranches = (warehouse?: string): SalesBranch[] => {
   const normalized = String(warehouse || "").trim().toLowerCase();
@@ -40,10 +41,10 @@ export const getOrderBranchOptions = (warehouses: Array<string | undefined>): Sa
 };
 
 export const buildWhatsAppLink = (message: string, phoneNumber = SALES_WHATSAPP_NUMBER) =>
-  `https://wa.me/${phoneNumber.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+  `https://wa.me/${sanitizeWhatsAppNumber(phoneNumber)}?text=${encodeURIComponent(message)}`;
 
-export const buildWhatsAppCallLink = () =>
-  `whatsapp://call?phone=${SALES_WHATSAPP_NUMBER}`;
+export const buildWhatsAppCallLink = (phoneNumber = SALES_WHATSAPP_NUMBER) =>
+  `https://wa.me/call/${sanitizeWhatsAppNumber(phoneNumber)}`;
 
 export const buildEmailLink = (subject: string, body: string) =>
   `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

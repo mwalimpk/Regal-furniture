@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS public.currency_settings (
   auto_update BOOLEAN NOT NULL DEFAULT true,
   manual_rate NUMERIC NOT NULL DEFAULT 27,
   fallback_rate NUMERIC NOT NULL DEFAULT 27,
-  profit_margin_usd NUMERIC NOT NULL DEFAULT 7,
+  profit_margin_enabled BOOLEAN NOT NULL DEFAULT false,
+  profit_margin_usd NUMERIC NOT NULL DEFAULT 0,
   cache_hours INTEGER NOT NULL DEFAULT 24,
   rate_source_url TEXT NOT NULL DEFAULT 'https://open.er-api.com/v6/latest/USD',
   last_live_rate NUMERIC,
@@ -30,6 +31,7 @@ INSERT INTO public.currency_settings (
   auto_update,
   manual_rate,
   fallback_rate,
+  profit_margin_enabled,
   profit_margin_usd,
   cache_hours,
   rate_source_url
@@ -39,7 +41,8 @@ VALUES (
   true,
   27,
   27,
-  7,
+  false,
+  0,
   24,
   'https://open.er-api.com/v6/latest/USD'
 )

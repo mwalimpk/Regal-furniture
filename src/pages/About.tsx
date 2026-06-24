@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import heroOffice from "@/assets/hero-office.jpg";
 import aboutAfricanTeam from "@/assets/about-african-team.png";
+import leadershipJonathan from "@/assets/leadership-jonathan-rubayah.jpg";
+import leadershipLilian from "@/assets/leadership-lilian-rubayah.jpg";
 import productWorkstation from "@/assets/product-workstation.jpg";
 import productConference from "@/assets/product-conference.jpg";
 import productStorage from "@/assets/product-storage.jpg";
@@ -59,16 +61,15 @@ const leadership = [
     name: "Jonathan Rubayah",
     role: "Shareholder & COO",
     body: "Jonathan leads business strategy, day-to-day operations, standards, and long-term goals, drawing on furniture-industry management experience and a passion for high-quality products.",
+    image: leadershipJonathan,
+    imagePosition: "center top",
   },
   {
     name: "Lilian S Rubayah",
     role: "Shareholder & Company Secretary",
     body: "Lilian supports financial and legal compliance while helping maintain high standards of corporate governance.",
-  },
-  {
-    name: "Advisory & Marketing Teams",
-    role: "Standards, product knowledge, and customer support",
-    body: "Regal works with advisors in ergonomics and manufacturing, supported by a customer-centric marketing team with strong product knowledge.",
+    image: leadershipLilian,
+    imagePosition: "center top",
   },
 ];
 
@@ -156,6 +157,58 @@ const About = () => {
                   Modern design. Durable construction. Practical support from consultation to installation.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="surface-inverse py-20 md:py-24">
+          <div className="container mx-auto px-10">
+            <div className="mb-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-3xl">
+                <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[rgb(var(--inverse-foreground-rgb)/0.62)]">Leadership</p>
+                <h2 className="mt-4 font-serif text-4xl leading-tight text-[rgb(var(--inverse-foreground-rgb)/1)] md:text-5xl">
+                  Governance, strategy, and customer knowledge working together.
+                </h2>
+              </div>
+              <UsersRound className="hidden h-12 w-12 text-interactive md:block" />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              {leadership.map((person) => (
+                <div
+                  key={person.name}
+                  tabIndex={0}
+                  className="group relative min-h-[380px] overflow-hidden border border-[rgb(var(--inverse-foreground-rgb)/0.16)] bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive focus-visible:ring-offset-2 focus-visible:ring-offset-background md:min-h-[440px]"
+                >
+                  <img
+                    src={person.image}
+                    alt={`${person.name}, ${person.role}`}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] group-focus-visible:scale-[1.04]"
+                    style={{ objectPosition: person.imagePosition }}
+                    loading="lazy"
+                  />
+                  <div className="collection-image-scrim absolute inset-0" />
+                  <div className="absolute inset-x-0 bottom-0 z-10 p-5 transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0 md:p-6">
+                    <p className="collection-image-adaptive font-mono text-[10px] uppercase tracking-[0.22em] opacity-80">{person.role}</p>
+                    <h3 className="collection-image-adaptive mt-3 max-w-md font-serif text-3xl leading-tight md:text-4xl">{person.name}</h3>
+                  </div>
+                  <div className="collection-hover-panel absolute inset-0 z-20 flex translate-y-full flex-col justify-between p-5 transition-transform duration-500 ease-out group-hover:translate-y-0 group-focus-visible:translate-y-0 md:p-6">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--collection-hover-muted-rgb)/1)]">
+                        {person.role}
+                      </p>
+                      <h3 className="mt-4 max-w-lg font-serif text-3xl leading-tight text-[rgb(var(--collection-hover-foreground-rgb)/1)] md:text-4xl">
+                        {person.name}
+                      </h3>
+                    </div>
+                    <div className="translate-y-5 opacity-0 transition-all delay-100 duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+                      <p className="text-sm leading-7 text-[rgb(var(--collection-hover-muted-rgb)/1)] md:text-base md:leading-8">
+                        {person.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -278,30 +331,6 @@ const About = () => {
                   );
                 })}
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="surface-inverse py-20 md:py-24">
-          <div className="container mx-auto px-10">
-            <div className="mb-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-3xl">
-                <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[rgb(var(--inverse-foreground-rgb)/0.62)]">Leadership</p>
-                <h2 className="mt-4 font-serif text-4xl leading-tight text-[rgb(var(--inverse-foreground-rgb)/1)] md:text-5xl">
-                  Governance, strategy, and customer knowledge working together.
-                </h2>
-              </div>
-              <UsersRound className="hidden h-12 w-12 text-interactive md:block" />
-            </div>
-
-            <div className="grid gap-5 lg:grid-cols-3">
-              {leadership.map((person) => (
-                <div key={person.name} className="border border-[rgb(var(--inverse-foreground-rgb)/0.16)] p-6">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-interactive">{person.role}</p>
-                  <h3 className="mt-4 font-serif text-3xl text-[rgb(var(--inverse-foreground-rgb)/1)]">{person.name}</h3>
-                  <p className="mt-4 text-sm leading-7 text-[rgb(var(--inverse-foreground-rgb)/0.68)]">{person.body}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>

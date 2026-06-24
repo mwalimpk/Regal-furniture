@@ -5,6 +5,7 @@ import { ArrowRight, BadgePercent, Info, PackageCheck, ShoppingCart, ShieldCheck
 import { Button } from "@/components/ui/button";
 import StorefrontProductTile from "@/components/StorefrontProductTile";
 import ProductCombinationCarousel from "@/components/ProductCombinationCarousel";
+import WhatsAppQuoteDialog from "@/components/WhatsAppQuoteDialog";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { type Product } from "@/data/products";
@@ -19,7 +20,6 @@ import { sanitizeRichTextHtml } from "@/lib/richText";
 import { extractProductSpecificationsFromHtml, mergeProductSpecifications } from "@/lib/productSpecifications";
 import { getProductPromotionDisplayLabel, getProductPromotionPrice } from "@/lib/productPromotions";
 import { useProductPromotionForProduct } from "@/hooks/useProductPromotions";
-import { buildWhatsAppCallLink } from "@/lib/contact";
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,7 +67,7 @@ const ProductPage = () => {
       { label: "Category", value: product.category },
       { label: "SKU / Model", value: product.sku || "" },
       { label: "Warehouse", value: product.warehouse || "" },
-      { label: "Price", value: formatCurrency(product.price, currency) },
+      { label: "Price", value: format(product.price, product.currency) },
       { label: "Color options", value: colorVariants.map((variant) => variant.name).filter(Boolean).join(", ") },
     ];
 
@@ -75,7 +75,7 @@ const ProductPage = () => {
       ...extractProductSpecificationsFromHtml(longDescriptionHtml),
       ...databaseSpecifications,
     ]);
-  }, [colorVariants, currency, longDescriptionHtml, product]);
+  }, [colorVariants, format, longDescriptionHtml, product]);
 
   useEffect(() => {
     if (galleryImages.length) {
@@ -199,10 +199,6 @@ const ProductPage = () => {
     });
     setIsOpen(true);
     toast({ title: "Cart Updated", description: `${product.name}${variantSuffix} ready for checkout.` });
-  };
-
-  const handleQuoteRequest = () => {
-    window.location.href = buildWhatsAppCallLink();
   };
 
   return (
@@ -394,12 +390,13 @@ const ProductPage = () => {
                     <ShoppingCart className="mr-2 h-5 w-5" />
                     Add to Cart
                   </Button>
-                  <Button
-                    onClick={handleQuoteRequest}
-                    className="h-14 flex-1 rounded-none bg-crimson font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-crimson/90 hover:text-primary-foreground"
+                  <WhatsAppQuoteDialog
+                    productName={product.name}
+                    productSku={product.sku}
+                    triggerClassName="h-14 flex-1 rounded-none bg-crimson font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-crimson/90 hover:text-primary-foreground"
                   >
                     Request Quote
-                  </Button>
+                  </WhatsAppQuoteDialog>
                 </div>
               </div>
 
@@ -433,13 +430,14 @@ const ProductPage = () => {
                     <h3 className="pb-1 text-sm font-semibold text-foreground">Need 10+ units?</h3>
                     <p className="text-xs leading-6 text-muted-foreground">
                       Get special bulk pricing for offices, hotels, and large projects.{" "}
-                      <button
-                        type="button"
-                        onClick={handleQuoteRequest}
-                        className="cursor-pointer font-semibold text-heritage underline"
+                      <WhatsAppQuoteDialog
+                        productName={product.name}
+                        productSku={product.sku}
+                        triggerVariant="ghost"
+                        triggerClassName="h-auto rounded-none p-0 align-baseline font-semibold text-heritage underline hover:bg-transparent hover:text-heritage/80"
                       >
                         Request a bulk quote
-                      </button>
+                      </WhatsAppQuoteDialog>
                     </p>
                   </div>
                 </div>

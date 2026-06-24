@@ -122,6 +122,7 @@ const PropertiesSection = () => {
     )),
     [productCategories],
   );
+  const institutionSlugOptions = useMemo(() => institutions.map((item) => item.slug), [institutions]);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -251,7 +252,7 @@ const PropertiesSection = () => {
       products || [],
       categoryOptions,
       featuredSlugOptions,
-      { headerMappings },
+      { headerMappings, knownInstitutionSlugs: institutionSlugOptions },
     );
 
     setCsvImport({ ...result, fileName });
@@ -277,19 +278,8 @@ const PropertiesSection = () => {
 
     setParsingCsv(true);
     try {
-<<<<<<< HEAD
       const text = await file.text();
       const analysis = analyzeProductCsvHeaders(text);
-=======
-      const result = validateProductCsv(
-        await file.text(),
-        products || [],
-        categoryOptions,
-        featuredSlugOptions,
-        institutions.map((item) => item.slug),
-      );
-      setCsvImport({ ...result, fileName: file.name });
->>>>>>> ac9ff23dca2df5b77162d3aa9d3fd7145624a5f9
 
       if (analysis.errors.length) {
         setCsvHeaderReview(null);

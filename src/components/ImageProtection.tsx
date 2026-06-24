@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+const PROTECTED_IMAGE_EVENTS = ["contextmenu", "copy", "cut", "dragstart", "selectstart"] as const;
+
 const hasImageBackground = (element: Element) => {
   if (!(element instanceof HTMLElement)) return false;
   return window.getComputedStyle(element).backgroundImage.includes("url(");
@@ -49,15 +51,15 @@ const ImageProtection = () => {
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-    document.addEventListener("contextmenu", preventImageAction, true);
-    document.addEventListener("dragstart", preventImageAction, true);
-    document.addEventListener("selectstart", preventImageAction, true);
+    PROTECTED_IMAGE_EVENTS.forEach((eventName) => {
+      document.addEventListener(eventName, preventImageAction, true);
+    });
 
     return () => {
       observer.disconnect();
-      document.removeEventListener("contextmenu", preventImageAction, true);
-      document.removeEventListener("dragstart", preventImageAction, true);
-      document.removeEventListener("selectstart", preventImageAction, true);
+      PROTECTED_IMAGE_EVENTS.forEach((eventName) => {
+        document.removeEventListener(eventName, preventImageAction, true);
+      });
     };
   }, []);
 

@@ -166,7 +166,8 @@ const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   auto_update: true,
   manual_rate: 27,
   fallback_rate: 27,
-  profit_margin_usd: 7,
+  profit_margin_enabled: false,
+  profit_margin_usd: 0,
   cache_hours: 24,
   rate_source_url: "https://open.er-api.com/v6/latest/USD",
   last_live_rate: null,
@@ -1060,6 +1061,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
 
   if (name === "currency-rate") {
     const settings = state.currency_settings?.find((item) => item.id === "storefront") || buildDefaultCurrencySettings();
+    const marginEnabled = settings.profit_margin_enabled === true;
+    const marginUsd = marginEnabled ? Number(settings.profit_margin_usd || 0) : 0;
     const cacheHours = Math.max(1, Number(settings.cache_hours || 24));
     const cachedAt = settings.last_rate_updated_at ? new Date(settings.last_rate_updated_at).getTime() : 0;
     const cacheIsFresh = Number.isFinite(cachedAt) && Date.now() - cachedAt < cacheHours * 60 * 60 * 1000;
@@ -1068,7 +1071,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.manual_rate || settings.fallback_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "manual",
           updatedAt: settings.updated_at,
           autoUpdate: false,
@@ -1081,7 +1085,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.last_live_rate),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "live-cache",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
@@ -1106,7 +1111,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: liveRate,
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: "live",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
@@ -1117,7 +1123,8 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       return {
         data: {
           rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+          marginUsd,
+          marginEnabled,
           source: settings.last_live_rate ? "stale-cache" : "fallback",
           updatedAt: settings.last_rate_updated_at || settings.updated_at,
           autoUpdate: true,

@@ -390,6 +390,7 @@ export type Database = {
           last_live_rate: number | null
           last_rate_updated_at: string | null
           manual_rate: number
+          profit_margin_enabled: boolean
           profit_margin_usd: number
           rate_source_url: string
           updated_at: string
@@ -403,6 +404,7 @@ export type Database = {
           last_live_rate?: number | null
           last_rate_updated_at?: string | null
           manual_rate?: number
+          profit_margin_enabled?: boolean
           profit_margin_usd?: number
           rate_source_url?: string
           updated_at?: string
@@ -416,6 +418,7 @@ export type Database = {
           last_live_rate?: number | null
           last_rate_updated_at?: string | null
           manual_rate?: number
+          profit_margin_enabled?: boolean
           profit_margin_usd?: number
           rate_source_url?: string
           updated_at?: string

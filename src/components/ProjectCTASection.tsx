@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
-import { buildWhatsAppCallLink, buildWhatsAppLink } from "@/lib/contact";
+import WhatsAppQuoteDialog from "@/components/WhatsAppQuoteDialog";
+import { buildWhatsAppLink } from "@/lib/contact";
 import { useProductInstitutions } from "@/hooks/useProductInstitutions";
 
 const WhatsAppLogo = () => (
@@ -11,7 +12,6 @@ const WhatsAppLogo = () => (
 
 const ProjectCTASection = () => {
   const { data: institutions = [] } = useProductInstitutions();
-  const quoteHref = buildWhatsAppCallLink();
   const supportHref = buildWhatsAppLink(
     "Hello Regal Office & Home, I would like help with products, pricing, and project options.",
   );
@@ -35,13 +35,12 @@ const ProjectCTASection = () => {
             </p>
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <a
-                href={quoteHref}
-                className="inline-flex min-h-14 items-center justify-center gap-2 bg-heritage px-6 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground transition-colors hover:bg-heritage/90"
+              <WhatsAppQuoteDialog
+                triggerClassName="min-h-14 rounded-none bg-heritage px-6 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-heritage/90"
               >
                 <ClipboardList size={16} />
                 Request a Quote
-              </a>
+              </WhatsAppQuoteDialog>
               <a
                 href={supportHref}
                 target="_blank"

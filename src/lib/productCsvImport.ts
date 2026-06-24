@@ -33,6 +33,7 @@ export const PRODUCT_IMPORT_HEADER_LABELS: Record<ProductImportHeader, string> =
   images: "Images",
   status: "Status",
   featured: "Featured",
+  institution_slugs: "Institutions",
 };
 
 export const PRODUCT_IMPORT_TEMPLATE_HEADERS = PRODUCT_IMPORT_HEADERS.map(
@@ -130,6 +131,7 @@ export type ProductCsvHeaderAnalysis = {
 
 export type ProductCsvValidationOptions = {
   headerMappings?: Partial<Record<string, ProductImportHeaderDecision>>;
+  knownInstitutionSlugs?: readonly string[];
 };
 
 const normalizeComparable = (value: unknown) =>
@@ -324,6 +326,7 @@ const PRODUCT_IMPORT_HEADER_ALIAS_SETS: Record<ProductImportHeader, readonly str
   images: ["image", "image_url", "image_urls", "photo", "photos", "product_images", "media"],
   status: ["approval_status", "publish_status"],
   featured: ["is_featured", "featured_product", "promoted"],
+  institution_slugs: ["institutions", "institution", "institution_slug", "institution_slugs", "target_institutions"],
 };
 
 const PRODUCT_IMPORT_HEADER_ALIAS_VALUES: Record<ProductImportHeader, readonly string[]> = PRODUCT_IMPORT_HEADERS.reduce(
@@ -546,13 +549,13 @@ export const validateProductCsv = (
   existingProducts: ExistingProductForImport[],
   knownCategories: readonly string[] = [],
   knownFeaturedSlugs: readonly KnownFeaturedSlugForImport[] = [],
-<<<<<<< HEAD
-  options: ProductCsvValidationOptions = {},
-=======
-  knownInstitutionSlugs: readonly string[] = [],
->>>>>>> ac9ff23dca2df5b77162d3aa9d3fd7145624a5f9
+  optionsOrInstitutionSlugs: ProductCsvValidationOptions | readonly string[] = {},
 ): ProductCsvImportResult => {
   const errors: ProductCsvImportError[] = [];
+  const options = Array.isArray(optionsOrInstitutionSlugs)
+    ? { knownInstitutionSlugs: optionsOrInstitutionSlugs }
+    : optionsOrInstitutionSlugs;
+  const knownInstitutionSlugs = options.knownInstitutionSlugs || [];
   const parsed = parseProductCsvText(text);
 
   if (parsed.error) {
