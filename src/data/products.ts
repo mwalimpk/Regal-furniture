@@ -15,4 +15,5 @@ export interface Product {
   description: string;
   longDescription?: string;
   colorVariants?: ProductColorVariant[];
+  institutionSlugs?: string[];
 }

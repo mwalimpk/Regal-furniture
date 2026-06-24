@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import conferenceImg from "@/assets/product-conference.jpg";
+import { buildWhatsAppCallLink } from "@/lib/contact";
 
 const BusinessCTA = () => {
+  const quoteHref = buildWhatsAppCallLink();
+
   return (
     <section className="py-0">
       <div className="flex flex-col md:flex-row">
@@ -25,7 +28,9 @@ const BusinessCTA = () => {
               with volume discounts, project consultation, and delivery nationwide.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-              <Button size="lg" variant="secondary" className="text-primary px-10 tracking-wider uppercase text-xs">Request a Quote</Button>
+              <Button asChild size="lg" variant="secondary" className="text-primary px-10 tracking-wider uppercase text-xs">
+                <a href={quoteHref}>Request a Quote</a>
+              </Button>
             </div>
           </div>
         </div>

@@ -1,36 +1,7 @@
 import { BriefcaseBusiness, ClipboardList } from "lucide-react";
-import productConference from "@/assets/product-conference.jpg";
-import productErgonomicChair from "@/assets/product-ergonomic-chair.jpg";
-import productSofa from "@/assets/product-sofa.jpg";
-import productWorkstation from "@/assets/product-workstation.jpg";
-
-const WHATSAPP_NUMBER = "2638644281361";
-
-const buildWhatsAppLink = (message: string) =>
-  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-
-const sectorCards = [
-  {
-    title: "Govt",
-    image: productConference,
-    description: "Durable boardroom, office, storage, and reception furniture for departments, agencies, and public service environments.",
-  },
-  {
-    title: "Hospitals",
-    image: productErgonomicChair,
-    description: "Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.",
-  },
-  {
-    title: "Hotels",
-    image: productSofa,
-    description: "Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.",
-  },
-  {
-    title: "Schools",
-    image: productWorkstation,
-    description: "Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.",
-  },
-];
+import { Link } from "react-router-dom";
+import { buildWhatsAppCallLink, buildWhatsAppLink } from "@/lib/contact";
+import { useProductInstitutions } from "@/hooks/useProductInstitutions";
 
 const WhatsAppLogo = () => (
   <svg viewBox="0 0 32 32" aria-hidden="true" className="h-4 w-4 fill-current">
@@ -39,9 +10,8 @@ const WhatsAppLogo = () => (
 );
 
 const ProjectCTASection = () => {
-  const quoteHref = buildWhatsAppLink(
-    "Hello Regal Office & Home, I would like to request a quote for a business or bulk furniture project.",
-  );
+  const { data: institutions = [] } = useProductInstitutions();
+  const quoteHref = buildWhatsAppCallLink();
   const supportHref = buildWhatsAppLink(
     "Hello Regal Office & Home, I would like help with products, pricing, and project options.",
   );
@@ -67,8 +37,6 @@ const ProjectCTASection = () => {
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <a
                 href={quoteHref}
-                target="_blank"
-                rel="noreferrer"
                 className="inline-flex min-h-14 items-center justify-center gap-2 bg-heritage px-6 py-3 font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground transition-colors hover:bg-heritage/90"
               >
                 <ClipboardList size={16} />
@@ -87,16 +55,16 @@ const ProjectCTASection = () => {
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            {sectorCards.map((sector) => (
-              <article
-                key={sector.title}
-                tabIndex={0}
+            {institutions.map((institution) => (
+              <Link
+                key={institution.id}
+                to={`/institution/${institution.slug}`}
                 className="group relative min-h-[250px] overflow-hidden bg-card focus:outline-none focus:ring-2 focus:ring-interactive focus:ring-offset-2 focus:ring-offset-background"
-                aria-label={`${sector.title}: ${sector.description}`}
+                aria-label={`${institution.name}: ${institution.description}`}
               >
                 <img
-                  src={sector.image}
-                  alt={`${sector.title} furniture solutions`}
+                  src={institution.imageUrl}
+                  alt={`${institution.name} furniture solutions`}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                   loading="lazy"
                 />
@@ -106,7 +74,7 @@ const ProjectCTASection = () => {
                     Sector support
                   </p>
                   <h3 className="mt-3 font-serif text-3xl leading-tight text-primary-foreground">
-                    {sector.title}
+                    {institution.name}
                   </h3>
                 </div>
                 <div className="collection-hover-panel absolute inset-0 z-20 flex translate-y-full flex-col justify-between p-5 transition-transform duration-500 ease-out group-hover:translate-y-0 group-focus:translate-y-0">
@@ -115,14 +83,14 @@ const ProjectCTASection = () => {
                       Bulk project fit-outs
                     </p>
                     <h3 className="mt-4 font-serif text-3xl leading-tight text-[rgb(var(--collection-hover-foreground-rgb)/1)]">
-                      {sector.title}
+                      {institution.name}
                     </h3>
                   </div>
                   <p className="text-sm leading-7 text-[rgb(var(--collection-hover-muted-rgb)/1)]">
-                    {sector.description}
+                    {institution.description}
                   </p>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </div>

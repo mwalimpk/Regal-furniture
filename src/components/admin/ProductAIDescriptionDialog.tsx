@@ -37,6 +37,7 @@ export type ProductAIDescriptionContext = {
   currency?: string;
   sku?: string;
   warehouse?: string;
+  institutions?: string[];
   images: string[];
   colorVariants: ProductColorVariant[];
 };
@@ -464,6 +465,7 @@ const ProductAIDescriptionDialog = ({
         currency: context.currency || "",
         sku: context.sku || "",
         warehouse: context.warehouse || "",
+        institutions: context.institutions || [],
         imageUrls,
         imageLabels: imageUrls.map(imageLabel),
         colorVariants: context.colorVariants.map((variant) => ({
@@ -580,6 +582,7 @@ const ProductAIDescriptionDialog = ({
               <div className="grid gap-2 text-sm text-muted-foreground">
                 <div>Category: {context.category || "Not selected"}</div>
                 {context.featuredSubcategory && <div>Featured: {context.featuredSubcategory}</div>}
+                {!!context.institutions?.length && <div>Institutions: {context.institutions.join(", ")}</div>}
                 {context.sku && <div>SKU: {context.sku}</div>}
                 {context.price && <div>Price: {[context.currency, context.price].filter(Boolean).join(" ")}</div>}
               </div>

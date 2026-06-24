@@ -5,7 +5,6 @@ import type { Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 import { getProductPromotionDisplayLabel, getProductPromotionPrice } from "@/lib/productPromotions";
 import { useProductPromotionForProduct } from "@/hooks/useProductPromotions";
-import { formatCurrency } from "@/utils/formatCurrency";
 import ProductHoverMedia from "@/components/ProductHoverMedia";
 
 type StorefrontProductTileProps = {
@@ -35,7 +34,7 @@ const StorefrontProductTile = ({
   titleClassName,
   compact = false,
 }: StorefrontProductTileProps) => {
-  const { currency } = useCurrency();
+  const { format } = useCurrency();
   const { promotion } = useProductPromotionForProduct(product);
   const promotionLabel = promotion ? getProductPromotionDisplayLabel(promotion) : "";
   const promotionalPrice = promotion ? getProductPromotionPrice(product.price, promotion) : null;
@@ -87,11 +86,11 @@ const StorefrontProductTile = ({
               {promotionalPrice !== null ? "Promo price" : "Starting at"}
             </p>
             <p className="mt-1 font-serif text-2xl text-heritage md:text-[2rem]">
-              {formatCurrency(displayPrice, currency)}
+              {format(displayPrice, product.currency)}
             </p>
             {promotionalPrice !== null && (
               <p className="mt-1 text-sm font-medium text-muted-foreground/70 line-through">
-                {formatCurrency(product.price, currency)}
+                {format(product.price, product.currency)}
               </p>
             )}
           </div>

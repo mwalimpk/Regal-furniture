@@ -11,6 +11,7 @@ import { AdminRoute, ProtectedRoute } from "@/components/ProtectedRoute";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CartDrawer from "@/components/CartDrawer";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import ImageProtection from "@/components/ImageProtection";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import About from "./pages/About";
@@ -22,6 +23,7 @@ import Catalogue from "./pages/Catalogue";
 import CategoryPage from "./pages/CategoryPage";
 import FeaturedCategoryPage from "./pages/FeaturedCategoryPage";
 import ProductPage from "./pages/ProductPage";
+import InstitutionPage from "./pages/InstitutionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +65,7 @@ const App = () => (
             <AuthProvider>
               <CurrencyProvider>
                 <CartProvider>
+                  <ImageProtection />
                   <CartDrawer />
                   <WhatsAppFloat />
                   <Routes>
@@ -75,6 +78,7 @@ const App = () => (
                     <Route path="/category/:slug/:featuredSlug" element={<FeaturedCategoryPage />} />
                     <Route path="/category/:slug" element={<CategoryPage />} />
                     <Route path="/product/:id" element={<ProductPage />} />
+                    <Route path="/institution/:slug" element={<InstitutionPage />} />
                     <Route path="/dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
                     <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                     <Route path="*" element={<NotFound />} />

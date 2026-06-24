@@ -18,6 +18,8 @@ import {
   normalizeColorVariants,
   type ProductColorVariant,
 } from "@/lib/productColorVariants";
+import { useProductInstitutions } from "@/hooks/useProductInstitutions";
+import { normalizeInstitutionSlugs } from "@/lib/productInstitutions";
 
 const createColorVariantDraft = (): ProductColorVariant => ({
   id: `color-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -48,6 +50,7 @@ type EditableAdminProduct = {
   status?: string | null;
   images?: string[] | null;
   color_variants?: unknown;
+  institution_slugs?: unknown;
 };
 
 type ProductForm = {
@@ -61,6 +64,7 @@ type ProductForm = {
   location: string;
   city: string;
   status: string;
+  institution_slugs: string[];
 };
 
 const emptyProductForm: ProductForm = {
@@ -74,6 +78,7 @@ const emptyProductForm: ProductForm = {
   location: "",
   city: "Harare",
   status: "approved",
+  institution_slugs: [],
 };
 
 const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
@@ -85,6 +90,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
   const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>([]);
   const [aiTarget, setAiTarget] = useState<AIDescriptionTarget | null>(null);
   const { data: productCategories = [] } = useProductCategories();
+  const { data: institutions = [] } = useProductInstitutions();
   const categories = useMemo(() => productCategories.map((category) => category.name), [productCategories]);
   const defaultCategory = categories[0] || "";
   const selectedCategory = useMemo(
@@ -122,6 +128,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
         location: product.location || "",
         city: product.city || "Harare",
         status: product.status || "approved",
+        institution_slugs: normalizeInstitutionSlugs(product.institution_slugs),
       });
       setImages(product.images || []);
       setColorVariants(normalizeColorVariants(product.color_variants));
@@ -158,6 +165,15 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
     const option = PRODUCT_COLOR_OPTIONS.find((item) => item.name === value);
     if (!option) return;
     updateColorVariant(id, option.name === "Custom" ? { name: "", hex: option.hex } : { name: option.name, hex: option.hex });
+  };
+
+  const toggleInstitution = (slug: string) => {
+    update(
+      "institution_slugs",
+      form.institution_slugs.includes(slug)
+        ? form.institution_slugs.filter((item) => item !== slug)
+        : [...form.institution_slugs, slug],
+    );
   };
 
   const save = async () => {
@@ -214,6 +230,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
       status: form.status,
       images: productImages,
       color_variants: cleanColorVariants,
+      institution_slugs: form.institution_slugs,
     }).eq("id", product.id);
     setLoading(false);
     if (error) {
@@ -264,6 +281,34 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
             </Select>
           </div>
           <div>
+            <Label>Institutions served</Label>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              These selections determine which institution collection pages include this product.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {institutions.map((institution) => {
+                const selected = form.institution_slugs.includes(institution.slug);
+                return (
+                  <button
+                    key={institution.id}
+                    type="button"
+                    onClick={() => toggleInstitution(institution.slug)}
+                    className={`border p-3 text-left transition-colors ${
+                      selected ? "border-heritage bg-heritage/10" : "border-grid/30 bg-background hover:border-interactive"
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    <span className="font-medium text-foreground">{institution.name}</span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{institution.description}</span>
+                  </button>
+                );
+              })}
+              {!institutions.length && (
+                <p className="text-sm text-muted-foreground">No active institutions are configured in the database.</p>
+              )}
+            </div>
+          </div>
+          <div>
             <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label>Description</Label>
               <Button type="button" size="sm" variant="outline" onClick={() => setAiTarget("description")} className="w-full sm:w-auto">
@@ -297,7 +342,7 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
               <Label>Currency</Label>
               <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["USD", "ZWL"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>{["USD", "ZWG"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
@@ -435,6 +480,9 @@ const EditProductDialog = ({ product, open, onOpenChange }: Props) => {
               currency: form.currency,
               sku: form.location,
               warehouse: form.city,
+              institutions: institutions
+                .filter((institution) => form.institution_slugs.includes(institution.slug))
+                .map((institution) => institution.name),
               images,
               colorVariants,
             }}

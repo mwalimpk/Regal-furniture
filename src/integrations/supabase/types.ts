@@ -285,6 +285,7 @@ export type Database = {
           featured_slug: string | null
           id: string
           images: string[] | null
+          institution_slugs: string[]
           location: string | null
           price: number
           property_type: string
@@ -307,6 +308,7 @@ export type Database = {
           featured_slug?: string | null
           id?: string
           images?: string[] | null
+          institution_slugs?: string[]
           location?: string | null
           price?: number
           property_type?: string
@@ -329,6 +331,7 @@ export type Database = {
           featured_slug?: string | null
           id?: string
           images?: string[] | null
+          institution_slugs?: string[]
           location?: string | null
           price?: number
           property_type?: string
@@ -336,6 +339,87 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      product_institutions: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      currency_settings: {
+        Row: {
+          auto_update: boolean
+          cache_hours: number
+          fallback_rate: number
+          id: string
+          last_live_rate: number | null
+          last_rate_updated_at: string | null
+          manual_rate: number
+          profit_margin_usd: number
+          rate_source_url: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          auto_update?: boolean
+          cache_hours?: number
+          fallback_rate?: number
+          id: string
+          last_live_rate?: number | null
+          last_rate_updated_at?: string | null
+          manual_rate?: number
+          profit_margin_usd?: number
+          rate_source_url?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          auto_update?: boolean
+          cache_hours?: number
+          fallback_rate?: number
+          id?: string
+          last_live_rate?: number | null
+          last_rate_updated_at?: string | null
+          manual_rate?: number
+          profit_margin_usd?: number
+          rate_source_url?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

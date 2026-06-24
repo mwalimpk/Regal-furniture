@@ -1,10 +1,9 @@
 import { MessageCircle } from "lucide-react";
-
-const WHATSAPP_NUMBER = "2638644281361";
+import { buildWhatsAppLink } from "@/lib/contact";
 
 const WhatsAppFloat = () => {
   const message = "Hello Regal Office & Home, I would like help with products and pricing.";
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const href = buildWhatsAppLink(message);
 
   return (
     <a

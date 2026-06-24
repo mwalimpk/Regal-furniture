@@ -10,7 +10,7 @@ import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
 
 const ProductRecommendations = () => {
   const { toast } = useToast();
-  const { format } = useCurrency();
+  const { convert, formatConverted } = useCurrency();
   const queryClient = useQueryClient();
   const [selectedProductId, setSelectedProductId] = useState("");
   const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
@@ -233,7 +233,10 @@ const ProductRecommendations = () => {
                             <p className="truncate text-sm font-semibold text-foreground">{insight.product.name}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{insight.product.category}</p>
                             <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-label">
-                              Total with selected: {format(insight.total)}
+                              Total with selected: {formatConverted(
+                                convert(selectedProduct.price, selectedProduct.currency) +
+                                convert(insight.product.price, insight.product.currency),
+                              )}
                             </p>
                           </div>
                         </div>
@@ -292,7 +295,10 @@ const ProductRecommendations = () => {
                             <p className="mt-1 text-xs text-muted-foreground">{insight.product.category}</p>
                           </div>
                           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-label">
-                            Total {format(insight.total)}
+                            Total {formatConverted(
+                              convert(selectedProduct.price, selectedProduct.currency) +
+                              convert(insight.product.price, insight.product.currency),
+                            )}
                           </p>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">

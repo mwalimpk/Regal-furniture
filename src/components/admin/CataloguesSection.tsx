@@ -199,7 +199,7 @@ const parseCatalogueRows = async (file: File, knownCategories: readonly string[]
     if (!propertyType) rowIssues.push("missing category");
     if (propertyType && !category) rowIssues.push(`category "${propertyType}" is not in product categories`);
     if (!Number.isFinite(price) || price < 0) rowIssues.push("invalid price");
-    if (!["USD", "ZWL"].includes(currency)) rowIssues.push("unsupported currency");
+    if (!["USD", "ZWG"].includes(currency)) rowIssues.push("unsupported currency");
     if (seen.has(key)) rowIssues.push("duplicate row");
 
     if (rowIssues.length) {

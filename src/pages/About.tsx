@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import heroOffice from "@/assets/hero-office.jpg";
-import businessOffice from "@/assets/business-office.jpg";
+import aboutAfricanTeam from "@/assets/about-african-team.png";
 import productWorkstation from "@/assets/product-workstation.jpg";
 import productConference from "@/assets/product-conference.jpg";
 import productStorage from "@/assets/product-storage.jpg";
@@ -164,8 +164,8 @@ const About = () => {
           <div className="container mx-auto grid gap-12 px-10 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
             <div className="overflow-hidden bg-card">
               <img
-                src={businessOffice}
-                alt="Regal workplace planning"
+                src={aboutAfricanTeam}
+                alt="African Regal workplace specialists reviewing furniture finishes and a floor plan"
                 className="aspect-[4/5] w-full object-cover"
                 loading="lazy"
               />

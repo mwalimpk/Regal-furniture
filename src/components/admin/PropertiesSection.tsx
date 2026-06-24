@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useProductCategories } from "@/hooks/useProductCategories";
+import { useProductInstitutions } from "@/hooks/useProductInstitutions";
 import {
   PRODUCT_IMPORT_HEADER_EXAMPLES,
   PRODUCT_IMPORT_HEADER_LABELS,
@@ -71,6 +72,7 @@ type AdminProduct = {
   country: string | null;
   images: string[] | null;
   color_variants?: unknown;
+  institution_slugs?: string[] | null;
   status: string;
   featured: boolean | null;
   created_at: string;
@@ -112,6 +114,7 @@ const PropertiesSection = () => {
   const [parsingCsv, setParsingCsv] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const { data: productCategories = [] } = useProductCategories();
+  const { data: institutions = [] } = useProductInstitutions();
   const categoryOptions = useMemo(() => productCategories.map((item) => item.name), [productCategories]);
   const featuredSlugOptions = useMemo(
     () => productCategories.flatMap((categoryItem) => (
@@ -136,7 +139,12 @@ const PropertiesSection = () => {
 
     const next = products.filter((p) => {
       const s = search.toLowerCase();
-      const matches = !s || p.title?.toLowerCase().includes(s) || p.property_type?.toLowerCase().includes(s) || p.location?.toLowerCase().includes(s);
+      const matches =
+        !s ||
+        p.title?.toLowerCase().includes(s) ||
+        p.property_type?.toLowerCase().includes(s) ||
+        p.location?.toLowerCase().includes(s) ||
+        p.institution_slugs?.some((slug) => slug.toLowerCase().includes(s));
       const matchesCategory = category === "all" || p.property_type === category;
       const price = Number(p.price || 0);
       const matchesMin = min === null || price >= min;
@@ -227,6 +235,7 @@ const PropertiesSection = () => {
       Array.isArray(p.images) ? p.images.join("|") : "",
       p.status || "approved",
       p.featured ? "true" : "false",
+      Array.isArray(p.institution_slugs) ? p.institution_slugs.join("|") : "",
     ]));
     const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
     downloadCsv(csv, `products-${new Date().toISOString().slice(0, 10)}.csv`);
@@ -268,8 +277,19 @@ const PropertiesSection = () => {
 
     setParsingCsv(true);
     try {
+<<<<<<< HEAD
       const text = await file.text();
       const analysis = analyzeProductCsvHeaders(text);
+=======
+      const result = validateProductCsv(
+        await file.text(),
+        products || [],
+        categoryOptions,
+        featuredSlugOptions,
+        institutions.map((item) => item.slug),
+      );
+      setCsvImport({ ...result, fileName: file.name });
+>>>>>>> ac9ff23dca2df5b77162d3aa9d3fd7145624a5f9
 
       if (analysis.errors.length) {
         setCsvHeaderReview(null);
@@ -743,6 +763,7 @@ const PropertiesSection = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Featured</TableHead>
+                <TableHead>Institutions</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added</TableHead>
@@ -771,6 +792,13 @@ const PropertiesSection = () => {
                   </TableCell>
                   <TableCell>{p.property_type}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{p.featured_slug || "-"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {p.institution_slugs?.length
+                      ? p.institution_slugs
+                        .map((slug) => institutions.find((item) => item.slug === slug)?.name || slug)
+                        .join(", ")
+                      : "-"}
+                  </TableCell>
                   <TableCell>{p.currency} {Number(p.price).toLocaleString()}</TableCell>
                   <TableCell><Badge className={statusColor(p.status)}>{p.status}</Badge></TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(p.created_at).toLocaleDateString()}</TableCell>

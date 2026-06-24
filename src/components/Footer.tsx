@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import regalLogo from "@/assets/regal-logo-brand.svg";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Footer = () => {
   const { data: categories = [] } = useProductCategories();
+  const { rate, marginUsd, rateSource } = useCurrency();
 
   return (
     <footer className="border-t border-grid bg-card pb-8 pt-16 text-foreground">
@@ -72,6 +74,13 @@ const Footer = () => {
           </div>
           <div>Copyright 2026 Regal Office Home. All rights reserved.</div>
         </div>
+        <p className="mt-5 text-center text-[10px] leading-5 text-muted-foreground md:text-right">
+          Currency conversion: 1 USD = {rate.toFixed(4)} ZWG · USD {marginUsd.toFixed(2)} conversion margin · Source:{" "}
+          <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer" className="underline hover:text-interactive">
+            ExchangeRate-API
+          </a>{" "}
+          ({rateSource})
+        </p>
       </div>
     </footer>
   );

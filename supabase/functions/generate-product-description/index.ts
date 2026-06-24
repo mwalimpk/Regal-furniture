@@ -335,6 +335,7 @@ Existing long description: ${stripHtml(body.long_description)}
 Price: ${[body.currency, body.price].filter(Boolean).join(" ")}
 SKU/model: ${body.sku || ""}
 Warehouse: ${body.warehouse || ""}
+Institutions served: ${asArray(body.institutions).join(", ") || "Not specified"}
 Image labels: ${asArray(body.imageLabels).join(", ") || "None"}
 Image URLs: ${asArray(body.imageUrls).join(", ") || "None"}
 Color variants: ${Array.isArray(body.colorVariants) ? body.colorVariants.map((item) => JSON.stringify(item)).join("; ") : "None"}

@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import RFQModal from "@/components/RFQModal";
 import PromotionalBannerSlot from "@/components/PromotionalBannerSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchApprovedStorefrontProducts } from "@/lib/storefrontProducts";
@@ -20,14 +19,13 @@ import { sanitizeRichTextHtml } from "@/lib/richText";
 import { extractProductSpecificationsFromHtml, mergeProductSpecifications } from "@/lib/productSpecifications";
 import { getProductPromotionDisplayLabel, getProductPromotionPrice } from "@/lib/productPromotions";
 import { useProductPromotionForProduct } from "@/hooks/useProductPromotions";
-import { formatCurrency } from "@/utils/formatCurrency";
+import { buildWhatsAppCallLink } from "@/lib/contact";
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
   const { addItem, setIsOpen } = useCart();
   const { toast } = useToast();
-  const { currency } = useCurrency();
-  const [rfqOpen, setRfqOpen] = useState(false);
+  const { format } = useCurrency();
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
@@ -197,9 +195,14 @@ const ProductPage = () => {
       price: currentPrice,
       currency: product.currency,
       image: selectedImage || selectedColorVariant?.images[0] || product.image,
+      warehouse: product.warehouse,
     });
     setIsOpen(true);
     toast({ title: "Cart Updated", description: `${product.name}${variantSuffix} ready for checkout.` });
+  };
+
+  const handleQuoteRequest = () => {
+    window.location.href = buildWhatsAppCallLink();
   };
 
   return (
@@ -349,11 +352,11 @@ const ProductPage = () => {
               <div className="product-media-panel mt-8 p-6 md:p-7">
                 <div className="flex flex-wrap items-end gap-4">
                   <span className="font-serif text-5xl text-heritage">
-                    {formatCurrency(currentPrice, currency)}
+                    {format(currentPrice, product.currency)}
                   </span>
                   {comparisonPrice !== null && comparisonPrice > currentPrice && (
                     <span className="mb-1 text-xl font-medium text-muted-foreground/70 line-through">
-                      {formatCurrency(comparisonPrice, currency)}
+                      {format(comparisonPrice, product.currency)}
                     </span>
                   )}
                   <span className="mb-2 bg-background/78 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-label">
@@ -392,7 +395,7 @@ const ProductPage = () => {
                     Add to Cart
                   </Button>
                   <Button
-                    onClick={() => setRfqOpen(true)}
+                    onClick={handleQuoteRequest}
                     className="h-14 flex-1 rounded-none bg-crimson font-mono text-[11px] uppercase tracking-[0.22em] text-primary-foreground hover:bg-crimson/90 hover:text-primary-foreground"
                   >
                     Request Quote
@@ -432,7 +435,7 @@ const ProductPage = () => {
                       Get special bulk pricing for offices, hotels, and large projects.{" "}
                       <button
                         type="button"
-                        onClick={() => setRfqOpen(true)}
+                        onClick={handleQuoteRequest}
                         className="cursor-pointer font-semibold text-heritage underline"
                       >
                         Request a bulk quote
@@ -501,7 +504,6 @@ const ProductPage = () => {
 
       <Footer />
       <MobileBottomNav />
-      <RFQModal open={rfqOpen} onOpenChange={setRfqOpen} productName={product.name} />
     </div>
   );
 };

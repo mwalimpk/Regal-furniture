@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Order {
   id: string;
@@ -19,25 +20,28 @@ interface Order {
 
 const ClientDashboard = () => {
   const { user, profile, signOut } = useAuth();
+  const { currency, format } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<"profile" | "orders">("profile");
 
   useEffect(() => {
-    if (user) fetchOrders();
-  }, [user]);
-
-  const fetchOrders = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }) as any;
-    if (data) setOrders(data);
-  };
+    let ignore = false;
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
+    const fetchOrders = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (!ignore && data) setOrders(data as Order[]);
+    };
+
+    void fetchOrders();
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -110,7 +114,7 @@ const ClientDashboard = () => {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Currency</p>
-                    <p className="font-medium text-foreground">{profile?.currency || "USD"}</p>
+                    <p className="font-medium text-foreground">{currency}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Account Status</p>
@@ -160,14 +164,14 @@ const ClientDashboard = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-xs font-medium px-2 py-1 capitalize ${statusColor(order.status)}`}>{order.status}</span>
-                        <span className="font-semibold text-foreground">{formatPrice(order.total)}</span>
+                        <span className="font-semibold text-foreground">{format(order.total, order.currency)}</span>
                       </div>
                     </div>
                     <div className="border-t border-border pt-3 space-y-1.5">
                       {order.items?.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
                           <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
-                          <span className="text-foreground">{formatPrice(item.price * item.quantity)}</span>
+                          <span className="text-foreground">{format(item.price * item.quantity, order.currency)}</span>
                         </div>
                       ))}
                     </div>

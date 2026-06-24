@@ -206,6 +206,7 @@ const buildContext = (body = {}) => {
     currency: firstNonEmpty(body.currency),
     sku: firstNonEmpty(body.sku),
     warehouse: firstNonEmpty(body.warehouse),
+    institutions: asStringArray(body.institutions),
     imageLabels,
     imageUrls,
     colorVariants,
@@ -616,6 +617,7 @@ Product:
 - Price: ${[context.currency, context.price].filter(Boolean).join(" ") || "Not provided"}
 - SKU/model: ${context.sku || "Not provided"}
 - Warehouse: ${context.warehouse || "Not provided"}
+- Institutions served: ${context.institutions.join(", ") || "Not specified"}
 - Uploaded image labels: ${context.imageLabels.join(", ") || "None"}
 - Uploaded image URLs: ${context.imageUrls.join(", ") || "None"}
 - Color variants: ${context.colorVariants.map((variant) => [variant.name, variant.hex, variant.image_count ? `${variant.image_count} images` : ""].filter(Boolean).join(" / ")).join("; ") || "None"}
