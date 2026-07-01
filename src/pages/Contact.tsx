@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import contactAfricanConsultation from "@/assets/contact-african-consultation.png";
-import heroOffice from "@/assets/hero-office.jpg";
 import productConference from "@/assets/product-conference.jpg";
 import productWorkstation from "@/assets/product-workstation.jpg";
 
@@ -17,6 +16,7 @@ const branches = [
   {
     city: "Harare",
     address: "DDK Centre, 68 Enterprise Rd, Newlands",
+    mapQuery: "DDK Centre, 68 Enterprise Rd, Newlands, Harare, Zimbabwe",
     phones: ["+263 8644 281 361", "+263 780 472 180", "+263 712 012 913"],
     salesPhone: "+263780472180",
     whatsapp: "+263780472180",
@@ -26,6 +26,7 @@ const branches = [
   {
     city: "Bulawayo",
     address: "Norvaal House, 68 Fife Street, Corner Sixth Avenue",
+    mapQuery: "Norvaal House, 68 Fife Street, Corner Sixth Avenue, Bulawayo, Zimbabwe",
     phones: ["+263 8644 041 571", "+263 787 781 470", "+263 718 907 161"],
     salesPhone: "+263787781470",
     whatsapp: "+263787781470",
@@ -33,6 +34,12 @@ const branches = [
     note: "Regional support for office, home, institutional, and project orders.",
   },
 ];
+
+const googleMapsEmbedUrl = (query: string) =>
+  `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+
+const googleMapsSearchUrl = (query: string) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
 const enquiryTypes = [
   "Office fit-out",
@@ -325,13 +332,40 @@ const Contact = () => {
             </div>
 
             <div className="grid gap-5">
-              <div className="overflow-hidden bg-card">
-                <img
-                  src={heroOffice}
-                  alt="Regal showroom furniture"
-                  className="aspect-[4/3] w-full object-cover"
-                  loading="lazy"
-                />
+              <div className="overflow-hidden border border-grid/25 bg-card">
+                <div className="border-b border-grid/25 px-5 py-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-label">Google Maps</p>
+                  <h3 className="mt-2 font-serif text-2xl text-foreground">Warehouse locations</h3>
+                </div>
+                <div className="grid divide-y divide-grid/25">
+                  {branches.map((branch) => (
+                    <article key={`${branch.city}-map`} className="grid bg-card md:grid-cols-[0.42fr_0.58fr] xl:grid-cols-1 2xl:grid-cols-[0.42fr_0.58fr]">
+                      <div className="flex flex-col justify-between gap-4 p-5">
+                        <div>
+                          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-label">{branch.city}</p>
+                          <p className="mt-3 text-sm leading-7 text-muted-foreground">{branch.address}</p>
+                        </div>
+                        <a
+                          href={googleMapsSearchUrl(branch.mapQuery)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-heritage transition-colors hover:text-interactive"
+                        >
+                          Open in Google Maps
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                      <iframe
+                        title={`${branch.city} Regal warehouse location on Google Maps`}
+                        src={googleMapsEmbedUrl(branch.mapQuery)}
+                        className="min-h-[260px] w-full border-0 md:h-full xl:h-[280px] 2xl:h-full"
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </article>
+                  ))}
+                </div>
               </div>
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="border border-grid/25 bg-card/70 p-5">

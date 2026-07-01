@@ -2,7 +2,8 @@ export type StoreCurrency = "USD" | "ZWG";
 
 export type CurrencyRateSnapshot = {
   rate: number;
-  marginUsd: number;
+  baseRate: number;
+  rateAdjustmentZwg: number;
   source: "live" | "live-cache" | "stale-cache" | "manual" | "fallback";
   updatedAt: string | null;
   autoUpdate: boolean;
@@ -22,9 +23,12 @@ export type CurrencySettings = {
   user_id: string | null;
 };
 
+export const MIN_ZWG_RATE_ADJUSTMENT = 7;
+
 export const DEFAULT_CURRENCY_RATE: CurrencyRateSnapshot = {
-  rate: 27,
-  marginUsd: 7,
+  rate: 27 + MIN_ZWG_RATE_ADJUSTMENT,
+  baseRate: 27,
+  rateAdjustmentZwg: MIN_ZWG_RATE_ADJUSTMENT,
   source: "fallback",
   updatedAt: null,
   autoUpdate: true,
@@ -50,20 +54,17 @@ export const convertCurrencyAmount = ({
   sourceCurrency,
   targetCurrency,
   rate,
-  marginUsd,
 }: {
   amount: number;
   sourceCurrency: string;
   targetCurrency: StoreCurrency;
   rate: number;
-  marginUsd: number;
 }) => {
   const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
   const safeRate = Number.isFinite(Number(rate)) && Number(rate) > 0 ? Number(rate) : DEFAULT_CURRENCY_RATE.rate;
-  const safeMargin = Math.max(0, Number.isFinite(Number(marginUsd)) ? Number(marginUsd) : 0);
   const source = normalizeStoreCurrency(sourceCurrency);
 
   if (source === targetCurrency) return safeAmount;
-  if (source === "USD") return (safeAmount + safeMargin) * safeRate;
-  return safeAmount / safeRate + safeMargin;
+  if (source === "USD") return safeAmount * safeRate;
+  return safeAmount / safeRate;
 };

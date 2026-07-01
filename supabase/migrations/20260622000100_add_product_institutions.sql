@@ -41,9 +41,11 @@ CREATE POLICY "Admins can manage product institutions"
 INSERT INTO public.product_institutions (name, slug, description, image_url, display_order, status)
 VALUES
   ('Government', 'government', 'Durable boardroom, office, storage, and reception furniture for departments, agencies, and public service environments.', '/images/institutions/government.jpg', 1, 'active'),
-  ('Hospitals', 'hospitals', 'Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.', '/images/institutions/hospitals.jpg', 2, 'active'),
-  ('Hotels', 'hotels', 'Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.', '/images/institutions/hotels.jpg', 3, 'active'),
-  ('Schools', 'schools', 'Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.', '/images/institutions/schools.jpg', 4, 'active')
+  ('Hospitals', 'hospitals', 'Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.', '/images/institutions/hospitals-reception.png', 2, 'active'),
+  ('Hotels', 'hotels', 'Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.', '/images/institutions/hotels-lobby.png', 3, 'active'),
+  ('Schools', 'schools', 'Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.', '/images/institutions/schools.jpg', 4, 'active'),
+  ('Corporate Offices', 'corporate-offices', 'Executive suites, boardrooms, open-plan teams, receptions, and storage for growing business environments.', '/images/hero-slides/boardroom-office.jpeg', 5, 'active'),
+  ('Property Developers', 'property-developers', 'Furniture packages for show units, sales offices, apartment amenities, and multi-room development handovers.', '/images/hero-slides/home-and-office.jpeg', 6, 'active')
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,

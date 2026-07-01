@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_CURRENCY_RATE,
+  MIN_ZWG_RATE_ADJUSTMENT,
   convertCurrencyAmount,
   formatConvertedCurrency,
   normalizeStoreCurrency,
@@ -19,7 +20,7 @@ interface CurrencyContextType {
   format: (amount: number, sourceCurrency?: string) => string;
   formatConverted: (amount: number) => string;
   rate: number;
-  marginUsd: number;
+  rateAdjustmentZwg: number;
   rateSource: CurrencyRateSnapshot["source"];
   rateUpdatedAt: string | null;
   isLoadingRate: boolean;
@@ -33,7 +34,7 @@ const CurrencyContext = createContext<CurrencyContextType>({
   format: (amount) => formatConvertedCurrency(amount, "USD"),
   formatConverted: (amount) => formatConvertedCurrency(amount, "USD"),
   rate: DEFAULT_CURRENCY_RATE.rate,
-  marginUsd: DEFAULT_CURRENCY_RATE.marginUsd,
+  rateAdjustmentZwg: DEFAULT_CURRENCY_RATE.rateAdjustmentZwg,
   rateSource: DEFAULT_CURRENCY_RATE.source,
   rateUpdatedAt: null,
   isLoadingRate: false,
@@ -59,10 +60,19 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase.functions.invoke("currency-rate", { body: {} });
       if (error) throw new Error(error.message);
       const row = (data || {}) as Partial<CurrencyRateSnapshot>;
+      const legacyRow = row as Partial<CurrencyRateSnapshot> & { marginUsd?: number };
       const rate = Number(row.rate);
+      const baseRate = Number(row.baseRate);
+      const adjustment = Number(row.rateAdjustmentZwg ?? legacyRow.marginUsd);
+      const safeAdjustment = Number.isFinite(adjustment) ? Math.max(MIN_ZWG_RATE_ADJUSTMENT, adjustment) : DEFAULT_CURRENCY_RATE.rateAdjustmentZwg;
+      const providedRate = Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_CURRENCY_RATE.rate;
+      const hasBaseRate = Number.isFinite(baseRate) && baseRate > 0;
+      const isLegacyPayload = row.rateAdjustmentZwg === undefined && legacyRow.marginUsd !== undefined;
+      const safeBaseRate = hasBaseRate ? baseRate : isLegacyPayload ? providedRate : Math.max(0.000001, providedRate - safeAdjustment);
       return {
-        rate: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_CURRENCY_RATE.rate,
-        marginUsd: Math.max(0, Number(row.marginUsd ?? DEFAULT_CURRENCY_RATE.marginUsd)),
+        rate: hasBaseRate || isLegacyPayload ? safeBaseRate + safeAdjustment : providedRate,
+        baseRate: safeBaseRate,
+        rateAdjustmentZwg: safeAdjustment,
         source: row.source || DEFAULT_CURRENCY_RATE.source,
         updatedAt: row.updatedAt || null,
         autoUpdate: row.autoUpdate !== false,
@@ -86,7 +96,6 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         sourceCurrency,
         targetCurrency: currency,
         rate: rateSnapshot.rate,
-        marginUsd: rateSnapshot.marginUsd,
       });
     };
 
@@ -100,7 +109,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       format,
       formatConverted: (amount) => formatConvertedCurrency(amount, currency),
       rate: rateSnapshot.rate,
-      marginUsd: rateSnapshot.marginUsd,
+      rateAdjustmentZwg: rateSnapshot.rateAdjustmentZwg,
       rateSource: rateSnapshot.source,
       rateUpdatedAt: rateSnapshot.updatedAt,
       isLoadingRate,

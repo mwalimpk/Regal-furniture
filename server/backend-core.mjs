@@ -134,13 +134,13 @@ const DEFAULT_PRODUCT_INSTITUTIONS = [
     name: "Hospitals",
     slug: "hospitals",
     description: "Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.",
-    image_url: "/images/institutions/hospitals.jpg",
+    image_url: "/images/institutions/hospitals-reception.png",
   },
   {
     name: "Hotels",
     slug: "hotels",
     description: "Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.",
-    image_url: "/images/institutions/hotels.jpg",
+    image_url: "/images/institutions/hotels-lobby.png",
   },
   {
     name: "Schools",
@@ -148,7 +148,21 @@ const DEFAULT_PRODUCT_INSTITUTIONS = [
     description: "Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.",
     image_url: "/images/institutions/schools.jpg",
   },
+  {
+    name: "Corporate Offices",
+    slug: "corporate-offices",
+    description: "Executive suites, boardrooms, open-plan teams, receptions, and storage for growing business environments.",
+    image_url: "/images/hero-slides/boardroom-office.jpeg",
+  },
+  {
+    name: "Property Developers",
+    slug: "property-developers",
+    description: "Furniture packages for show units, sales offices, apartment amenities, and multi-room development handovers.",
+    image_url: "/images/hero-slides/home-and-office.jpeg",
+  },
 ];
+
+const DEFAULT_INSTITUTION_IMAGE_UPDATE_SLUGS = new Set(["hospitals", "hotels"]);
 
 const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
   DEFAULT_PRODUCT_INSTITUTIONS.map((institution, index) => ({
@@ -160,6 +174,28 @@ const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
     updated_at: timestamp,
     user_id: null,
   }));
+
+const ensureDefaultInstitutionRows = (rows, timestamp = nowIso()) => {
+  const currentRows = Array.isArray(rows) ? rows : [];
+  const defaultRows = buildDefaultInstitutionRows(timestamp);
+  const defaultRowBySlug = new Map(defaultRows.map((row) => [row.slug, row]));
+  let updatedExistingRows = false;
+  const normalizedRows = currentRows.map((row) => {
+    const slug = String(row?.slug || "").trim().toLowerCase();
+    const defaultRow = defaultRowBySlug.get(slug);
+    if (!defaultRow || !DEFAULT_INSTITUTION_IMAGE_UPDATE_SLUGS.has(slug) || row.image_url === defaultRow.image_url) return row;
+
+    updatedExistingRows = true;
+    return { ...row, image_url: defaultRow.image_url, updated_at: timestamp };
+  });
+  const existingSlugs = new Set(normalizedRows.map((row) => String(row?.slug || "").trim().toLowerCase()).filter(Boolean));
+  const missingRows = defaultRows.filter((row) => !existingSlugs.has(row.slug));
+
+  return {
+    rows: [...normalizedRows, ...missingRows].sort((left, right) => Number(left.display_order || 0) - Number(right.display_order || 0)),
+    changed: !Array.isArray(rows) || missingRows.length > 0 || updatedExistingRows,
+  };
+};
 
 const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   id: "storefront",
@@ -174,6 +210,35 @@ const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   updated_at: timestamp,
   user_id: null,
 });
+
+const MIN_ZWG_RATE_ADJUSTMENT = 7;
+
+const resolveCurrencyBaseRate = (...values) => {
+  for (const value of values) {
+    const rate = Number(value);
+    if (Number.isFinite(rate) && rate > 0) return rate;
+  }
+  return 27;
+};
+
+const resolveZwgRateAdjustment = (settings = {}) => {
+  const adjustment = Number(settings.profit_margin_usd);
+  return Number.isFinite(adjustment) ? Math.max(MIN_ZWG_RATE_ADJUSTMENT, adjustment) : MIN_ZWG_RATE_ADJUSTMENT;
+};
+
+const buildCurrencyRatePayload = ({ settings, baseRate, source, updatedAt, autoUpdate }) => {
+  const safeBaseRate = resolveCurrencyBaseRate(baseRate);
+  const rateAdjustmentZwg = resolveZwgRateAdjustment(settings);
+
+  return {
+    rate: safeBaseRate + rateAdjustmentZwg,
+    baseRate: safeBaseRate,
+    rateAdjustmentZwg,
+    source,
+    updatedAt,
+    autoUpdate,
+  };
+};
 
 const normalizeCategoryFeaturedItems = (features = [], fallbackImage = "") => {
   const values = Array.isArray(features)
@@ -319,10 +384,9 @@ const loadState = () => {
     changed = true;
   }
 
-  if (!Array.isArray(state.product_institutions) || !state.product_institutions.length) {
-    state.product_institutions = buildDefaultInstitutionRows();
-    changed = true;
-  }
+  const institutions = ensureDefaultInstitutionRows(state.product_institutions);
+  state.product_institutions = institutions.rows;
+  changed = changed || institutions.changed;
 
   if (!Array.isArray(state.currency_settings) || !state.currency_settings.length) {
     state.currency_settings = [buildDefaultCurrencySettings()];
@@ -1066,26 +1130,26 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
 
     if (!settings.auto_update) {
       return {
-        data: {
-          rate: Number(settings.manual_rate || settings.fallback_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: resolveCurrencyBaseRate(settings.manual_rate, settings.fallback_rate),
           source: "manual",
           updatedAt: settings.updated_at,
           autoUpdate: false,
-        },
+        }),
         error: null,
       };
     }
 
     if (cacheIsFresh && Number(settings.last_live_rate) > 0) {
       return {
-        data: {
-          rate: Number(settings.last_live_rate),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: settings.last_live_rate,
           source: "live-cache",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     }
@@ -1104,24 +1168,24 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
       saveState(state);
 
       return {
-        data: {
-          rate: liveRate,
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: liveRate,
           source: "live",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     } catch (error) {
       return {
-        data: {
-          rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: resolveCurrencyBaseRate(settings.last_live_rate, settings.fallback_rate, settings.manual_rate),
           source: settings.last_live_rate ? "stale-cache" : "fallback",
           updatedAt: settings.last_rate_updated_at || settings.updated_at,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     }

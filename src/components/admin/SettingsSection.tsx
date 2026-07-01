@@ -9,14 +9,14 @@ import { useProductCategories } from "@/hooks/useProductCategories";
 import { defaultFilterSettings, FilterSettings, QuickFilter, QuickFilterType, loadFilterSettings, saveFilterSettings } from "@/lib/filterSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import type { CurrencyRateSnapshot, CurrencySettings } from "@/lib/currency";
+import { MIN_ZWG_RATE_ADJUSTMENT, type CurrencyRateSnapshot, type CurrencySettings } from "@/lib/currency";
 
 const defaultCurrencySettings: CurrencySettings = {
   id: "storefront",
   auto_update: true,
   manual_rate: 27,
   fallback_rate: 27,
-  profit_margin_usd: 7,
+  profit_margin_usd: MIN_ZWG_RATE_ADJUSTMENT,
   cache_hours: 24,
   rate_source_url: "https://open.er-api.com/v6/latest/USD",
   last_live_rate: null,
@@ -32,6 +32,11 @@ const emptyQuickFilter = (): QuickFilter => ({
   value: "",
   enabled: true,
 });
+
+const normalizeZwgRateAdjustment = (value: unknown) => {
+  const adjustment = Number(value);
+  return Number.isFinite(adjustment) ? Math.max(MIN_ZWG_RATE_ADJUSTMENT, adjustment) : MIN_ZWG_RATE_ADJUSTMENT;
+};
 
 const SettingsSection = () => {
   const qc = useQueryClient();
@@ -52,7 +57,7 @@ const SettingsSection = () => {
         ...row,
         manual_rate: Number(row.manual_rate ?? defaultCurrencySettings.manual_rate),
         fallback_rate: Number(row.fallback_rate ?? defaultCurrencySettings.fallback_rate),
-        profit_margin_usd: Number(row.profit_margin_usd ?? defaultCurrencySettings.profit_margin_usd),
+        profit_margin_usd: normalizeZwgRateAdjustment(row.profit_margin_usd ?? defaultCurrencySettings.profit_margin_usd),
         cache_hours: Number(row.cache_hours ?? defaultCurrencySettings.cache_hours),
         last_live_rate: row.last_live_rate === null ? null : Number(row.last_live_rate),
       };
@@ -76,6 +81,8 @@ const SettingsSection = () => {
   useEffect(() => {
     setCurrencyDraft(currencySettings);
   }, [currencySettings]);
+
+  const displayedRateAdjustment = normalizeZwgRateAdjustment(currencySettings.profit_margin_usd);
 
   const syncDraft = (next: FilterSettings) => {
     setDraft(next);
@@ -127,7 +134,7 @@ const SettingsSection = () => {
       auto_update: currencyDraft.auto_update,
       manual_rate: Math.max(0.000001, Number(currencyDraft.manual_rate || 0)),
       fallback_rate: Math.max(0.000001, Number(currencyDraft.fallback_rate || 0)),
-      profit_margin_usd: Math.max(0, Number(currencyDraft.profit_margin_usd || 0)),
+      profit_margin_usd: normalizeZwgRateAdjustment(currencyDraft.profit_margin_usd),
       cache_hours: Math.max(1, Math.round(Number(currencyDraft.cache_hours || 24))),
       rate_source_url: currencyDraft.rate_source_url.trim(),
       updated_at: new Date().toISOString(),
@@ -310,7 +317,7 @@ const SettingsSection = () => {
             <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Pricing Rule</p>
             <h2 className="mt-2 font-serif text-2xl text-foreground">USD ↔ ZWG currency conversion</h2>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-              When a shopper changes away from a product's stored currency, the system converts at the selected rate and adds the USD profit margin.
+              When a shopper changes away from a product's stored currency, the system adds the ZWG adjustment to the exchange rate only. USD prices are not increased before conversion.
             </p>
           </div>
 
@@ -329,18 +336,18 @@ const SettingsSection = () => {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <Label>Profit margin (USD)</Label>
+              <Label>ZWG rate adjustment</Label>
               <Input
                 type="number"
-                min="0"
-                step="0.01"
+                min={MIN_ZWG_RATE_ADJUSTMENT}
+                step="0.000001"
                 value={currencyDraft.profit_margin_usd}
                 onChange={(event) => setCurrencyDraft((current) => ({ ...current, profit_margin_usd: Number(event.target.value) }))}
                 className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Manual rate (ZWG per USD)</Label>
+              <Label>Manual base rate (before adjustment)</Label>
               <Input
                 type="number"
                 min="0.000001"
@@ -352,7 +359,7 @@ const SettingsSection = () => {
               />
             </div>
             <div>
-              <Label>Fallback rate</Label>
+              <Label>Fallback base rate</Label>
               <Input
                 type="number"
                 min="0.000001"
@@ -388,10 +395,15 @@ const SettingsSection = () => {
 
           <div className="grid gap-3 border border-grid/25 bg-background p-4 text-sm md:grid-cols-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Last live rate</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Last API base rate</p>
               <p className="mt-2 font-medium text-foreground">
                 {currencySettings.last_live_rate ? `1 USD = ${currencySettings.last_live_rate.toFixed(6)} ZWG` : "Not fetched yet"}
               </p>
+              {currencySettings.last_live_rate ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Effective: {(currencySettings.last_live_rate + displayedRateAdjustment).toFixed(6)} ZWG/USD
+                </p>
+              ) : null}
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Last updated</p>
@@ -402,8 +414,13 @@ const SettingsSection = () => {
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Latest check</p>
               <p className="mt-2 font-medium text-foreground">
-                {rateTest ? `${rateTest.rate.toFixed(6)} ZWG/USD (${rateTest.source})` : "Use Check Rate"}
+                {rateTest ? `${rateTest.rate.toFixed(6)} ZWG/USD effective (${rateTest.source})` : "Use Check Rate"}
               </p>
+              {rateTest ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Base {rateTest.baseRate.toFixed(6)} + adjustment {rateTest.rateAdjustmentZwg.toFixed(6)}
+                </p>
+              ) : null}
             </div>
           </div>
 

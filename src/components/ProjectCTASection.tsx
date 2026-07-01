@@ -30,8 +30,8 @@ const ProjectCTASection = () => {
             </h2>
             <p className="mt-5 max-w-2xl text-sm leading-8 text-muted-foreground md:text-base">
               Regal supports bulk and project furniture requirements for public offices, healthcare facilities,
-              hotels, and schools with specification guidance, coordinated delivery, and practical product choices
-              for high-use environments.
+              hotels, schools, corporate workplaces, and property developers with specification guidance,
+              coordinated delivery, and practical product choices for high-use environments.
             </p>
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">

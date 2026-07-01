@@ -166,13 +166,13 @@ const DEFAULT_PRODUCT_INSTITUTIONS = [
     name: "Hospitals",
     slug: "hospitals",
     description: "Practical seating, workstations, storage, and administrative furniture for healthcare teams and patient-facing spaces.",
-    image_url: "/images/institutions/hospitals.jpg",
+    image_url: "/images/institutions/hospitals-reception.png",
   },
   {
     name: "Hotels",
     slug: "hotels",
     description: "Reception, lounge, back-office, dining, and room-support furniture for hospitality spaces that need comfort and polish.",
-    image_url: "/images/institutions/hotels.jpg",
+    image_url: "/images/institutions/hotels-lobby.png",
   },
   {
     name: "Schools",
@@ -180,7 +180,21 @@ const DEFAULT_PRODUCT_INSTITUTIONS = [
     description: "Furniture for offices, staff rooms, libraries, labs, administration blocks, and flexible learning support areas.",
     image_url: "/images/institutions/schools.jpg",
   },
+  {
+    name: "Corporate Offices",
+    slug: "corporate-offices",
+    description: "Executive suites, boardrooms, open-plan teams, receptions, and storage for growing business environments.",
+    image_url: "/images/hero-slides/boardroom-office.jpeg",
+  },
+  {
+    name: "Property Developers",
+    slug: "property-developers",
+    description: "Furniture packages for show units, sales offices, apartment amenities, and multi-room development handovers.",
+    image_url: "/images/hero-slides/home-and-office.jpeg",
+  },
 ];
+
+const DEFAULT_INSTITUTION_IMAGE_UPDATE_SLUGS = new Set(["hospitals", "hotels"]);
 
 const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
   DEFAULT_PRODUCT_INSTITUTIONS.map((institution, index) => ({
@@ -192,6 +206,15 @@ const buildDefaultInstitutionRows = (timestamp = nowIso()) =>
     updated_at: timestamp,
     user_id: null,
   }));
+
+const defaultInstitutionRowsToUpsert = (existingRows = [], timestamp = nowIso()) => {
+  const existingBySlug = new Map(existingRows.map((row) => [String(row?.slug || "").trim().toLowerCase(), row]));
+  return buildDefaultInstitutionRows(timestamp).filter((row) => {
+    const existing = existingBySlug.get(row.slug);
+    if (!existing) return true;
+    return DEFAULT_INSTITUTION_IMAGE_UPDATE_SLUGS.has(row.slug) && existing.image_url !== row.image_url;
+  });
+};
 
 const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   id: "storefront",
@@ -206,6 +229,35 @@ const buildDefaultCurrencySettings = (timestamp = nowIso()) => ({
   updated_at: timestamp,
   user_id: null,
 });
+
+const MIN_ZWG_RATE_ADJUSTMENT = 7;
+
+const resolveCurrencyBaseRate = (...values) => {
+  for (const value of values) {
+    const rate = Number(value);
+    if (Number.isFinite(rate) && rate > 0) return rate;
+  }
+  return 27;
+};
+
+const resolveZwgRateAdjustment = (settings = {}) => {
+  const adjustment = Number(settings.profit_margin_usd);
+  return Number.isFinite(adjustment) ? Math.max(MIN_ZWG_RATE_ADJUSTMENT, adjustment) : MIN_ZWG_RATE_ADJUSTMENT;
+};
+
+const buildCurrencyRatePayload = ({ settings, baseRate, source, updatedAt, autoUpdate }) => {
+  const safeBaseRate = resolveCurrencyBaseRate(baseRate);
+  const rateAdjustmentZwg = resolveZwgRateAdjustment(settings);
+
+  return {
+    rate: safeBaseRate + rateAdjustmentZwg,
+    baseRate: safeBaseRate,
+    rateAdjustmentZwg,
+    source,
+    updatedAt,
+    autoUpdate,
+  };
+};
 
 const normalizeCategoryFeaturedItems = (features = [], fallbackImage = "") => {
   const values = Array.isArray(features)
@@ -466,9 +518,10 @@ export const ensureMysqlReady = async () => {
     await importState({ product_categories: buildDefaultCategoryRows() });
   }
 
-  const [[institutionCountRow]] = await db.query("SELECT COUNT(*) AS count FROM product_institutions");
-  if (!Number(institutionCountRow.count)) {
-    await importState({ product_institutions: buildDefaultInstitutionRows() });
+  const [institutionRows] = await db.query("SELECT slug, image_url FROM product_institutions");
+  const institutionsToUpsert = defaultInstitutionRowsToUpsert(institutionRows);
+  if (institutionsToUpsert.length) {
+    await importState({ product_institutions: institutionsToUpsert });
   }
 
   const [[currencySettingsCountRow]] = await db.query("SELECT COUNT(*) AS count FROM currency_settings");
@@ -998,26 +1051,26 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
 
     if (!settings.auto_update) {
       return {
-        data: {
-          rate: Number(settings.manual_rate || settings.fallback_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: resolveCurrencyBaseRate(settings.manual_rate, settings.fallback_rate),
           source: "manual",
           updatedAt: settings.updated_at,
           autoUpdate: false,
-        },
+        }),
         error: null,
       };
     }
 
     if (cacheIsFresh && Number(settings.last_live_rate) > 0) {
       return {
-        data: {
-          rate: Number(settings.last_live_rate),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: settings.last_live_rate,
           source: "live-cache",
           updatedAt: settings.last_rate_updated_at,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     }
@@ -1034,24 +1087,24 @@ export const invokeFunction = async (name, body = {}, origin = "") => {
         [liveRate, asDbDateTime(updatedAt), asDbDateTime(updatedAt)],
       );
       return {
-        data: {
-          rate: liveRate,
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: liveRate,
           source: "live",
           updatedAt,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     } catch {
       return {
-        data: {
-          rate: Number(settings.last_live_rate || settings.fallback_rate || settings.manual_rate || 27),
-          marginUsd: Number(settings.profit_margin_usd || 0),
+        data: buildCurrencyRatePayload({
+          settings,
+          baseRate: resolveCurrencyBaseRate(settings.last_live_rate, settings.fallback_rate, settings.manual_rate),
           source: settings.last_live_rate ? "stale-cache" : "fallback",
           updatedAt: settings.last_rate_updated_at || settings.updated_at,
           autoUpdate: true,
-        },
+        }),
         error: null,
       };
     }
